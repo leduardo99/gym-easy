@@ -27,11 +27,9 @@ export async function deleteUserAccount(
 
 export async function purgeExpiredConsentProofs(
   db: AppDatabase,
-  now: Date = new Date(),
 ): Promise<number> {
-  const cutoff = consentProofCutoff(now);
   const result = await db.execute(
-    sql`select purge_expired_consent_proofs(${cutoff.toISOString()}::timestamptz) as removed`,
+    sql`select purge_consent_proofs() as removed`,
   );
   return removedCount(result);
 }

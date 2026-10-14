@@ -1,7 +1,7 @@
 export function isDesignCatalogEnabled(
-  vercelEnv: string | undefined = process.env.VERCEL_ENV,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
 ): boolean {
-  return vercelEnv !== "production";
+  return nodeEnv !== "production";
 }
 
 function decodePathname(pathname: string): string {
@@ -28,7 +28,7 @@ export function isDesignCatalogPath(pathname: string): boolean {
 
 export function shouldBlockDesignCatalog(
   pathname: string,
-  vercelEnv: string | undefined = process.env.VERCEL_ENV,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
 ): boolean {
-  return isDesignCatalogPath(pathname) && !isDesignCatalogEnabled(vercelEnv);
+  return isDesignCatalogPath(pathname) && !isDesignCatalogEnabled(nodeEnv);
 }

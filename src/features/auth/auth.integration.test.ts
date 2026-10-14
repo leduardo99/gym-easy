@@ -1,10 +1,11 @@
 import { eq, inArray } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { isLocalDatabaseUrl } from "@/db/driver";
+import { repairPostgresJsSerializers } from "@/db/postgres";
 import * as schema from "@/db/schema";
 import { users } from "@/db/schema";
 import type { AppDatabase } from "@/db";
@@ -18,13 +19,12 @@ import { sha256 } from "./tokens";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const runIntegration =
-  databaseUrl.length > 0 &&
-  isLocalDatabaseUrl(databaseUrl) &&
-  process.env.DATABASE_DRIVER !== "neon";
+  databaseUrl.length > 0 && isLocalDatabaseUrl(databaseUrl);
 
 describe.skipIf(!runIntegration)("auth database", () => {
-  const pool = new Pool({ connectionString: databaseUrl, max: 1 });
-  const db = drizzle({ client: pool, schema });
+  const sql = postgres(databaseUrl, { max: 1 });
+  const db = drizzle({ client: sql, schema });
+  repairPostgresJsSerializers(sql);
   const store = createDrizzleUserStore(db as unknown as AppDatabase);
   const limiter = createDrizzleRateLimiter(db as unknown as AppDatabase);
 
@@ -33,7 +33,7 @@ describe.skipIf(!runIntegration)("auth database", () => {
   });
 
   afterAll(async () => {
-    await pool.end();
+    await sql.end({ timeout: 5 });
   });
 
   it("stores an argon2 hash and only returns the requested user", async () => {

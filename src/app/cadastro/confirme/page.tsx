@@ -13,7 +13,7 @@ export const instant = false;
 export default async function ConfirmPendingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fresh?: string; status?: string }>;
+  searchParams: Promise<{ fresh?: string; status?: string; delivery?: string }>;
 }) {
   const session = await lookupSession();
   if (session.status === "ok") {
@@ -31,6 +31,7 @@ export default async function ConfirmPendingPage({
       email={email}
       fresh={params.fresh === "1"}
       expired={params.status === "expired"}
+      deliveryFailed={params.delivery === "failed"}
     />
   );
 }

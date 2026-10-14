@@ -1,0 +1,55 @@
+# Coolify production uses this file without the dev profile.
+# Local Mailpit: docker compose --profile dev up --build
+# Mailpit SMTP 1025 and UI 8025 stay on the docker network, with no host ports.
+# The app is reachable on 127.0.0.1:3000 for local dev. Coolify proxies
+# production at https://app.gaffer.pt.
+
+services:
+  mailpit:
+    profiles: ["dev"]
+    image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    networks:
+      - gym-easy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-resend}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Gym Easy <noreply@gaffer.pt>}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      APP_URL: ${APP_URL:-http://127.0.0.1:3000}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL_MIGRATOR: ${DATABASE_URL_MIGRATOR:-}
+      DB_POOL_MAX: ${DB_POOL_MAX:-5}
+      CONFIRM_EMAIL_SECRET: ${CONFIRM_EMAIL_SECRET}
+      CONSENT_PSEUDONYM_KEY: ${CONSENT_PSEUDONYM_KEY}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
+      CRON_SECRET: ${CRON_SECRET:-}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+    mem_limit: 768m
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      mailpit:
+        condition: service_healthy
+        required: false
+    networks:
+      - gym-easy
+
+networks:
+  gym-easy:

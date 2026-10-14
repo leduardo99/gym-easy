@@ -1,0 +1,93 @@
+# Deploy Gym Easy to Coolify after CI succeeds on main.
+# Secrets: TS_OAUTH_CLIENT_ID, TS_OAUTH_SECRET, COOLIFY_TOKEN.
+# COOLIFY_APP_UUID: variable or secret on the production environment.
+name: Deploy Coolify
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    env:
+      COOLIFY_URL: https://coolify.gaffer.pt
+    steps:
+      - name: Join tailnet (ephemeral, tag:ci)
+        uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Trigger Coolify deploy
+        id: deploy
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_APP_UUID: ${{ vars.COOLIFY_APP_UUID || secrets.COOLIFY_APP_UUID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COOLIFY_TOKEN}" ] || [ -z "${COOLIFY_APP_UUID}" ]; then
+            echo "Defina COOLIFY_TOKEN e COOLIFY_APP_UUID no environment production."
+            exit 1
+          fi
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --proto '=https' --max-time 30 \
+            --output "${body}" --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            "${COOLIFY_URL}/api/v1/deploy?uuid=${COOLIFY_APP_UUID}&force=false")"
+          case "${status}" in
+            2*) ;;
+            *)
+              echo "O deploy do Coolify respondeu ${status}."
+              rm -f "${body}"
+              exit 1
+              ;;
+          esac
+          dep="$(jq -r '.deployments[0].deployment_uuid // empty' "${body}")"
+          rm -f "${body}"
+          test -n "${dep}"
+          echo "deployment_uuid=${dep}" >> "${GITHUB_OUTPUT}"
+
+      - name: Wait for deployment to finish
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          DEP: ${{ steps.deploy.outputs.deployment_uuid }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 120); do
+            body="$(mktemp)"
+            status_code="$(curl --silent --show-error --proto '=https' --max-time 30 \
+              --output "${body}" --write-out '%{http_code}' \
+              --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              "${COOLIFY_URL}/api/v1/deployments/${DEP}")"
+            status="$(jq -r '.status // empty' "${body}")"
+            rm -f "${body}"
+            echo "[${i}] http=${status_code} status=${status}"
+            case "${status}" in
+              finished) exit 0 ;;
+              failed|cancelled-by-user|cancelled)
+                echo "::error::Coolify deployment ${status}"
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Timeout waiting for Coolify deployment"
+          exit 1

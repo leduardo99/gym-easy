@@ -1,18 +1,8 @@
 import { copy } from "../copy";
+import { redactLogMessage } from "./redact-log";
 import type { EmailSender } from "./types";
 
 export const RESEND_EMAILS_URL = "https://api.resend.com/emails";
-
-function safeResendMessage(value: unknown, apiKey: string): string {
-  if (typeof value !== "string") return "unknown";
-  const emailAddress =
-    /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/gi;
-  let message = value.replace(emailAddress, "[redacted]");
-  if (apiKey.length > 0) message = message.split(apiKey).join("[redacted]");
-  message = message.replace(/\s+/g, " ").trim();
-  if (message.length === 0) return "unknown";
-  return message.slice(0, 200);
-}
 
 function resendFailure(
   httpStatus: number,
@@ -44,7 +34,7 @@ function resendFailure(
       ) {
         name = record.name;
       }
-      message = safeResendMessage(record.message, apiKey);
+      message = redactLogMessage(record.message, [apiKey]);
     }
   } catch {
     // Keep the HTTP status when the body is not JSON.
@@ -107,6 +97,49 @@ export function createResendEmailSender(options: {
         subject: copy.accountExistsSubject,
         text: copy.accountExistsNotice,
       });
+    },
+    async sendPasswordReset({ to }) {
+      await send({
+        to,
+        subject: copy.passwordResetSubject,
+        text: copy.passwordResetNotice,
+      });
+    },
+    async probe() {
+      let response: Response;
+      try {
+        response = await fetchImpl(RESEND_EMAILS_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${options.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ from: options.from, to: [] }),
+        });
+      } catch {
+        throw new Error("email_send_failed");
+      }
+      if (response.ok) throw new Error("email_send_failed");
+      const failure = resendFailure(
+        response.status,
+        await response.text(),
+        options.apiKey,
+      );
+      const unavailable =
+        failure.statusCode === 401 ||
+        failure.statusCode === 403 ||
+        failure.statusCode === 408 ||
+        failure.statusCode === 429 ||
+        failure.statusCode >= 500 ||
+        /quota|rate_limit|api_key/i.test(failure.name);
+      if (!unavailable) return;
+      console.error(
+        "email.resend_response",
+        failure.statusCode,
+        failure.name,
+        failure.message,
+      );
+      throw new Error("email_send_failed");
     },
   };
 }

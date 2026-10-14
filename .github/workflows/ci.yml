@@ -27,12 +27,19 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mailpit:
+        image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gym_easy
-      DATABASE_DRIVER: pg
       CONFIRM_EMAIL_SECRET: confirm-email-secret-for-e2e-only-00
       CONSENT_PSEUDONYM_KEY: ci-consent-pseudonym-key-not-secret
-      CRON_SECRET: ci-cron-secret
+      CRON_SECRET: ci-cron-secret-value-32-characters-ok
+      EMAIL_TRANSPORT: resend
+      RESEND_API_KEY: ci-resend-key-not-secret
+      APP_URL: http://127.0.0.1:3000
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -71,10 +78,51 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Create gym_easy_migrator
+        run: |
+          node --input-type=module <<'EOF'
+          import postgres from "postgres";
+          const sql = postgres("postgresql://postgres:postgres@localhost:5432/gym_easy", { max: 1 });
+          await sql.unsafe(`
+            DO $$
+            BEGIN
+              CREATE ROLE gym_easy_migrator LOGIN PASSWORD 'migrator' SUPERUSER;
+            EXCEPTION
+              WHEN duplicate_object THEN NULL;
+            END
+            $$;
+          `);
+          await sql.end({ timeout: 5 });
+          EOF
+
       - name: Migrate local database
+        env:
+          DATABASE_URL: postgresql://gym_easy_migrator:migrator@localhost:5432/gym_easy
         run: pnpm db:migrate
 
+      - name: Container migrate script against local Postgres
+        env:
+          RUN_MIGRATIONS: "true"
+          DATABASE_URL_MIGRATOR: postgresql://gym_easy_migrator:migrator@localhost:5432/gym_easy
+        run: node scripts/migrate-on-deploy.mjs
+
+      - name: Wait for Mailpit
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8025/readyz >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mailpit did not become ready" >&2
+          exit 1
+
       - name: Unit tests
+        env:
+          MAILPIT_SMTP_HOST: 127.0.0.1
+          MAILPIT_SMTP_PORT: "1025"
+          MAILPIT_API_URL: http://127.0.0.1:8025
         run: pnpm test
 
       - name: Resolve Playwright version
@@ -102,3 +150,20 @@ jobs:
 
       - name: Audit production dependencies
         run: pnpm audit --prod
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Build image
+        run: docker build --pull -t gym-easy:ci .
+
+      - name: Image runs as a non-root user
+        run: |
+          set -euo pipefail
+          test "$(docker inspect --format '{{.Config.User}}' gym-easy:ci)" = "nextjs"
+          docker inspect --format '{{json .Config.Healthcheck.Test}}' gym-easy:ci | grep -q '/api/health'
+          docker run --rm --entrypoint node gym-easy:ci --input-type=module -e "import fs from 'node:fs'; if(!fs.existsSync('/app/server.js')) process.exit(1); if(!fs.existsSync('/app/migrate-on-deploy.mjs')) process.exit(3); if(!fs.existsSync('/app/migrations/meta/_journal.json')) process.exit(4); if(!fs.existsSync('/app/scripts/purge-consent.mjs')) process.exit(5); await import('postgres'); await import('drizzle-orm/postgres-js/migrator'); if(process.getuid()===0) process.exit(2);"

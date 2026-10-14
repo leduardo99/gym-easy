@@ -38,20 +38,32 @@ export function buildContentSecurityPolicy({
   return directives.join("; ");
 }
 
+export function staticSecurityHeaders(
+  isProduction: boolean,
+): Array<{ key: string; value: string }> {
+  const headers = [
+    { key: "X-Frame-Options", value: "DENY" },
+    { key: "X-Content-Type-Options", value: "nosniff" },
+    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+    {
+      key: "Permissions-Policy",
+      value: "camera=(), microphone=(), geolocation=()",
+    },
+  ];
+  if (isProduction) {
+    headers.push({ key: "Strict-Transport-Security", value: HSTS_VALUE });
+  }
+  return headers;
+}
+
 export function buildSecurityHeaders(
   options: SecurityHeaderOptions,
 ): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Security-Policy": buildContentSecurityPolicy(options),
-    "X-Frame-Options": "DENY",
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   };
-
-  if (options.isProduction) {
-    headers["Strict-Transport-Security"] = HSTS_VALUE;
+  for (const header of staticSecurityHeaders(options.isProduction)) {
+    headers[header.key] = header.value;
   }
-
   return headers;
 }

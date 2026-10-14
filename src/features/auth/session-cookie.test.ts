@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  clientIp,
   CONFIRM_EMAIL_MAX_AGE_SECONDS,
   confirmEmailCookieOptions,
+  getClientIp,
   isSameOrigin,
   requestOrigin,
   sessionCookieOptions,
@@ -11,7 +11,7 @@ import {
 } from "./session-cookie";
 
 describe("session cookies", () => {
-  it("is httpOnly, lax, and secure only on https or Vercel", () => {
+  it("is httpOnly, lax, and secure only on https", () => {
     expect(sessionCookieOptions(true)).toMatchObject({
       httpOnly: true,
       secure: true,
@@ -26,30 +26,12 @@ describe("session cookies", () => {
       maxAge: CONFIRM_EMAIL_MAX_AGE_SECONDS,
     });
     expect(CONFIRM_EMAIL_MAX_AGE_SECONDS).toBeLessThanOrEqual(60 * 60);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: "https",
-        vercelEnv: undefined,
-      }),
-    ).toBe(true);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: "http",
-        vercelEnv: "production",
-      }),
-    ).toBe(false);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: null,
-        vercelEnv: "preview",
-      }),
-    ).toBe(true);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: null,
-        vercelEnv: undefined,
-      }),
-    ).toBe(false);
+    expect(shouldUseSecureCookie("development", "https")).toBe(true);
+    expect(shouldUseSecureCookie("development", "https, http")).toBe(true);
+    expect(shouldUseSecureCookie("development", "http")).toBe(false);
+    expect(shouldUseSecureCookie("development", null)).toBe(false);
+    expect(shouldUseSecureCookie("production", "http")).toBe(true);
+    expect(shouldUseSecureCookie("production", null)).toBe(true);
   });
 
   it("accepts only a same-host origin", () => {
@@ -58,7 +40,7 @@ describe("session cookies", () => {
     expect(isSameOrigin(null, "gym.example")).toBe(false);
   });
 
-  it("builds the public origin and reads the platform client ip", () => {
+  it("builds the public origin", () => {
     const headers = new Headers({
       host: "gym.example",
       "x-forwarded-proto": "https",
@@ -67,21 +49,50 @@ describe("session cookies", () => {
     });
 
     expect(requestOrigin(headers)).toBe("https://gym.example");
-    expect(clientIp(headers)).toBe("203.0.113.5");
+  });
+
+  it("ignores forged forwarding headers unless the proxy is trusted", () => {
+    const forged = "203.0.113.5, 198.51.100.20";
+
     expect(
-      clientIp(new Headers({ "x-real-ip": " 203.0.113.8, 10.0.0.2 " })),
-    ).toBe("203.0.113.8");
+      getClientIp({
+        forwardedFor: forged,
+        socketAddress: "10.0.0.8",
+        trustProxy: false,
+      }),
+    ).toBe("10.0.0.8");
     expect(
-      clientIp(new Headers({ "x-forwarded-for": "198.51.100.4" })),
+      getClientIp({
+        forwardedFor: forged,
+        trustProxy: false,
+      }),
     ).toBeNull();
-    expect(clientIp(new Headers({ "x-real-ip": "unknown" }))).toBeNull();
-    expect(clientIp(new Headers())).toBeNull();
-    const nextHeaderStore = {
-      get(name: string) {
-        return name === "x-real-ip" ? "203.0.113.7" : null;
-      },
-      headers: { "x-real-ip": "203.0.113.7" },
-    };
-    expect(clientIp(nextHeaderStore as unknown as Headers)).toBe("203.0.113.7");
+    expect(
+      getClientIp({
+        forwardedFor: forged,
+        trustProxy: true,
+        trustedProxyHops: 1,
+      }),
+    ).toBe("198.51.100.20");
+    expect(
+      getClientIp({
+        forwardedFor: forged,
+        trustProxy: true,
+        trustedProxyHops: 2,
+      }),
+    ).toBe("203.0.113.5");
+    expect(
+      getClientIp({
+        forwardedFor: "not-an-ip",
+        socketAddress: "10.0.0.8",
+        trustProxy: true,
+      }),
+    ).toBe("10.0.0.8");
+    expect(
+      getClientIp({
+        forwardedFor: null,
+        trustProxy: true,
+      }),
+    ).toBeNull();
   });
 });

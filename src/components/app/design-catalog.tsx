@@ -61,7 +61,7 @@ export function DesignCatalog() {
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8">
       <PageHeader
         title="Design System"
-        description="Catálogo da v2. Some em produção (VERCEL_ENV=production)."
+        description="Catálogo da v2. Some em produção."
         action={<ThemeToggle />}
       />
 

@@ -29,5 +29,15 @@ export function createCaptureEmailSender(
       });
       await inner.sendAccountExistsNotice(message);
     },
+    async sendPasswordReset(message) {
+      await capture({
+        kind: "password_reset",
+        to: message.to,
+      });
+      await inner.sendPasswordReset(message);
+    },
+    probe() {
+      return inner.probe();
+    },
   };
 }

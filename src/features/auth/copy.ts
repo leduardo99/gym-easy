@@ -21,6 +21,13 @@ export const copy = {
   sessionExpired: "Sua sessão expirou. Entre de novo.",
   confirmSubject: "Confirme seu email",
   accountExistsSubject: "Tentativa de cadastro",
+  passwordResetSubject: "Redefinir senha",
+  passwordResetNotice:
+    "Recebemos um pedido para redefinir a senha da sua conta no Gym Easy. Se não foi você, ignore este email.",
+  passwordResetAccepted:
+    "Se o email estiver cadastrado, enviamos um aviso. O link para escolher uma senha nova ainda não está disponível.",
+  emailSendFailed:
+    "Não conseguimos enviar o email agora. Tente de novo em instantes.",
 } as const;
 
 export function rateLimitMessage(retryAfterSeconds?: number): string {

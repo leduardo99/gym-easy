@@ -71,6 +71,13 @@
       "when": 1792014764556,
       "tag": "0009_is_plyometric",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792018600000,
+      "tag": "0010_consent_hardening",
+      "breakpoints": true
     }
   ]
 }

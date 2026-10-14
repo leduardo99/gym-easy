@@ -24,7 +24,7 @@
 ## Checklist de segurança
 
 - [ ] Nenhum segredo no repositório (gitleaks limpo; nada em `NEXT_PUBLIC_` que seja secreto)
-- [ ] `.env.example` atualizado se houve variável nova; valor real só na Vercel
+- [ ] `.env.example` atualizado se houve variável nova; valor real só no Coolify ou nos secrets do GitHub
 - [ ] Toda entrada no servidor validada com zod
 - [ ] Queries só via Drizzle (parametrizadas), filtradas pelo `user_id` da sessão quando houver dados de usuário
 - [ ] IDOR: nenhum id de usuário, treino ou recurso vem do cliente para autorizar a query; há teste quando a rota lê ou altera dados de usuário

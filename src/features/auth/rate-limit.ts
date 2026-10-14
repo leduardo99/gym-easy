@@ -112,6 +112,14 @@ export function resendHourBucket(email: string): string {
   return `confirm-resend-hour:${sha256(email)}`;
 }
 
+export function passwordResetCooldownBucket(email: string): string {
+  return `password-reset:${sha256(email)}`;
+}
+
+export function passwordResetHourBucket(email: string): string {
+  return `password-reset-hour:${sha256(email)}`;
+}
+
 export function stricterRetry(
   left: { allowed: boolean; retryAfterSeconds: number },
   right: { allowed: boolean; retryAfterSeconds: number },

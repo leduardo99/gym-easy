@@ -1,6 +1,6 @@
 # Gym Easy
 
-Gym Easy (V1). Next.js (App Router) + TypeScript estrito + Tailwind CSS v4 + Drizzle no Neon.
+Gym Easy (V1). Next.js (App Router) + TypeScript estrito + Tailwind CSS v4 + Drizzle com postgres.js.
 
 ## Requisitos
 
@@ -15,32 +15,57 @@ pnpm install
 cp .env.example .env.local
 ```
 
-Preencha `DATABASE_URL` em `.env.local` com a connection string do Neon. Use o host **pooled** para o app e o host **direct** para migrações. A variável é só de servidor: não use o prefixo `NEXT_PUBLIC_`.
+Preencha `DATABASE_URL` em `.env.local`. O destino é o Postgres partilhado do homelab, só na rede interna e com TLS (`sslmode=require`). O Neon, com a mesma forma de URL e `sslmode=require`, fica como fallback. A variável é só de servidor: não use o prefixo `NEXT_PUBLIC_`.
 
-`RESEND_API_KEY` e `EMAIL_FROM` também são só de servidor e opcionais. Sem a chave, o app usa o adapter de log (sem email, link ou corpo da mensagem). O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e local e é ignorado quando `VERCEL_ENV=production`.
+O email de autenticação sai pelo transporte em `EMAIL_TRANSPORT` (`smtp`, `resend` ou `log`). Em `NODE_ENV=production` só `resend` é aceite, com `RESEND_API_KEY` obrigatória: `smtp` e `log` falham no arranque. Fora de produção, `smtp` e `log` são permitidos. O teste (`NODE_ENV=test`) usa `log` quando a variável não está definida. Não há fallback silencioso para `log` se o envio ou a configuração falharem: a UI mostra o erro e o botão de tentar de novo. `log` registra só o tipo (`email.account_confirmation`, `email.account_exists_notice` ou `email.password_reset`), o destinatário redigido (`a***@[redacted]`) e um id. Não registra corpo, token, link de confirmação nem o endereço completo.
+
+Os links absolutos dos emails usam `APP_URL`, não o `Host` do pedido. Em produção o valor é `https://app.gaffer.pt`. No compose local o padrão é `http://127.0.0.1:3000`.
+
+O remetente padrão é `Gym Easy <noreply@gaffer.pt>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e. No runtime de produção (`NODE_ENV=production` sem `CI=true`) esse caminho é ignorado. A CI define `CI=true`, então o Playwright continua a ler o capture.
+
+Se o envio falhar (SMTP ou Resend), o cadastro continua: a conta fica criada e o app abre `/cadastro/confirme?fresh=1&delivery=failed` com o aviso "Não conseguimos enviar o email agora. Tente de novo em instantes." O reenvio de confirmação e o pedido em `/esqueci-senha` mostram o mesmo aviso, exista a conta ou não. O cooldown de 60 segundos continua valendo; depois dele dá para tentar de novo.
+
+## Desenvolvimento local
+
+O Coolify serve só produção (`https://app.gaffer.pt`). O desenvolvimento corre nesta máquina, com o compose (app + Mailpit). O banco é o Postgres partilhado do homelab; o Neon fica como fallback.
+
+```bash
+docker compose up --build
+```
+
+O `Dockerfile` é standalone, na porta 3000, com healthcheck em `GET /api/health`. O compose publica a app só em `127.0.0.1:3000`. O SMTP 1025 e a UI 8025 do Mailpit não têm porta no host e não recebem domínio. A UI do Mailpit não tem autenticação.
+
+Copie `.env.example` para `.env` (o compose interpola esse arquivo, não `.env.local`). Preencha `DATABASE_URL` (homelab interno com `sslmode=require`, ou o Neon de fallback), `CONFIRM_EMAIL_SECRET` e `CONSENT_PSEUDONYM_KEY`. A app fica limitada a `768m` (`mem_limit`). Não grave segredos no repositório. Produção no Coolify usa `EMAIL_TRANSPORT=resend` e não fala com o Mailpit. O Mailpit fica no profile `dev`:
+
+```bash
+docker compose --profile dev up --build
+```
+
+Nesse profile, `.env` define `EMAIL_TRANSPORT=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025` e `SMTP_SECURE=false`. SMTP sem TLS só é aceite para `mailpit`, `localhost` ou `127.0.0.1` fora de produção. Qualquer outro host exige TLS (`requireTLS` ou `SMTP_SECURE=true`) e `SMTP_USER`/`SMTP_PASS`. O pool do cliente é o do `postgres.js` (`DB_POOL_MAX`, padrão 5, entre 5 e 10).
 
 ```bash
 pnpm dev
 ```
 
-O app abre em `http://127.0.0.1:3000`. `GET /api/health` executa `select 1` e responde `{ "status": "ok", "db": "ok" }`. Se o banco falhar, responde 503 `{ "status": "error", "db": "unavailable" }` sem detalhes do erro. O catálogo visual fica em `/design` e responde 404 quando `VERCEL_ENV=production`.
+`pnpm dev` no host não resolve o nome `mailpit`. Para falar com o Mailpit, use o compose. `GET /api/health` executa `select 1` e responde `{ "status": "ok", "db": "ok" }`. Se o banco falhar, responde 503 `{ "status": "error", "db": "unavailable" }` sem detalhes do erro. O catálogo visual fica em `/design` e responde 404 quando `NODE_ENV=production`.
 
 `pnpm build` não precisa de um Postgres real. Durante o build, se `DATABASE_URL` estiver ausente, `src/lib/env.ts` usa um placeholder que não abre conexão. Em `pnpm dev` e `pnpm start` a variável continua obrigatória para qualquer código que chame `getDb()`.
 
 ## Banco
 
-O schema Drizzle mora em `src/db/schema.ts`. Na Vercel o cliente usa o driver HTTP serverless do Neon (`@neondatabase/serverless` + `drizzle-orm/neon-http`). Postgres local e a CI usam o protocolo wire (`pg`) quando `DATABASE_DRIVER=pg` ou quando o host é `localhost` / `127.0.0.1`.
+O schema Drizzle mora em `src/db/schema.ts`. O cliente é `postgres.js` (`drizzle-orm/postgres-js`), com pool de `DB_POOL_MAX` ligações (5 a 10, padrão 5), `idle_timeout` (`DB_IDLE_TIMEOUT`, padrão 20 segundos), `connect_timeout` (`DB_CONNECT_TIMEOUT`, padrão 10 segundos), `statement_timeout` (`DB_STATEMENT_TIMEOUT`, padrão 15000 milissegundos) e `prepare: false` (compatível com o pooler do Neon). O TLS vem de `sslmode` na `DATABASE_URL` (`sslmode=require`). O driver HTTP do Neon não entra no runtime. O Neon continua a funcionar como fallback com a mesma URL.
 
 ```bash
 pnpm db:generate   # gera SQL em src/db/migrations
-pnpm db:migrate    # aplica no DATABASE_URL (host direct)
+pnpm db:migrate    # aplica no DATABASE_URL
 ```
 
-`pnpm db:migrate` aplica só o SQL pendente. Use o host direct do Neon, sem `-pooler`.
+`pnpm db:migrate` aplica só o SQL pendente. O host não pode ter `-pooler`.
 
-- No pull request, a CI sobe um Postgres 16 e migra só esse banco.
-- Na branch Neon `dev`, aplique com o host direct dessa branch. A branch `main` do Neon é produção: não migre a partir de uma branch de feature.
-- Em produção, `.github/workflows/migrate.yml` roda em todo push na `main` e executa `pnpm db:migrate`. O valor vem do secret `DATABASE_URL_UNPOOLED` do environment `production` no GitHub (Settings → Environments → production → Environment secrets). Use a connection string direct da branch Neon `main`. O job falha se o secret estiver vazio ou se o host tiver `-pooler`, e não imprime a URL. O deploy da Vercel na `main` pode começar em paralelo; o job é idempotente. Este repositório não aplica a migração de produção sozinho.
+- No pull request, a CI sobe um Postgres 16, corre `pnpm db:migrate` e, em seguida, `scripts/migrate-on-deploy.mjs` com `RUN_MIGRATIONS=true` e `DATABASE_URL_MIGRATOR` nesse mesmo banco.
+- Não migre produção a partir de uma branch de feature.
+- Em produção no Coolify, `RUN_MIGRATIONS=true` é obrigatório. Com esse valor, `docker/entrypoint.sh` corre `scripts/migrate-on-deploy.mjs` antes do servidor. O script exige `DATABASE_URL_MIGRATOR` com o utilizador `gym_easy_migrator` (não usa `DATABASE_URL` da app), host direto e `sslmode=require`. Segura um `pg_advisory_lock` e, ainda dentro do lock, confirma que `gym_easy_app` não tem `UPDATE`/`DELETE`/`TRUNCATE` em `consent_log` nem `EXECUTE` em `purge_expired_consent_proofs`, e que o dono de `consent_log`, `delete_account` e `purge_consent_proofs` é `gym_easy_migrator`. Se a migração ou essa verificação falha, o contentor sai com código diferente de 0. O script recusa um host com `-pooler`, outro utilizador, e não imprime a URL. Um `GRANT` de bootstrap tem de correr antes das migrações.
+- O deploy fica em `.github/workflows/deploy-coolify.yml`. O fluxo é push na `main`, workflow `CI` com `conclusion` `success`, e só então o Deploy Coolify. O trigger é `workflow_run` com `types: [completed]`. O job exige `head_branch` `main` e evento original `push`. `concurrency` é `production-deploy` (`cancel-in-progress: false`) e `environment` é `production`. O job entra na tailnet com `tailscale/github-action` pinada por SHA e pede o deploy à API do Coolify (`COOLIFY_TOKEN`; `COOLIFY_APP_UUID` como variável ou secret). Não imprime o token nem o corpo da resposta. As migrações correm no arranque do contentor. O CI de um pull request não faz deploy. `permissions` é `contents: read`.
 
 Não edite uma migração que já tenha sido aplicada.
 
@@ -106,15 +131,15 @@ Valores estáveis:
 | `body_region`            | `shoulder`, `elbow`, `wrist`, `neck`, `lower_back`, `hip`, `knee`, `ankle`                                                                                                                                                                                                                       | Ombro, Cotovelo, Punho, Pescoço, Coluna lombar, Quadril, Joelho, Tornozelo. O mesmo enum vale para `injury.region`.                                 |
 | `workout_session_status` | `in_progress`, `completed`                                                                                                                                                                                                                                                                       | Em andamento, Concluída                                                                                                                             |
 
-Migrações desta etapa: `0001_training_model` (tabelas), `0002_seed_exercises` (catálogo inicial, substituído em seguida), `0003_birth_year_consent` (ano de nascimento, rotina do coach no mesmo perfil e `consent_log`), `0004_cascade_exercise_refs` (apagar a conta também apaga o exercício próprio e o histórico que o cita), `0005_catalog_exercises` (metadados do catálogo), `0006_seed_exercises` (primeira carga dos 136, com slugs em inglês), `0007_catalog_v2` (enums oficiais da LED-32 e slugs em português) `0008_consent_retention` (`UNIQUE (id, user_id)`, `ON DELETE SET NULL` e a prova pseudonimizada) e `0009_is_plyometric` (flag de salto e upsert do catálogo por slug). `0003` copia `extract(year from birth_date)` antes de apagar a data completa. Elas sobem na branch Neon `dev` e no Postgres da CI. A branch Neon `main` continua só com o que já foi aplicado em produção; o workflow de produção roda no push da `main`.
+Migrações desta etapa: `0001_training_model` (tabelas), `0002_seed_exercises` (catálogo inicial, substituído em seguida), `0003_birth_year_consent` (ano de nascimento, rotina do coach no mesmo perfil e `consent_log`), `0004_cascade_exercise_refs` (apagar a conta também apaga o exercício próprio e o histórico que o cita), `0005_catalog_exercises` (metadados do catálogo), `0006_seed_exercises` (primeira carga dos 136, com slugs em inglês), `0007_catalog_v2` (enums oficiais da LED-32 e slugs em português) `0008_consent_retention` (`UNIQUE (id, user_id)`, `ON DELETE SET NULL` e a prova pseudonimizada) e `0009_is_plyometric` (flag de salto e upsert do catálogo por slug). `0003` copia `extract(year from birth_date)` antes de apagar a data completa. Elas sobem no Postgres da CI e, em produção, no arranque do contentor quando `RUN_MIGRATIONS=true`. Não migre a partir de uma branch de feature.
 
-O projeto Neon deste app é `app-de-treino` (`blue-cell-40302441`), banco `app_treino`. A branch `dev` é `br-sweet-recipe-ba0pwnn3`. A branch `main` desse projeto é produção. Não aplique migrações no projeto `gymeasy`.
+O Neon fica como fallback. O projeto é `app-de-treino` (`blue-cell-40302441`), banco `app_treino`. A branch `dev` é `br-sweet-recipe-ba0pwnn3`. A branch `main` desse projeto é o fallback de produção. Não aplique migrações no projeto `gymeasy`.
 
 `saveProfile` e `recordWeight` só gravam com consentimento `body_data` ativo: o último evento desse tipo precisa ser `granted`. Sem linha, ou com o último evento `revoked`, a resposta é `consent_required` e nada é escrito. `consent_log` não tem UPDATE nem DELETE na aplicação. Um trigger recusa os dois, e só abre a exceção dentro de `delete_account` e `purge_expired_consent_proofs`. `REVOKE UPDATE, DELETE` em `PUBLIC` cobre papéis que não são donos da tabela. A chave do HMAC não entra no banco.
 
 ## Autenticação
 
-Cadastro, confirmação de email, login e logout ficam em `/cadastro`, `/cadastro/confirme`, `/cadastro/confirmar` e `/login`. A senha usa argon2id. A sessão é um cookie `ge_session` (`HttpOnly`, `Secure` em HTTPS, `SameSite=Lax`) cujo valor no banco é só o hash. Rotas do app (`/inicio`, `/onboarding`, `/treinos`, `/historico`, `/perfil`) exigem sessão. O cadastro sempre responde "Se o email for válido, enviamos um link para continuar." Conta nova recebe um link de confirmação; email já usado avisa o dono. Sem `RESEND_API_KEY`, esses envios só entram no log.
+Cadastro, confirmação de email, login e logout ficam em `/cadastro`, `/cadastro/confirme`, `/cadastro/confirmar` e `/login`. A senha usa argon2id. A sessão é um cookie `ge_session` (`HttpOnly`, `Secure` em HTTPS, `SameSite=Lax`) cujo valor no banco é só o hash. Rotas do app (`/inicio`, `/onboarding`, `/treinos`, `/historico`, `/perfil`) exigem sessão. O cadastro sempre responde "Se o email for válido, enviamos um link para continuar." Conta nova recebe um link de confirmação; email já usado avisa o dono. Com transporte `log`, o registro leva só o tipo, o destinatário redigido e um id. `/esqueci-senha` pede um aviso sem link de senha nova (esse link ainda não existe) e usa o mesmo limite do reenvio. Conta inexistente recebe a mesma resposta.
 
 ## Qualidade
 
@@ -130,21 +155,57 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 
 ## Variáveis de ambiente
 
-| Variável                | Onde           | Notas                                                                                                                                                                                   |
-| ----------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`          | Servidor       | Postgres do Neon, host pooled. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão.                                              |
-| `CONSENT_PSEUDONYM_KEY` | Servidor       | Chave do HMAC da prova de consentimento. Mínimo de 32 caracteres. Obrigatória em runtime. No build, se estiver ausente, entra um placeholder que não é segredo. Não use `NEXT_PUBLIC_`. |
-| `CRON_SECRET`           | Servidor       | Segredo do cron diário que apaga provas com mais de 3 anos. A Vercel envia `Authorization: Bearer`. Sem ele, a rota responde 401.                                                       |
-| `RESEND_API_KEY`        | Servidor       | Opcional. Sem ela, os emails de auth vão para o log, sem dados sensíveis.                                                                                                               |
-| `EMAIL_FROM`            | Servidor       | Opcional. Padrão `Gym Easy <onboarding@resend.dev>`.                                                                                                                                    |
-| `DATABASE_URL_UNPOOLED` | GitHub Actions | Secret do environment `production`. Host direct da branch Neon `main`. Não entra no app.                                                                                                |
+| Variável                | Onde      | Notas                                                                                                                                                                                                             |
+| ----------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_URL`               | Servidor  | Origem pública. Produção: `https://app.gaffer.pt`. Links de email e `Access-Control-Allow-Origin`. Obrigatória em produção.                                                                                       |
+| `DATABASE_URL`          | Servidor  | Postgres partilhado do homelab, rede interna, `sslmode=require`. O Neon com a mesma URL é o fallback. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão. |
+| `CONSENT_PSEUDONYM_KEY` | Servidor  | Chave do HMAC da prova de consentimento. Mínimo de 32 caracteres. Obrigatória em runtime. No build, um placeholder não secreto.                                                                                   |
+| `EMAIL_TRANSPORT`       | Servidor  | `resend` obrigatório em produção. `smtp` e `log` só fora de produção. Padrão: `log` em test, `smtp` em development.                                                                                               |
+| `RESEND_API_KEY`        | Servidor  | Obrigatória em produção e quando `EMAIL_TRANSPORT=resend`.                                                                                                                                                        |
+| `EMAIL_FROM`            | Servidor  | Opcional. Padrão `Gym Easy <noreply@gaffer.pt>`.                                                                                                                                                                  |
+| `SMTP_HOST`             | Servidor  | Obrigatório quando o transporte é `smtp`. No profile `dev`, `mailpit`.                                                                                                                                            |
+| `SMTP_PORT`             | Servidor  | Obrigatório quando o transporte é `smtp`. Mailpit usa `1025`.                                                                                                                                                     |
+| `SMTP_USER`             | Servidor  | Obrigatório quando o host SMTP não é local. Sem usuário, o cliente não envia `AUTH`.                                                                                                                              |
+| `SMTP_PASS`             | Servidor  | Obrigatório junto com `SMTP_USER` num host remoto. Segredo. Não use o prefixo `NEXT_PUBLIC_`.                                                                                                                     |
+| `SMTP_SECURE`           | Servidor  | Opcional. `true`, `false`, `1` ou `0`. Mailpit local pode ficar `false`. Outros hosts usam TLS.                                                                                                                   |
+| `CRON_SECRET`           | Servidor  | Obrigatório em produção, mínimo 32 caracteres. `POST /api/cron/purge-consent-proofs` compara com `timingSafeEqual`.                                                                                               |
+| `TRUST_PROXY`           | Servidor  | `true` atrás do Traefik do Coolify. Sem isto, `X-Forwarded-For` é ignorado e o rate limit usa o socket. Sem IP válido, o login não usa um balde partilhado.                                                       |
+| `TRUSTED_PROXY_HOPS`    | Servidor  | Hops de `X-Forwarded-For` do proxy, contados da direita. Padrão 1. `X-Real-IP` nunca é usado.                                                                                                                     |
+| `DB_POOL_MAX`           | Servidor  | Opcional. Ligações no pool do `postgres.js`. Inteiro de 5 a 10. Padrão 5.                                                                                                                                         |
+| `DB_IDLE_TIMEOUT`       | Servidor  | Opcional. `idle_timeout` em segundos. Padrão 20.                                                                                                                                                                  |
+| `DB_CONNECT_TIMEOUT`    | Servidor  | Opcional. `connect_timeout` em segundos. Padrão 10.                                                                                                                                                               |
+| `DB_STATEMENT_TIMEOUT`  | Servidor  | Opcional. `statement_timeout` em milissegundos. Padrão 15000.                                                                                                                                                     |
+| `RUN_MIGRATIONS`        | Contentor | Obrigatório `true` no Coolify. Aplica migrações no arranque, dentro de `pg_advisory_lock`, verifica os privilégios do consentimento e só depois sobe o servidor. Falha sai com código diferente de 0.             |
+| `DATABASE_URL_MIGRATOR` | Contentor | Obrigatória quando `RUN_MIGRATIONS=true`. Utilizador `gym_easy_migrator`, host direto, sem `-pooler`, com `sslmode=require`. Não cai para `DATABASE_URL`. Não é impressa.                                         |
 
-Na Vercel, Preview usa a branch `dev` do projeto `app-de-treino` e Production usa a branch `main` do mesmo projeto. As funções rodam em `fra1` (`vercel.json`). Crie `CONSENT_PSEUDONYM_KEY` em Preview e Production, e `CRON_SECRET` em Production, antes do runtime. Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
+Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
 
-## CORS
+## Tarefa agendada
 
-A CDN da Vercel acrescenta `Access-Control-Allow-Origin: *` em HTML prerenderizado e arquivos estáticos, depois do proxy. O proxy apaga o header, mas a plataforma o recoloca nesses recursos. `vercel.json` substitui o `*` por `https://gym-easy.vercel.app`. Rotas `/api` não recebem o `*` da plataforma e ficam fora dessa regra.
+O Coolify chama `POST /api/cron/purge-consent-proofs` todos os dias às 03:15 UTC. O header é `Authorization: Bearer` com `CRON_SECRET` (mínimo 32 caracteres). A comparação é `SHA-256` + `timingSafeEqual`. Sem o segredo, com um valor diferente, em `GET`, ou com o segredo na query string, a rota responde 401. O corte de 3 anos fica dentro de `purge_consent_proofs()`; o chamador não escolhe a data.
+
+No Coolify, a Scheduled Task corre no contentor da app, todos os dias às 03:15 UTC:
+
+```bash
+node scripts/purge-consent.mjs
+```
+
+O script faz `POST` a `http://localhost:${PORT}/api/cron/purge-consent-proofs` com `Authorization: Bearer` e `CRON_SECRET`. Não usa `curl`. Se o pedido falhar, sai com código 1 e não imprime o segredo.
+
+## Proxy
+
+Atrás do Traefik, defina `TRUST_PROXY=true` e `TRUSTED_PROXY_HOPS=1`. O rate limit por IP lê só esse hop de `X-Forwarded-For` (o da direita, acrescentado pelo Traefik). Um valor forjado à esquerda é ignorado, tal como `X-Real-IP`. Sem `TRUST_PROXY`, o endereço é o do socket TCP (`x-gym-easy-peer`, escrito pelo servidor a partir de `remoteAddress`). Sem um IP válido, o login não usa um balde partilhado. O cookie de sessão em produção é sempre `Secure`, mesmo que `x-forwarded-proto` venha errado. O cliente `postgres.js` usa `prepare: false` para o pooler do Neon e fecha o pool com `sql.end({ timeout: 5 })` em `SIGTERM` e `SIGINT`.
+
+## Headers
+
+`next.config.ts` e o proxy enviam `Access-Control-Allow-Origin` com a origem de `APP_URL` (nunca `*` e nunca o `Origin` do pedido). O mesmo arquivo envia `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` e, em produção, `Strict-Transport-Security`. A CSP com nonce continua no proxy, porque o valor muda a cada pedido.
 
 ## CI
 
-O workflow `.github/workflows/ci.yml` sobe um Postgres 16, aplica `pnpm db:migrate` nele e roda, em todo pull request: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest, build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions.
+O workflow `.github/workflows/ci.yml` sobe um Postgres 16 e um Mailpit `v1.31.5` (digest pinado), aplica `pnpm db:migrate` nesse Postgres e corre `scripts/migrate-on-deploy.mjs` contra o mesmo serviço. Em todo pull request roda: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest (com um teste de integração SMTP contra o Mailpit), build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. Um job à parte faz `docker build` da imagem de produção e confirma que ela arranca como `nextjs`, com healthcheck em `/api/health`, e que o `postgres.js` e o migrator do Drizzle resolvem dentro da imagem. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions. Depois de um CI com sucesso num push da `main`, `.github/workflows/deploy-coolify.yml` entra na tailnet (`tailscale/github-action` pinada por SHA) e pede o deploy à API do Coolify. O job usa `environment: production` e `concurrency` `production-deploy`.
+
+A migration `0010_consent_hardening` cria as roles `gym_easy_app` e `gym_easy_purge` (`NOLOGIN`) e tira o bypass de `set_config` no `consent_log`. `delete_account` continua a funcionar como `SECURITY DEFINER`. O purge da app chama `purge_consent_proofs()`, que só apaga provas com mais de 3 anos.
+
+## Fora desta mudança
+
+Fotos passam a ir para object storage compatível com S3. Trabalho pesado passa a ir para o Trigger.dev. Nenhum dos dois está implementado aqui.

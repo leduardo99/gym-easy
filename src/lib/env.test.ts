@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BUILD_APP_URL,
   BUILD_CONFIRM_EMAIL_SECRET,
   BUILD_CONSENT_PSEUDONYM_KEY,
   BUILD_DATABASE_URL,
+  DEFAULT_DEV_APP_URL,
   DEFAULT_EMAIL_FROM,
   readServerEnv,
 } from "./env";
@@ -14,7 +16,7 @@ const validConsentKey = "consent-pseudonym-test-key-32b!!";
 
 describe("readServerEnv", () => {
   it("accepts a postgres connection string and defaults the email sender", () => {
-    expect(DEFAULT_EMAIL_FROM).toBe("Gym Easy <onboarding@resend.dev>");
+    expect(DEFAULT_EMAIL_FROM).toBe("Gym Easy <noreply@gaffer.pt>");
     expect(
       readServerEnv({
         DATABASE_URL: validUrl,
@@ -30,6 +32,20 @@ describe("readServerEnv", () => {
       EMAIL_CAPTURE_PATH: null,
       CONFIRM_EMAIL_SECRET: confirmSecret,
       CONSENT_PSEUDONYM_KEY: validConsentKey,
+      EMAIL_TRANSPORT: "log",
+      SMTP_HOST: null,
+      SMTP_PORT: null,
+      SMTP_USER: null,
+      SMTP_PASS: null,
+      SMTP_SECURE: false,
+      CRON_SECRET: null,
+      TRUST_PROXY: false,
+      TRUSTED_PROXY_HOPS: 1,
+      APP_URL: DEFAULT_DEV_APP_URL,
+      DB_POOL_MAX: 5,
+      DB_IDLE_TIMEOUT: 20,
+      DB_CONNECT_TIMEOUT: 10,
+      DB_STATEMENT_TIMEOUT: 15_000,
     });
   });
 
@@ -49,6 +65,8 @@ describe("readServerEnv", () => {
       EMAIL_FROM: "Gym Easy <treino@example.com>",
       EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
       CONFIRM_EMAIL_SECRET: confirmSecret,
+      CONSENT_PSEUDONYM_KEY: validConsentKey,
+      EMAIL_TRANSPORT: "log",
     });
   });
 
@@ -73,17 +91,269 @@ describe("readServerEnv", () => {
     ).toThrow(/EMAIL_FROM/);
   });
 
-  it("ignores the email capture path in production", () => {
+  it("ignores the email capture path on the Coolify runtime", () => {
     expect(
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
-        VERCEL_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
       }).EMAIL_CAPTURE_PATH,
     ).toBeNull();
+  });
+
+  it("defaults development to smtp and requires host and port", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: "mailpit",
+      SMTP_PORT: 1025,
+      SMTP_USER: null,
+      SMTP_PASS: null,
+      SMTP_SECURE: false,
+    });
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        SMTP_HOST: "",
+        SMTP_PORT: "1025",
+      }),
+    ).toThrow(/SMTP_HOST/);
+  });
+
+  it("requires resend in production and rejects smtp and log", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "resend",
+      RESEND_API_KEY: "test-resend-key",
+    });
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toThrow(/EMAIL_TRANSPORT=resend is required in production/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "smtp",
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toThrow(/not allowed in production/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "log",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toThrow(/not allowed in production/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "resend",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toThrow(/RESEND_API_KEY/);
+  });
+
+  it("requires a resend key when the transport is explicitly resend", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "resend",
+      }),
+    ).toThrow(/RESEND_API_KEY/);
+  });
+
+  it("requires credentials for a remote smtp host and allows Mailpit without them", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        SMTP_HOST: "smtp.example.com",
+        SMTP_PORT: "587",
+      }),
+    ).toThrow(/SMTP_USER/);
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        SMTP_HOST: "smtp.example.com",
+        SMTP_PORT: "587",
+        SMTP_USER: "mailer",
+        SMTP_PASS: "smtp-pass",
+        SMTP_SECURE: "true",
+      }),
+    ).toMatchObject({
+      SMTP_HOST: "smtp.example.com",
+      SMTP_SECURE: true,
+    });
+  });
+
+  it("rejects an unknown transport and a bad port", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "sendmail",
+      }),
+    ).toThrow(/EMAIL_TRANSPORT/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "70000",
+      }),
+    ).toThrow(/SMTP_PORT/);
+  });
+
+  it("rejects smtp secrets exposed with the public prefix", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        NEXT_PUBLIC_SMTP_PASS: "smtp-pass",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        NEXT_PUBLIC_SMTP_USER: "mailer",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("skips transport credentials while the capture sink is active", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+      }),
+    ).toMatchObject({
+      EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: null,
+    });
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
+        CI: "true",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+      }),
+    ).toThrow(/EMAIL_TRANSPORT=resend is required in production/);
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
+        CI: "true",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toMatchObject({
+      EMAIL_CAPTURE_PATH: null,
+      EMAIL_TRANSPORT: "resend",
+    });
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "http://127.0.0.1:3000",
+        CI: "true",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }).EMAIL_CAPTURE_PATH,
+    ).toBe(".data/e2e-emails.jsonl");
+  });
+
+  it("does not require email credentials during the next production build", () => {
+    expect(
+      readServerEnv({
+        NODE_ENV: "production",
+        NEXT_PHASE: "phase-production-build",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "log",
+      RESEND_API_KEY: null,
+      SMTP_HOST: null,
+      SMTP_PORT: null,
+    });
   });
 
   it("rejects a missing database url outside of the production build", () => {
@@ -145,6 +415,36 @@ describe("readServerEnv", () => {
     ).toThrow(/NEXT_PUBLIC_/);
   });
 
+  it("keeps the cron secret server-only and at least 32 characters", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }).CRON_SECRET,
+    ).toBe("cron-secret-value-32-characters-ok");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        CRON_SECRET: "short",
+      }),
+    ).toThrow(/CRON_SECRET/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        NEXT_PUBLIC_CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
   it("uses a non-connecting placeholder while next build has no database url", () => {
     expect(
       readServerEnv({
@@ -162,6 +462,7 @@ describe("readServerEnv", () => {
     expect(() =>
       readServerEnv({
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         npm_lifecycle_event: "build",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
@@ -211,5 +512,87 @@ describe("readServerEnv", () => {
         NEXT_PHASE: "phase-production-build",
       }).CONSENT_PSEUDONYM_KEY,
     ).toBe(BUILD_CONSENT_PSEUDONYM_KEY);
+  });
+
+  it("requires APP_URL in production and uses it as the email origin", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }),
+    ).toThrow(/APP_URL is required in production/);
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+        APP_URL: "https://app.gaffer.pt/cadastro",
+      }).APP_URL,
+    ).toBe("https://app.gaffer.pt");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        APP_URL: "not a url",
+      }),
+    ).toThrow(/APP_URL must be an http/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        NEXT_PUBLIC_APP_URL: "https://app.gaffer.pt",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("defaults the database pool and rejects a size outside 5 to 10", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        DB_POOL_MAX: "8",
+        DB_IDLE_TIMEOUT: "30",
+        DB_CONNECT_TIMEOUT: "5",
+        DB_STATEMENT_TIMEOUT: "20000",
+      }),
+    ).toMatchObject({
+      DB_POOL_MAX: 8,
+      DB_IDLE_TIMEOUT: 30,
+      DB_CONNECT_TIMEOUT: 5,
+      DB_STATEMENT_TIMEOUT: 20_000,
+    });
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        DB_POOL_MAX: "4",
+      }),
+    ).toThrow(/DB_POOL_MAX/);
+  });
+
+  it("uses a local APP_URL placeholder during next build", () => {
+    expect(
+      readServerEnv({
+        NODE_ENV: "production",
+        NEXT_PHASE: "phase-production-build",
+      }).APP_URL,
+    ).toBe(BUILD_APP_URL);
   });
 });

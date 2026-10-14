@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { accessControlAllowOrigin } from "@/lib/app-url";
 import { shouldBlockDesignCatalog } from "@/lib/design-catalog";
 import { buildSecurityHeaders } from "@/lib/security-headers";
 
@@ -11,13 +12,17 @@ function applySecurityHeaders(
     response.headers.set(name, value);
   }
 
-  response.headers.delete("Access-Control-Allow-Origin");
+  const allowOrigin = accessControlAllowOrigin(process.env.APP_URL);
+  if (allowOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", allowOrigin);
+  }
+
   return response;
 }
 
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const isProduction = process.env.VERCEL_ENV === "production";
+  const isProduction = process.env.NODE_ENV === "production";
   const headers = buildSecurityHeaders({
     nonce,
     isProduction,
