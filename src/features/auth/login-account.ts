@@ -15,21 +15,6 @@ import { ABSOLUTE_SESSION_MS } from "./session-policy";
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
-/** Failed attempts in the account window: 0 ms, then 0.5, 1, 2 and 4 s. */
-export const LOGIN_FAILURE_DELAY_CAP_MS = 4_000;
-
-export function loginFailureDelayMs(failures: number): number {
-  if (failures <= 1) return 0;
-  const step = Math.min(failures - 2, 3);
-  return Math.min(LOGIN_FAILURE_DELAY_CAP_MS, 500 * 2 ** step);
-}
-
-function waitForFailureDelay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 export type LoginResult =
   | { status: "invalid"; fieldErrors: FieldErrors }
   | { status: "rate_limited"; retryAfterSeconds: number }
@@ -51,7 +36,6 @@ export async function loginAccount(
     rateLimiter: RateLimiter;
     dummyHash: string;
     createToken: () => string;
-    delay?: (ms: number) => Promise<void>;
   },
 ): Promise<LoginResult> {
   const parsed = loginSchema.safeParse({
@@ -86,10 +70,6 @@ export async function loginAccount(
   const passwordHash = user?.passwordHash ?? deps.dummyHash;
   const matches = await deps.hasher.verify(passwordHash, parsed.data.password);
   if (!user || !user.emailVerifiedAt || !matches) {
-    const waitMs = loginFailureDelayMs(accountLimit.hits);
-    if (waitMs > 0) {
-      await (deps.delay ?? waitForFailureDelay)(waitMs);
-    }
     return { status: "invalid_credentials" };
   }
 

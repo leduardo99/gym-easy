@@ -75,7 +75,7 @@ describe("registerAccount", () => {
     ]);
   });
 
-  it("returns the same pending result and warns the owner when the email exists", async () => {
+  it("hashes the received password and schedules email on both branches", async () => {
     const users = createMemoryUserStore();
     const hashes: string[] = [];
     const sent: string[] = [];
@@ -99,13 +99,18 @@ describe("registerAccount", () => {
 
     expect(created).toMatchObject({ status: "pending", email: "ana@x.com" });
     expect(duplicate).toMatchObject({ status: "pending", email: "ana@x.com" });
+    expect(created.status === "pending" && duplicate.status === "pending").toBe(
+      true,
+    );
+    if (created.status !== "pending" || duplicate.status !== "pending") return;
+    expect(created.deliver).toEqual(expect.any(Function));
+    expect(duplicate.deliver).toEqual(expect.any(Function));
     expect(sent).toEqual([]);
+    expect(hashes).toEqual(["senha segura", "outra senha longa"]);
     expect(await users.findUserByEmail("ana@x.com")).toMatchObject({
       id: "user-1",
       passwordHash: "hash:senha segura",
     });
-    expect(hashes).toEqual(["senha segura", "outra senha longa"]);
-    if (created.status !== "pending" || duplicate.status !== "pending") return;
     await created.deliver();
     await duplicate.deliver();
     expect(sent).toEqual([

@@ -1,13 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createMemoryUserStore } from "./memory-user-store";
-import { loginAccount, loginFailureDelayMs } from "./login-account";
+import { loginAccount } from "./login-account";
 import type { PasswordHasher } from "./password";
 import { createMemoryRateLimiter } from "./rate-limit";
 import { sha256 } from "./tokens";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const instant = async () => {};
 
 function hasher(verified: string[]): PasswordHasher {
   return {
@@ -137,7 +136,6 @@ describe("loginAccount", () => {
       rateLimiter: createMemoryRateLimiter(),
       dummyHash: "hash:dummy",
       createToken: () => "new-session",
-      delay: instant,
     };
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -173,7 +171,6 @@ describe("loginAccount", () => {
       rateLimiter: createMemoryRateLimiter(),
       dummyHash: "hash:dummy",
       createToken: () => "new-session",
-      delay: instant,
     };
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -216,91 +213,5 @@ describe("loginAccount", () => {
 
     expect(sameAccount.status).toBe("rate_limited");
     expect(otherAccount.status).toBe("invalid_credentials");
-  });
-
-  it("spaces failed logins by 0, 500, 1000, 2000 and 4000 ms per account", async () => {
-    expect([1, 2, 3, 4, 5, 9].map(loginFailureDelayMs)).toEqual([
-      0, 500, 1_000, 2_000, 4_000, 4_000,
-    ]);
-
-    const users = createMemoryUserStore();
-    const waits: number[] = [];
-    const deps = {
-      users,
-      hasher: hasher([]),
-      rateLimiter: createMemoryRateLimiter(),
-      dummyHash: "hash:dummy",
-      createToken: () => "new-session",
-      delay: async (ms: number) => {
-        waits.push(ms);
-      },
-    };
-    const attempt = {
-      ...input,
-      email: "ausente@example.com",
-      password: "errada",
-      existingTokenHash: null,
-    };
-
-    for (let failure = 0; failure < 5; failure += 1) {
-      expect((await loginAccount(attempt, deps)).status).toBe(
-        "invalid_credentials",
-      );
-    }
-    expect((await loginAccount(attempt, deps)).status).toBe("rate_limited");
-    expect(waits).toEqual([500, 1_000, 2_000, 4_000]);
-
-    const other: number[] = [];
-    expect(
-      (
-        await loginAccount(
-          { ...attempt, email: "outra@example.com" },
-          {
-            ...deps,
-            delay: async (ms: number) => {
-              other.push(ms);
-            },
-          },
-        )
-      ).status,
-    ).toBe("invalid_credentials");
-    expect(other).toEqual([]);
-  });
-
-  it("lets the event loop run during a failed-login delay", async () => {
-    vi.useFakeTimers();
-    const users = createMemoryUserStore();
-    await seed(users, true);
-    const deps = {
-      users,
-      hasher: {
-        async hash(password: string) {
-          return `hash:${password}`;
-        },
-        async verify() {
-          return false;
-        },
-      },
-      rateLimiter: createMemoryRateLimiter(),
-      dummyHash: "hash:dummy",
-      createToken: () => "new-session",
-    };
-    const attempt = {
-      ...input,
-      password: "errada",
-      existingTokenHash: null,
-    };
-
-    await loginAccount(attempt, deps);
-    const second = loginAccount(attempt, deps);
-    let interleaved = false;
-    void Promise.resolve().then(() => {
-      interleaved = true;
-    });
-    await vi.advanceTimersByTimeAsync(0);
-    expect(interleaved).toBe(true);
-    await vi.advanceTimersByTimeAsync(500);
-    expect(await second).toMatchObject({ status: "invalid_credentials" });
-    vi.useRealTimers();
   });
 });

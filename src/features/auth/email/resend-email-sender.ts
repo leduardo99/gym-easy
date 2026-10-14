@@ -3,6 +3,34 @@ import type { EmailSender } from "./types";
 
 export const RESEND_EMAILS_URL = "https://api.resend.com/emails";
 
+function resendFailure(httpStatus: number, body: string): [number, string] {
+  let statusCode = httpStatus;
+  let name = "unknown";
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === "object") {
+      const record = parsed as { statusCode?: unknown; name?: unknown };
+      if (
+        typeof record.statusCode === "number" &&
+        Number.isInteger(record.statusCode) &&
+        record.statusCode >= 100 &&
+        record.statusCode <= 599
+      ) {
+        statusCode = record.statusCode;
+      }
+      if (
+        typeof record.name === "string" &&
+        /^[a-z0-9_]{1,64}$/i.test(record.name)
+      ) {
+        name = record.name;
+      }
+    }
+  } catch {
+    // Keep the HTTP status when the body is not JSON.
+  }
+  return [statusCode, name];
+}
+
 export function createResendEmailSender(options: {
   apiKey: string;
   from: string;
@@ -29,6 +57,11 @@ export function createResendEmailSender(options: {
       }),
     });
     if (!response.ok) {
+      const [statusCode, name] = resendFailure(
+        response.status,
+        await response.text(),
+      );
+      console.error("email.resend_response", statusCode, name);
       throw new Error("email_send_failed");
     }
   }
