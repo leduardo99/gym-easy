@@ -293,7 +293,15 @@ export async function resendConfirmationAction(): Promise<ResendActionResult> {
           }),
       },
     );
-    if (result.status === "sent") return { ok: true };
+    if (result.status === "sent") {
+      const deliver = result.deliver;
+      after(() =>
+        deliver().catch((error: unknown) => {
+          logAuthFailure("auth.resend_email_failed", error);
+        }),
+      );
+      return { ok: true };
+    }
     if (result.status === "cooldown") {
       return {
         ok: false,

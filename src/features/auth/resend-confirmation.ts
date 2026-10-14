@@ -14,8 +14,25 @@ import { CONFIRMATION_TTL_MS } from "./session-policy";
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
+function logResendEmailFailure(error: unknown) {
+  console.error(
+    "auth.resend_email_failed",
+    error instanceof Error ? error.name : "error",
+  );
+}
+
+function deliverQuietly(work: () => Promise<void>): () => Promise<void> {
+  return async () => {
+    try {
+      await work();
+    } catch (error) {
+      logResendEmailFailure(error);
+    }
+  };
+}
+
 export type ResendResult =
-  | { status: "sent" }
+  | { status: "sent"; deliver: () => Promise<void> }
   | { status: "cooldown"; retryAfterSeconds: number }
   | { status: "rate_limited"; retryAfterSeconds: number }
   | { status: "invalid" }
@@ -60,41 +77,33 @@ export async function resendConfirmation(
   }
 
   const user = await deps.users.findUserByEmail(parsed.data);
+  let deliver: () => Promise<void>;
   try {
+    const token = deps.createToken();
+    // The digest is discarded. Both branches pay the same hash cost.
+    await deps.hasher.hash(token);
     if (!user) {
-      await deps.hasher.hash(deps.createToken());
-      await deps.balance();
-      return { status: "sent" };
-    }
-
-    if (!user.emailVerifiedAt) {
+      deliver = deliverQuietly(() => deps.balance());
+    } else if (!user.emailVerifiedAt) {
       await deps.users.invalidateVerificationTokens(user.id, input.now);
-      const token = deps.createToken();
       await deps.users.saveVerificationToken({
         tokenHash: sha256(token),
         userId: user.id,
         expiresAt: new Date(input.now.getTime() + CONFIRMATION_TTL_MS),
       });
-      await deps.emails.sendAccountConfirmation({
-        to: user.email,
-        confirmUrl: `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`,
-      });
-      return { status: "sent" };
+      const confirmUrl = `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`;
+      deliver = deliverQuietly(() =>
+        deps.emails.sendAccountConfirmation({ to: user.email, confirmUrl }),
+      );
+    } else {
+      deliver = deliverQuietly(() =>
+        deps.emails.sendAccountExistsNotice({ to: user.email }),
+      );
     }
-
-    await deps.emails.sendAccountExistsNotice({ to: user.email });
-    return { status: "sent" };
   } catch (error) {
-    console.error(
-      "auth.resend_email_failed",
-      error instanceof Error ? error.name : "error",
-    );
-    try {
-      await deps.hasher.hash(deps.createToken());
-    } catch {
-      // The extra hash only keeps the failure near the unknown-email path.
-    }
-    await deps.balance();
-    return { status: "sent" };
+    logResendEmailFailure(error);
+    deliver = deliverQuietly(() => deps.balance());
   }
+
+  return { status: "sent", deliver };
 }
