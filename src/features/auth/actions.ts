@@ -25,8 +25,8 @@ import { resendConfirmation } from "./resend-confirmation";
 import {
   CONFIRM_EMAIL_COOKIE_NAME,
   SESSION_COOKIE_NAME,
-  clientIp,
   confirmEmailCookieOptions,
+  getClientIp,
   isSameOrigin,
   requestOrigin,
   sessionCookieOptions,
@@ -128,9 +128,17 @@ async function mutationContext() {
   if (!origin) return null;
   const jar = await cookies();
   const existing = jar.get(SESSION_COOKIE_NAME)?.value;
+  const env = getServerEnv();
   return {
-    ip: clientIp(headerStore),
-    secure: shouldUseSecureCookie(headerStore.get("x-forwarded-proto")),
+    ip: getClientIp({
+      forwardedFor: headerStore.get("x-forwarded-for"),
+      trustProxy: env.TRUST_PROXY,
+      trustedProxyHops: env.TRUSTED_PROXY_HOPS,
+    }),
+    secure: shouldUseSecureCookie(
+      env.NODE_ENV,
+      headerStore.get("x-forwarded-proto"),
+    ),
     existingTokenHash: existing ? sha256(existing) : null,
   };
 }

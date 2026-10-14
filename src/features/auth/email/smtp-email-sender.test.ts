@@ -118,6 +118,29 @@ describe("createSmtpEmailSender", () => {
       debug: false,
     });
     expect(options.auth).toBeUndefined();
+    expect(options).toMatchObject({ requireTLS: false });
+    expect(options).not.toHaveProperty("tls");
+  });
+
+  it("requires TLS for a host that is not Mailpit or localhost", () => {
+    createSmtpEmailSender({
+      host: "smtp.example.com",
+      port: 587,
+      user: "mailer",
+      pass: "smtp-pass",
+      secure: false,
+      from: DEFAULT_EMAIL_FROM,
+    });
+
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: "smtp.example.com",
+        secure: false,
+        requireTLS: true,
+        tls: { rejectUnauthorized: true, minVersion: "TLSv1.2" },
+        auth: { user: "mailer", pass: "smtp-pass" },
+      }),
+    );
   });
 
   it("passes smtp auth only when a user is configured", () => {

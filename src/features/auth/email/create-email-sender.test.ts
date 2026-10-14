@@ -34,6 +34,12 @@ function serverEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
     SMTP_PASS: null,
     SMTP_SECURE: false,
     CRON_SECRET: null,
+    TRUST_PROXY: false,
+    TRUSTED_PROXY_HOPS: 1,
+    DB_POOL_MAX: 5,
+    DB_IDLE_TIMEOUT: 20,
+    DB_CONNECT_TIMEOUT: 10,
+    DB_STATEMENT_TIMEOUT: 15_000,
     ...overrides,
   };
 }
@@ -157,20 +163,24 @@ describe("createEmailSender", () => {
     info.mockRestore();
   });
 
-  it("falls back to the log when the selected transport has no credentials", () => {
-    createEmailSender(
-      serverEnv({
-        EMAIL_TRANSPORT: "smtp",
-        SMTP_HOST: null,
-        SMTP_PORT: null,
-      }),
-    );
-    createEmailSender(
-      serverEnv({
-        EMAIL_TRANSPORT: "resend",
-        RESEND_API_KEY: null,
-      }),
-    );
+  it("fails closed when the selected transport has no credentials", () => {
+    expect(() =>
+      createEmailSender(
+        serverEnv({
+          EMAIL_TRANSPORT: "smtp",
+          SMTP_HOST: null,
+          SMTP_PORT: null,
+        }),
+      ),
+    ).toThrow(/email_transport_unavailable/);
+    expect(() =>
+      createEmailSender(
+        serverEnv({
+          EMAIL_TRANSPORT: "resend",
+          RESEND_API_KEY: null,
+        }),
+      ),
+    ).toThrow(/email_transport_unavailable/);
 
     expect(createSmtpEmailSender).not.toHaveBeenCalled();
     expect(createResendEmailSender).not.toHaveBeenCalled();

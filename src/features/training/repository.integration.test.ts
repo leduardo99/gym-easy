@@ -1,12 +1,13 @@
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
 import type { AppDatabase } from "@/db";
 import { isLocalDatabaseUrl } from "@/db/driver";
+import { repairPostgresJsSerializers } from "@/db/postgres";
 import * as schema from "@/db/schema";
 import {
   bodyMeasurements,
@@ -38,13 +39,12 @@ import { createTrainingRepository } from "./repository";
 const consentKey = "consent-pseudonym-test-key-32b!!";
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const runIntegration =
-  databaseUrl.length > 0 &&
-  isLocalDatabaseUrl(databaseUrl) &&
-  process.env.DATABASE_DRIVER !== "neon";
+  databaseUrl.length > 0 && isLocalDatabaseUrl(databaseUrl);
 
 describe.skipIf(!runIntegration)("training data access", () => {
-  const pool = new Pool({ connectionString: databaseUrl, max: 1 });
-  const db = drizzle({ client: pool, schema });
+  const client = postgres(databaseUrl, { max: 1 });
+  const db = drizzle({ client, schema });
+  repairPostgresJsSerializers(client);
   const repository = createTrainingRepository(db as unknown as AppDatabase);
   const consents = createConsentRepository(db as unknown as AppDatabase);
 
@@ -53,7 +53,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
   });
 
   afterAll(async () => {
-    await pool.end();
+    await client.end({ timeout: 5 });
   });
 
   function errorText(error: unknown): string {
@@ -951,7 +951,10 @@ describe.skipIf(!runIntegration)("training data access", () => {
         .from(consentLog)
         .where(eq(consentLog.userId, userId)),
     ).toEqual([]);
-    const constraints = await db.execute(sql`
+    const constraints = await db.execute<{
+      definition: string | null;
+      confdeltype: string | null;
+    }>(sql`
       select
         pg_get_constraintdef(oid) as definition,
         confdeltype
@@ -961,21 +964,11 @@ describe.skipIf(!runIntegration)("training data access", () => {
         'consent_log_user_id_users_id_fk'
       )
     `);
-    const constraintRows = Array.isArray(constraints)
-      ? constraints
-      : constraints.rows;
-    const definitions = constraintRows.map((row) =>
-      String(
-        (row as { definition?: string; confdeltype?: string }).definition ??
-          (row as { confdeltype?: string }).confdeltype,
-      ),
+    const definitions = constraints.map((row) =>
+      String(row.definition ?? row.confdeltype),
     );
     expect(definitions.join(" ")).toMatch(/UNIQUE \(id, user_id\)/);
-    expect(
-      constraintRows.some(
-        (row) => (row as { confdeltype?: string }).confdeltype === "n",
-      ),
-    ).toBe(true);
+    expect(constraints.some((row) => row.confdeltype === "n")).toBe(true);
     expect(
       await db.select({ id: users.id }).from(users).where(eq(users.id, userId)),
     ).toEqual([]);
@@ -1014,7 +1007,6 @@ describe.skipIf(!runIntegration)("training data access", () => {
 
     const removed = await purgeExpiredConsentProofs(
       db as unknown as AppDatabase,
-      new Date("2026-10-14T00:00:00.000Z"),
     );
     expect(removed).toBeGreaterThanOrEqual(1);
     expect(

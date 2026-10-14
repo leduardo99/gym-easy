@@ -33,7 +33,7 @@ describe("createResendEmailSender", () => {
       to: string[];
       text: string;
     };
-    expect(body.from).toBe("Gym Easy <onboarding@resend.dev>");
+    expect(body.from).toBe("Gym Easy <noreply@gaffer.pt>");
     expect(body.to).toEqual(["ana@example.com"]);
     expect(body.text).toBe(copy.accountExistsNotice);
   });

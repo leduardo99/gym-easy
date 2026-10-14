@@ -16,6 +16,16 @@ export type SmtpMailTransport = {
   verify?(): Promise<unknown>;
 };
 
+function allowsPlainSmtp(host: string): boolean {
+  const name = host.trim().toLowerCase().replace(/\.$/u, "");
+  return (
+    name === "mailpit" ||
+    name === "localhost" ||
+    name === "127.0.0.1" ||
+    name === "::1"
+  );
+}
+
 function smtpErrorCode(error: unknown): string {
   if (!error || typeof error !== "object" || !("code" in error)) {
     return "unknown";
@@ -36,12 +46,19 @@ export function createSmtpEmailSender(options: {
 }): EmailSender {
   const user = options.user ?? null;
   const pass = options.pass ?? null;
+  const plain = allowsPlainSmtp(options.host);
   const transport =
     options.transport ??
     nodemailer.createTransport({
       host: options.host,
       port: options.port,
       secure: options.secure,
+      requireTLS: plain ? false : !options.secure,
+      ...(plain
+        ? {}
+        : {
+            tls: { rejectUnauthorized: true, minVersion: "TLSv1.2" as const },
+          }),
       auth: user ? { user, pass: pass ?? "" } : undefined,
       logger: false,
       debug: false,

@@ -25,13 +25,17 @@ export function createEmailSender(env: ServerEnv): EmailSender {
       createLogEmailSender(),
     );
   }
-  if (transport === "resend" && env.RESEND_API_KEY) {
+  if (transport === "resend") {
+    if (!env.RESEND_API_KEY) throw new Error("email_transport_unavailable");
     return createResendEmailSender({
       apiKey: env.RESEND_API_KEY,
       from: env.EMAIL_FROM,
     });
   }
-  if (transport === "smtp" && env.SMTP_HOST && env.SMTP_PORT) {
+  if (transport === "smtp") {
+    if (!env.SMTP_HOST || !env.SMTP_PORT) {
+      throw new Error("email_transport_unavailable");
+    }
     return createSmtpEmailSender({
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,
@@ -41,5 +45,6 @@ export function createEmailSender(env: ServerEnv): EmailSender {
       from: env.EMAIL_FROM,
     });
   }
-  return createLogEmailSender();
+  if (transport === "log") return createLogEmailSender();
+  throw new Error("email_transport_unavailable");
 }

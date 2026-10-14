@@ -22,7 +22,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": [
       "./node_modules/drizzle-orm/migrator.js",
-      "./node_modules/drizzle-orm/node-postgres/migrator.js",
+      "./node_modules/drizzle-orm/postgres-js/migrator.js",
+      "./node_modules/postgres/**/*",
       "./node_modules/@node-rs/argon2/**/*",
       "./node_modules/@node-rs/argon2-linux-x64-gnu/**/*",
     ],

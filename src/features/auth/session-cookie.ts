@@ -23,7 +23,11 @@ export function confirmEmailCookieOptions(secure: boolean) {
   };
 }
 
-export function shouldUseSecureCookie(forwardedProto: string | null): boolean {
+export function shouldUseSecureCookie(
+  nodeEnv: "development" | "test" | "production",
+  forwardedProto: string | null,
+): boolean {
+  if (nodeEnv === "production") return true;
   const proto = forwardedProto?.split(",")[0]?.trim();
   return proto === "https";
 }
@@ -48,17 +52,37 @@ export function requestOrigin(headerStore: Headers): string | null {
   return `http://${host}`;
 }
 
-function normalizeClientIp(value: string | null | undefined): string | null {
-  const ip = value?.split(",")[0]?.trim() ?? "";
-  if (!ip || ip.toLowerCase() === "unknown") return null;
-  return ip;
+function isClientIp(value: string): boolean {
+  if (value.length === 0 || value.length > 64) return false;
+  if (value.toLowerCase() === "unknown") return false;
+  const v4 =
+    /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+  if (v4.test(value)) return true;
+  return value.includes(":") && /^[0-9a-f:.]+$/i.test(value);
 }
 
-export function clientIp(headerStore: {
-  get(name: string): string | null;
-}): string | null {
-  return (
-    normalizeClientIp(headerStore.get("x-real-ip")) ??
-    normalizeClientIp(headerStore.get("x-forwarded-for"))
-  );
+/**
+ * Client address for IP rate limits.
+ * X-Forwarded-For is read only when the proxy is trusted, and only the hop
+ * Traefik appended (counted from the right). X-Real-IP is never trusted.
+ */
+export function getClientIp(input: {
+  forwardedFor: string | null;
+  socketAddress?: string | null;
+  trustProxy: boolean;
+  trustedProxyHops?: number;
+}): string {
+  const socket = input.socketAddress?.trim() ?? "";
+  const socketIp = isClientIp(socket) ? socket : null;
+  if (!input.trustProxy) return socketIp ?? "unknown";
+
+  const hops = (input.forwardedFor ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  const trustedHops = input.trustedProxyHops ?? 1;
+  const index = hops.length - trustedHops;
+  const candidate = index >= 0 ? hops[index] : undefined;
+  if (candidate && isClientIp(candidate)) return candidate;
+  return socketIp ?? "unknown";
 }
