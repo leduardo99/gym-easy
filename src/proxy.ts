@@ -25,5 +25,9 @@ export function proxy(request: NextRequest) {
     response.headers.set(name, value);
   }
 
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    response.headers.delete("Access-Control-Allow-Origin");
+  }
+
   return response;
 }

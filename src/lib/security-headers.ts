@@ -20,6 +20,7 @@ export function buildContentSecurityPolicy({
 
   const directives = [
     "default-src 'self'",
+    "connect-src 'self'",
     `script-src ${scriptSrc.join(" ")}`,
     // Next, next-themes, and Tailwind set style attributes. A nonce or hash in
     // style-src makes browsers ignore 'unsafe-inline' for those attributes, so

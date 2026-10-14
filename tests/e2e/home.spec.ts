@@ -51,10 +51,29 @@ test("responses include security headers", async ({ request }) => {
     expect(headers["permissions-policy"]).toBe(
       "camera=(), microphone=(), geolocation=()",
     );
+    expect(headers["content-security-policy"]).toContain("connect-src 'self'");
     expect(headers["content-security-policy"]).toContain(
       "frame-ancestors 'none'",
     );
     expect(headers["content-security-policy"]).toContain("'nonce-");
     expect(headers["strict-transport-security"]).toBeUndefined();
+  }
+});
+
+test("api routes do not allow open CORS", async ({ request }) => {
+  const origin = "https://evil.example";
+
+  for (const method of ["GET", "OPTIONS"] as const) {
+    const response = await request.fetch("/api/health", {
+      method,
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "GET",
+      },
+    });
+    const allowOrigin = response.headers()["access-control-allow-origin"];
+
+    expect(allowOrigin).not.toBe("*");
+    expect(allowOrigin).not.toBe(origin);
   }
 });

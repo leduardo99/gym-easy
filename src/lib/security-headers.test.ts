@@ -20,6 +20,7 @@ describe("buildSecurityHeaders", () => {
     );
     const policy = headers["Content-Security-Policy"] ?? "";
 
+    expect(policy).toContain("connect-src 'self'");
     expect(policy).toContain("frame-ancestors 'none'");
     expect(policy).toContain(
       `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
