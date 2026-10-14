@@ -106,6 +106,8 @@ export async function loginAccount(
     expiresAt: new Date(input.now.getTime() + ABSOLUTE_SESSION_MS),
   });
 
+  await deps.rateLimiter.reset(loginAccountBucket(parsed.data.email));
+
   return {
     status: "authenticated",
     token,

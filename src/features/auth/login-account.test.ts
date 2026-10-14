@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createMemoryUserStore } from "./memory-user-store";
 import { loginAccount, loginFailureDelayMs } from "./login-account";
 import type { PasswordHasher } from "./password";
-import { createMemoryRateLimiter } from "./rate-limit";
+import { LOGIN_IP_LIMIT, createMemoryRateLimiter } from "./rate-limit";
 import { sha256 } from "./tokens";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -302,5 +302,150 @@ describe("loginAccount", () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(await second).toMatchObject({ status: "invalid_credentials" });
     vi.useRealTimers();
+  });
+
+  it("clears the account delay after a successful login", async () => {
+    const users = createMemoryUserStore();
+    await seed(users, true);
+    const waits: number[] = [];
+    const deps = {
+      users,
+      hasher: hasher([]),
+      rateLimiter: createMemoryRateLimiter(),
+      dummyHash: "hash:dummy",
+      createToken: () => "new-session",
+      delay: async (ms: number) => {
+        waits.push(ms);
+      },
+    };
+    const wrong = { ...input, password: "errada", existingTokenHash: null };
+
+    expect((await loginAccount(wrong, deps)).status).toBe(
+      "invalid_credentials",
+    );
+    expect((await loginAccount(wrong, deps)).status).toBe(
+      "invalid_credentials",
+    );
+    expect(
+      (await loginAccount({ ...input, existingTokenHash: null }, deps)).status,
+    ).toBe("authenticated");
+    expect((await loginAccount(wrong, deps)).status).toBe(
+      "invalid_credentials",
+    );
+    expect(waits).toEqual([500]);
+  });
+
+  it("keeps growing the delay when every attempt is wrong", async () => {
+    const users = createMemoryUserStore();
+    await seed(users, true);
+    const waits: number[] = [];
+    const deps = {
+      users,
+      hasher: hasher([]),
+      rateLimiter: createMemoryRateLimiter(),
+      dummyHash: "hash:dummy",
+      createToken: () => "new-session",
+      delay: async (ms: number) => {
+        waits.push(ms);
+      },
+    };
+    const wrong = { ...input, password: "errada", existingTokenHash: null };
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      expect((await loginAccount(wrong, deps)).status).toBe(
+        "invalid_credentials",
+      );
+    }
+    expect(waits).toEqual([500, 1_000, 2_000]);
+  });
+
+  it("does not clear the account delay without the right password", async () => {
+    const users = createMemoryUserStore();
+    await seed(users, false);
+    const waits: number[] = [];
+    const deps = {
+      users,
+      hasher: hasher([]),
+      rateLimiter: createMemoryRateLimiter(),
+      dummyHash: "hash:dummy",
+      createToken: () => "new-session",
+      delay: async (ms: number) => {
+        waits.push(ms);
+      },
+    };
+    const wrong = { ...input, password: "errada", existingTokenHash: null };
+    const unconfirmed = { ...input, existingTokenHash: null };
+
+    expect((await loginAccount(wrong, deps)).status).toBe(
+      "invalid_credentials",
+    );
+    expect((await loginAccount(unconfirmed, deps)).status).toBe(
+      "invalid_credentials",
+    );
+    expect((await loginAccount(wrong, deps)).status).toBe(
+      "invalid_credentials",
+    );
+    expect(waits).toEqual([500, 1_000]);
+    expect(await users.findSession(sha256("new-session"))).toBeNull();
+  });
+
+  it("leaves the ip limit in place after a successful login", async () => {
+    const users = createMemoryUserStore();
+    await seed(users, true);
+    const limiter = createMemoryRateLimiter();
+    const deps = {
+      users,
+      hasher: hasher([]),
+      rateLimiter: limiter,
+      dummyHash: "hash:dummy",
+      createToken: () => "new-session",
+      delay: instant,
+    };
+    const ip = "203.0.113.44";
+
+    for (let attempt = 0; attempt < LOGIN_IP_LIMIT - 1; attempt += 1) {
+      expect(
+        (
+          await loginAccount(
+            {
+              ...input,
+              ip,
+              email: `ausente-${attempt}@example.com`,
+              password: "errada",
+              existingTokenHash: null,
+            },
+            deps,
+          )
+        ).status,
+      ).toBe("invalid_credentials");
+    }
+
+    expect(
+      (await loginAccount({ ...input, ip, existingTokenHash: null }, deps))
+        .status,
+    ).toBe("authenticated");
+
+    const blocked = await loginAccount(
+      {
+        ...input,
+        ip,
+        email: "mais-uma@example.com",
+        password: "errada",
+        existingTokenHash: null,
+      },
+      deps,
+    );
+    const otherIp = await loginAccount(
+      {
+        ...input,
+        ip: "203.0.113.45",
+        password: "errada",
+        existingTokenHash: null,
+      },
+      deps,
+    );
+
+    expect(blocked.status).toBe("rate_limited");
+    expect(otherIp.status).toBe("invalid_credentials");
   });
 });
