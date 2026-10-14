@@ -38,6 +38,29 @@ describe("createResendEmailSender", () => {
     expect(body.text).toBe(copy.accountExistsNotice);
   });
 
+  it("logs the HTTP status and not the key or response body", async () => {
+    const info = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify({ message: "API key is invalid" }), {
+          status: 401,
+        }),
+    );
+    const sender = createResendEmailSender({
+      apiKey: "test-resend-key",
+      from: DEFAULT_EMAIL_FROM,
+      fetchImpl,
+    });
+
+    await expect(
+      sender.sendAccountExistsNotice({ to: "ana@example.com" }),
+    ).rejects.toThrow("email_send_failed");
+    expect(info).toHaveBeenCalledWith("email.resend_response", 401);
+    expect(info.mock.calls.flat().join(" ")).not.toContain("test-resend-key");
+    expect(info.mock.calls.flat().join(" ")).not.toContain("invalid");
+    info.mockRestore();
+  });
+
   it("does not create a Resend account or domain", async () => {
     const fetchImpl = vi.fn<typeof fetch>(
       async () => new Response("{}", { status: 200 }),

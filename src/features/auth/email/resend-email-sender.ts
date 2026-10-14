@@ -29,8 +29,10 @@ export function createResendEmailSender(options: {
       }),
     });
     if (!response.ok) {
+      console.error("email.resend_response", response.status);
       throw new Error("email_send_failed");
     }
+    console.info("email.resend_response", response.status);
   }
 
   return {
