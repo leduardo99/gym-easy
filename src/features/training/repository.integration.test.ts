@@ -7,7 +7,18 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AppDatabase } from "@/db";
 import { isLocalDatabaseUrl } from "@/db/driver";
 import * as schema from "@/db/schema";
-import { consentLog, exercises, userProfiles, users } from "@/db/schema";
+import {
+  bodyMeasurements,
+  consentLog,
+  exerciseSets,
+  exercises,
+  sessionExercises,
+  userProfiles,
+  users,
+  workoutExercises,
+  workoutSessions,
+  workouts,
+} from "@/db/schema";
 import { CATALOG_EXERCISES } from "@/db/catalog";
 import { applyExerciseSeed } from "@/db/seed/apply-exercise-seed";
 import { createConsentRepository } from "@/features/consent/repository";
@@ -416,5 +427,132 @@ describe.skipIf(!runIntegration)("training data access", () => {
       .from(consentLog)
       .where(eq(consentLog.userId, ownerId));
     expect(leftover).toEqual([]);
+  });
+
+  it("removes a custom exercise and the history that references it when the account is deleted", async () => {
+    const userId = await insertUser("Conta");
+    const otherId = await insertUser("Fica");
+    const catalogBefore = await db
+      .select({ id: exercises.id })
+      .from(exercises)
+      .where(isNull(exercises.ownerUserId));
+
+    const created = await repository.createExercise(userId, {
+      name: "Rosca da conta",
+      muscleGroup: "biceps",
+      equipment: "dumbbell",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const workout = await repository.createWorkout(userId, {
+      name: "Braços",
+      exercises: [
+        {
+          exerciseId: created.value.id,
+          setsCount: 2,
+          repsTarget: "8-12",
+          targetLoadKg: "12.5",
+        },
+      ],
+    });
+    expect(workout.ok).toBe(true);
+    if (!workout.ok) return;
+    const session = await repository.startSession(userId, {
+      workoutId: workout.value.id,
+    });
+    expect(session.ok).toBe(true);
+    if (!session.ok) return;
+    const setId = session.value.exercises[0]?.sets[0]?.id;
+    expect(setId).toBeTruthy();
+    const recorded = await repository.recordSet(userId, {
+      setId,
+      loadKg: "12.5",
+      reps: 10,
+      completed: true,
+    });
+    expect(recorded.ok).toBe(true);
+    await repository.saveProfile(userId, { birthYear: 1992, heightCm: 170 });
+    await repository.recordWeight(userId, {
+      recordedOn: "2026-10-14",
+      weight: "70",
+      unit: "kg",
+    });
+    await consents.recordConsent(userId, {
+      purpose: "body_data",
+      action: "granted",
+      source: "onboarding",
+    });
+
+    await db.delete(users).where(eq(users.id, userId));
+
+    expect(
+      await db
+        .select({ id: exercises.id })
+        .from(exercises)
+        .where(eq(exercises.ownerUserId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: workouts.id })
+        .from(workouts)
+        .where(eq(workouts.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: workoutExercises.id })
+        .from(workoutExercises)
+        .where(eq(workoutExercises.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: workoutSessions.id })
+        .from(workoutSessions)
+        .where(eq(workoutSessions.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: sessionExercises.id })
+        .from(sessionExercises)
+        .where(eq(sessionExercises.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: exerciseSets.id })
+        .from(exerciseSets)
+        .where(eq(exerciseSets.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: consentLog.id })
+        .from(consentLog)
+        .where(eq(consentLog.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db.select({ id: users.id }).from(users).where(eq(users.id, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, otherId)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select({ id: exercises.id })
+        .from(exercises)
+        .where(isNull(exercises.ownerUserId)),
+    ).toHaveLength(catalogBefore.length);
   });
 });

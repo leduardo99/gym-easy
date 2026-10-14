@@ -82,6 +82,8 @@ Exercícios padrão não têm dono e não podem ser arquivados. O nome é único
 
 Apagar um modelo não apaga sessões: `workout_sessions.workout_id` usa `ON DELETE SET NULL` e o nome já foi copiado na sessão. Filhos de treino e de sessão carregam o mesmo `user_id` do pai, amarrado por chave estrangeira composta. Há no máximo uma sessão `in_progress` por usuário.
 
+Apagar a conta apaga em cascata o perfil, o peso, os treinos, as sessões, as séries, os exercícios criados por essa pessoa e as linhas de treino ou de sessão que os referenciam. O catálogo compartilhado fica. `consent_log` também sai com a conta; um `UPDATE` ou `DELETE` direto continua recusado.
+
 Progressão de carga é calculada, não armazenada. Entram só séries com `completed_at` em sessões `completed`. Por sessão, a maior carga com pelo menos 1 repetição e o volume (`soma de carga × repetições`) saem em ordem de `finished_at`. A carga é recorde pessoal quando supera todas as sessões anteriores. Os índices de leitura são `(user_id, finished_at)` em `workout_sessions` e `(exercise_id)` em `session_exercises`.
 
 Valores estáveis:
@@ -101,7 +103,9 @@ Valores estáveis:
 | `equipment`              | `barbell`, `dumbbell`, `machine`, `cable`, `bodyweight`, `kettlebell`, `band`, `other`                                                      | Barra, Halteres, Máquina, Cabo, Peso corporal, Kettlebell, Elástico, Outro                                                     |
 | `workout_session_status` | `in_progress`, `completed`                                                                                                                  | Em andamento, Concluída                                                                                                        |
 
-Migrações desta etapa: `0001_training_model` (tabelas), `0002_seed_exercises` (catálogo) e `0003_birth_year_consent` (ano de nascimento, rotina do coach no mesmo perfil e `consent_log`). `0003` copia `extract(year from birth_date)` antes de apagar a data completa. Elas sobem na branch Neon `dev` e no Postgres da CI. A branch Neon `main` continua só com o que já foi aplicado em produção; o workflow de produção roda no push da `main`.
+Migrações desta etapa: `0001_training_model` (tabelas), `0002_seed_exercises` (catálogo), `0003_birth_year_consent` (ano de nascimento, rotina do coach no mesmo perfil e `consent_log`) e `0004_cascade_exercise_refs` (apagar a conta também apaga o exercício próprio e o histórico que o cita). `0003` copia `extract(year from birth_date)` antes de apagar a data completa. Elas sobem na branch Neon `dev` e no Postgres da CI. A branch Neon `main` continua só com o que já foi aplicado em produção; o workflow de produção roda no push da `main`.
+
+O projeto Neon deste app é `app-de-treino` (`blue-cell-40302441`), banco `app_treino`. A branch `dev` é `br-sweet-recipe-ba0pwnn3`. A branch `main` desse projeto é produção. Não aplique migrações no projeto `gymeasy`.
 
 `consent_log` não tem UPDATE nem DELETE na aplicação. Um trigger recusa os dois. O `ON DELETE CASCADE` da conta continua a funcionar, porque a exclusão nasce da linha de `users`. `REVOKE UPDATE, DELETE` em `PUBLIC` cobre papéis que não são donos da tabela.
 
@@ -130,7 +134,7 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 | `EMAIL_FROM`            | Servidor       | Opcional. Padrão `Gym Easy <onboarding@resend.dev>`.                                                                                       |
 | `DATABASE_URL_UNPOOLED` | GitHub Actions | Secret do environment `production`. Host direct da branch Neon `main`. Não entra no app.                                                   |
 
-Na Vercel, Preview usa a branch `dev` do Neon e Production usa a branch `main`. As funções rodam em `fra1` (`vercel.json`). Não crie `NEXT_PUBLIC_DATABASE_URL`.
+Na Vercel, Preview usa a branch `dev` do projeto `app-de-treino` e Production usa a branch `main` do mesmo projeto. As funções rodam em `fra1` (`vercel.json`). Não crie `NEXT_PUBLIC_DATABASE_URL`.
 
 ## CORS
 

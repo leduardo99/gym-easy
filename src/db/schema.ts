@@ -298,7 +298,7 @@ export const workoutExercises = pgTable(
     userId: uuid("user_id").notNull(),
     exerciseId: uuid("exercise_id")
       .notNull()
-      .references(() => exercises.id, { onDelete: "restrict" }),
+      .references(() => exercises.id, { onDelete: "cascade" }),
     position: integer("position").notNull(),
     setsCount: integer("sets_count").notNull().default(3),
     repsMin: integer("reps_min").notNull().default(10),
@@ -395,7 +395,7 @@ export const sessionExercises = pgTable(
     userId: uuid("user_id").notNull(),
     exerciseId: uuid("exercise_id")
       .notNull()
-      .references(() => exercises.id, { onDelete: "restrict" }),
+      .references(() => exercises.id, { onDelete: "cascade" }),
     position: integer("position").notNull(),
     restSeconds: integer("rest_seconds").notNull().default(90),
     notes: text("notes"),
