@@ -4,6 +4,7 @@ const ALLOWED_PREFIXES = [
   "/treinos",
   "/historico",
   "/perfil",
+  "/consentimento",
 ] as const;
 
 export function isAllowedNext(value: string): boolean {

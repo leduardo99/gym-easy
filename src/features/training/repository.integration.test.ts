@@ -4,6 +4,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
 import type { AppDatabase } from "@/db";
 import { isLocalDatabaseUrl } from "@/db/driver";
 import * as schema from "@/db/schema";
@@ -22,6 +23,7 @@ import {
 import { CATALOG_EXERCISES } from "@/db/catalog";
 import { applyExerciseSeed } from "@/db/seed/apply-exercise-seed";
 import { createConsentRepository } from "@/features/consent/repository";
+import { submitReconsent } from "@/features/consent/reconsent";
 import {
   CONSENT_KEY_VERSION,
   consentSubjectPseudonym,
@@ -481,6 +483,133 @@ describe.skipIf(!runIntegration)("training data access", () => {
     ).toHaveLength(1);
   });
 
+  it("rejects profile and weight writes when the body_data grant is stale", async () => {
+    const profileInput = { birthYear: 1990, heightCm: 170 };
+    const weightInput = {
+      recordedOn: "2026-10-14",
+      weight: "70",
+      unit: "kg" as const,
+    };
+
+    const staleVersion = await insertUser("Versao antiga corpo");
+    await db.insert(consentLog).values({
+      userId: staleVersion,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "onboarding",
+    });
+    expect(
+      await repository.saveProfile(staleVersion, profileInput),
+    ).toMatchObject({ ok: false, error: "consent_required" });
+    expect(
+      await repository.recordWeight(staleVersion, weightInput),
+    ).toMatchObject({ ok: false, error: "consent_required" });
+
+    const staleHash = await insertUser("Hash antigo corpo");
+    await db.insert(consentLog).values({
+      userId: staleHash,
+      purpose: "body_data",
+      action: "granted",
+      version: CONSENT_TEXTS.body_data.version,
+      textSha256: "ab".repeat(32),
+      source: "onboarding",
+    });
+    expect(await repository.saveProfile(staleHash, profileInput)).toMatchObject(
+      { ok: false, error: "consent_required" },
+    );
+    expect(await repository.recordWeight(staleHash, weightInput)).toMatchObject(
+      { ok: false, error: "consent_required" },
+    );
+
+    for (const userId of [staleVersion, staleHash]) {
+      expect(
+        await db
+          .select({ userId: userProfiles.userId })
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, userId)),
+      ).toEqual([]);
+      expect(
+        await db
+          .select({ id: bodyMeasurements.id })
+          .from(bodyMeasurements)
+          .where(eq(bodyMeasurements.userId, userId)),
+      ).toEqual([]);
+    }
+  });
+
+  it("unlocks body data writes after a stale grant is replaced by reconsent", async () => {
+    const userId = await insertUser("Reconsent corpo");
+    await db.insert(consentLog).values({
+      userId,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "onboarding",
+    });
+    const profileInput = { birthYear: 1990, heightCm: 170 };
+    const weightInput = {
+      recordedOn: "2026-10-14",
+      weight: "70",
+      unit: "kg" as const,
+    };
+
+    expect(await repository.saveProfile(userId, profileInput)).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    expect(await repository.recordWeight(userId, weightInput)).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+
+    const before = await db
+      .select({ id: consentLog.id })
+      .from(consentLog)
+      .where(eq(consentLog.userId, userId));
+    const refused = await submitReconsent(
+      db as unknown as AppDatabase,
+      userId,
+      {
+        scope: "body_data",
+        intent: "refuse",
+        accepted: true,
+      },
+    );
+    expect(refused.status).toBe("refused");
+    expect(
+      await db
+        .select({ id: consentLog.id })
+        .from(consentLog)
+        .where(eq(consentLog.userId, userId)),
+    ).toHaveLength(before.length);
+    expect(await repository.saveProfile(userId, profileInput)).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+
+    const granted = await submitReconsent(
+      db as unknown as AppDatabase,
+      userId,
+      {
+        scope: "body_data",
+        intent: "grant",
+        accepted: true,
+      },
+    );
+    expect(granted.status).toBe("granted");
+    if (granted.status !== "granted") return;
+    expect(granted.event.source).toBe("reconsent");
+    expect(granted.event.action).toBe("granted");
+    expect(granted.event.version).toBe(CONSENT_TEXTS.body_data.version);
+    expect(granted.event.textSha256).toBe(consentTextSha256("body_data"));
+
+    expect((await repository.saveProfile(userId, profileInput)).ok).toBe(true);
+    expect((await repository.recordWeight(userId, weightInput)).ok).toBe(true);
+  });
+
   it("does not let another user's body_data consent authorize profile or weight writes", async () => {
     const userA = await insertUser("Consentiu");
     const userB = await insertUser("Sem consentimento");
@@ -576,7 +705,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
     });
     expect(revoked.ok).toBe(true);
     const current = await consents.currentConsent(ownerId);
-    expect(current.body_data?.action).toBe("revoked");
+    expect(current.body_data).toBeUndefined();
     expect(await consents.listConsents(intruderId)).toEqual([]);
     expect(await consents.listConsents(ownerId)).toHaveLength(2);
 
@@ -627,6 +756,57 @@ describe.skipIf(!runIntegration)("training data access", () => {
     ).rejects.toSatisfy((error: unknown) =>
       errorText(error).includes("append-only"),
     );
+  });
+
+  it("counts only a grant of the current text version and hash", async () => {
+    const currentUser = await insertUser("Versao atual");
+    const saved = await consents.recordConsent(currentUser, {
+      purpose: "body_data",
+      action: "granted",
+      source: "onboarding",
+    });
+    expect(saved.ok).toBe(true);
+    const active = await consents.currentConsent(currentUser);
+    expect(active.body_data?.action).toBe("granted");
+    expect(active.body_data?.version).toBe(CONSENT_TEXTS.body_data.version);
+    expect(active.body_data?.textSha256).toBe(consentTextSha256("body_data"));
+
+    const staleUser = await insertUser("Versao antiga");
+    await db.insert(consentLog).values({
+      userId: staleUser,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "onboarding",
+    });
+    expect(
+      (await consents.currentConsent(staleUser)).body_data,
+    ).toBeUndefined();
+
+    const hashUser = await insertUser("Hash diferente");
+    await db.insert(consentLog).values({
+      userId: hashUser,
+      purpose: "body_data",
+      action: "granted",
+      version: CONSENT_TEXTS.body_data.version,
+      textSha256: "ab".repeat(32),
+      source: "onboarding",
+    });
+    expect((await consents.currentConsent(hashUser)).body_data).toBeUndefined();
+
+    await db.insert(consentLog).values({
+      userId: currentUser,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "reconsent",
+      createdAt: new Date("2026-10-15T00:00:00.000Z"),
+    });
+    expect(
+      (await consents.currentConsent(currentUser)).body_data,
+    ).toBeUndefined();
   });
 
   it("removes a custom exercise and the history that references it when the account is deleted", async () => {
