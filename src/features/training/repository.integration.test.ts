@@ -66,6 +66,15 @@ describe.skipIf(!runIntegration)("training data access", () => {
     return id;
   }
 
+  async function grantBodyData(userId: string) {
+    const saved = await consents.recordConsent(userId, {
+      purpose: "body_data",
+      action: "granted",
+      source: "onboarding",
+    });
+    expect(saved.ok).toBe(true);
+  }
+
   it("seeds the shared catalog once and again without duplicating rows", async () => {
     const before = await db
       .select({ id: exercises.id })
@@ -94,6 +103,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
       db.insert(userProfiles).values({ userId, birthYear: 1800 }),
     ).rejects.toThrow();
     await db.insert(userProfiles).values({ userId, birthYear: 2010 });
+    await grantBodyData(userId);
     const blocked = await repository.saveProfile(userId, { birthYear: 2010 });
     expect(blocked.ok).toBe(false);
     const allowed = await repository.saveProfile(userId, { birthYear: 2009 });
@@ -119,6 +129,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(profile.ok).toBe(false);
     if (!profile.ok) expect(profile.error).toBe("invalid");
 
+    await grantBodyData(ownerId);
     const saved = await repository.saveProfile(ownerId, {
       birthYear: 1992,
       heightCm: 168,
@@ -300,6 +311,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
 
   it("replaces a weight logged on the same day", async () => {
     const userId = await insertUser("Peso");
+    await grantBodyData(userId);
     await repository.recordWeight(userId, {
       recordedOn: "2026-10-01",
       weight: 80,
@@ -368,6 +380,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
 
   it("stores the owner on the inserted profile row", async () => {
     const userId = await insertUser("Dono");
+    await grantBodyData(userId);
     await repository.saveProfile(userId, { heightCm: 180 });
     const rows = await db
       .select()
@@ -376,6 +389,87 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.heightCm).toBe(180);
     expect(rows[0]?.birthYear).toBeNull();
+  });
+
+  it("refuses profile and weight writes unless body_data consent is active", async () => {
+    const userId = await insertUser("Corpo");
+    const profileInput = { birthYear: 1990, heightCm: 170 };
+    const weightInput = {
+      recordedOn: "2026-10-14",
+      weight: "70",
+      unit: "kg" as const,
+    };
+
+    const missingProfile = await repository.saveProfile(userId, profileInput);
+    const missingWeight = await repository.recordWeight(userId, weightInput);
+    expect(missingProfile).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    expect(missingWeight).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    expect(
+      await db
+        .select({ userId: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userId)),
+    ).toEqual([]);
+
+    await grantBodyData(userId);
+    await consents.recordConsent(userId, {
+      purpose: "body_data",
+      action: "revoked",
+      source: "profile",
+    });
+    const revokedProfile = await repository.saveProfile(userId, profileInput);
+    const revokedWeight = await repository.recordWeight(userId, weightInput);
+    expect(revokedProfile).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    expect(revokedWeight).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    expect(
+      await db
+        .select({ userId: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userId)),
+    ).toEqual([]);
+
+    await grantBodyData(userId);
+    const activeProfile = await repository.saveProfile(userId, profileInput);
+    const activeWeight = await repository.recordWeight(userId, weightInput);
+    expect(activeProfile.ok).toBe(true);
+    expect(activeWeight.ok).toBe(true);
+
+    expect(
+      await db
+        .select({ userId: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userId)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userId)),
+    ).toHaveLength(1);
   });
 
   it("appends consent and treats revocation as a new event", async () => {
@@ -471,6 +565,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
       completed: true,
     });
     expect(recorded.ok).toBe(true);
+    await grantBodyData(userId);
     await repository.saveProfile(userId, { birthYear: 1992, heightCm: 170 });
     await repository.recordWeight(userId, {
       recordedOn: "2026-10-14",

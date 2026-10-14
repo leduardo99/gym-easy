@@ -110,7 +110,7 @@ Migrações desta etapa: `0001_training_model` (tabelas), `0002_seed_exercises` 
 
 O projeto Neon deste app é `app-de-treino` (`blue-cell-40302441`), banco `app_treino`. A branch `dev` é `br-sweet-recipe-ba0pwnn3`. A branch `main` desse projeto é produção. Não aplique migrações no projeto `gymeasy`.
 
-`consent_log` não tem UPDATE nem DELETE na aplicação. Um trigger recusa os dois. O `ON DELETE CASCADE` da conta continua a funcionar, porque a exclusão nasce da linha de `users`. `REVOKE UPDATE, DELETE` em `PUBLIC` cobre papéis que não são donos da tabela.
+`saveProfile` e `recordWeight` só gravam com consentimento `body_data` ativo: o último evento desse tipo precisa ser `granted`. Sem linha, ou com o último evento `revoked`, a resposta é `consent_required` e nada é escrito. `consent_log` não tem UPDATE nem DELETE na aplicação. Um trigger recusa os dois. O `ON DELETE CASCADE` da conta continua a funcionar, porque a exclusão nasce da linha de `users`. `REVOKE UPDATE, DELETE` em `PUBLIC` cobre papéis que não são donos da tabela.
 
 ## Autenticação
 

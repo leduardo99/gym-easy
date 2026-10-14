@@ -23,6 +23,7 @@ import type {
 } from "@/db/domain";
 import {
   bodyMeasurements,
+  consentLog,
   exerciseSets,
   exercises,
   sessionExercises,
@@ -45,7 +46,12 @@ import {
 } from "./schemas";
 
 export type RepoError =
-  "invalid" | "not_found" | "conflict" | "in_progress_exists" | "not_allowed";
+  | "invalid"
+  | "not_found"
+  | "conflict"
+  | "in_progress_exists"
+  | "not_allowed"
+  | "consent_required";
 
 export type RepoResult<T> =
   { ok: true; value: T } | { ok: false; error: RepoError; message: string };
@@ -138,6 +144,13 @@ function notFound(): RepoResult<never> {
   return failure("not_found", "Não encontrado.");
 }
 
+function consentRequired(): RepoResult<never> {
+  return failure(
+    "consent_required",
+    "Autorize o uso dos dados do corpo antes de guardar.",
+  );
+}
+
 function postgresCode(error: unknown): string | null {
   if (typeof error !== "object" || error === null) return null;
   if ("code" in error && typeof error.code === "string") return error.code;
@@ -223,6 +236,18 @@ export function createTrainingRepository(db: AppDatabase) {
     return rows.length === uniqueIds.length;
   }
 
+  async function hasActiveBodyDataConsent(userId: string): Promise<boolean> {
+    const rows = await db
+      .select({ action: consentLog.action })
+      .from(consentLog)
+      .where(
+        and(eq(consentLog.userId, userId), eq(consentLog.purpose, "body_data")),
+      )
+      .orderBy(desc(consentLog.createdAt))
+      .limit(1);
+    return rows[0]?.action === "granted";
+  }
+
   const api = {
     async saveProfile(
       userId: string,
@@ -230,6 +255,7 @@ export function createTrainingRepository(db: AppDatabase) {
     ): Promise<RepoResult<ProfileRecord>> {
       const parsed = createProfileInputSchema(new Date()).safeParse(input);
       if (!parsed.success) return invalid();
+      if (!(await hasActiveBodyDataConsent(userId))) return consentRequired();
       const data = parsed.data;
       const existing = await db
         .select({ userId: userProfiles.userId })
@@ -282,6 +308,7 @@ export function createTrainingRepository(db: AppDatabase) {
     ): Promise<RepoResult<WeightRecord>> {
       const parsed = weightInputSchema.safeParse(input);
       if (!parsed.success) return invalid();
+      if (!(await hasActiveBodyDataConsent(userId))) return consentRequired();
       const rows = await db
         .insert(bodyMeasurements)
         .values({
