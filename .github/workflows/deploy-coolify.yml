@@ -1,6 +1,6 @@
 # Deploy Gym Easy to Coolify after CI succeeds on main.
 # Secrets: TS_OAUTH_CLIENT_ID, TS_OAUTH_SECRET, COOLIFY_TOKEN.
-# Variable: COOLIFY_APP_UUID.
+# COOLIFY_APP_UUID: variable or secret on the production environment.
 name: Deploy Coolify
 
 on:
@@ -39,7 +39,7 @@ jobs:
         id: deploy
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_APP_UUID: ${{ vars.COOLIFY_APP_UUID }}
+          COOLIFY_APP_UUID: ${{ vars.COOLIFY_APP_UUID || secrets.COOLIFY_APP_UUID }}
         run: |
           set -euo pipefail
           if [ -z "${COOLIFY_TOKEN}" ] || [ -z "${COOLIFY_APP_UUID}" ]; then
