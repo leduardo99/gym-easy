@@ -13,6 +13,23 @@ import {
 } from "./rate-limit";
 import { fieldErrorsFromZod, signupSchema, type FieldErrors } from "./schemas";
 import { CONFIRMATION_TTL_MS } from "./session-policy";
+
+export const SIGNUP_TIMING_DUMMY = "signup-timing-dummy";
+export const SIGNUP_RESPONSE_FLOOR_MS = 700;
+export const SIGNUP_RESPONSE_JITTER_MS = 50;
+
+export function signupResponsePadMs(elapsedMs: number, unit: number): number {
+  const jitter = Math.floor(
+    Math.min(1, Math.max(0, unit)) * SIGNUP_RESPONSE_JITTER_MS,
+  );
+  return Math.max(0, SIGNUP_RESPONSE_FLOOR_MS + jitter - elapsedMs);
+}
+
+function waitForSignupPad(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
@@ -40,8 +57,12 @@ export async function registerAccount(
     rateLimiter: RateLimiter;
     createId: () => string;
     createToken: () => string;
+    clock?: () => number;
+    random?: () => number;
+    sleep?: (ms: number) => Promise<void>;
   },
 ): Promise<RegisterResult> {
+  const started = deps.clock?.() ?? performance.now();
   const parsed = signupSchema.safeParse({
     name: input.name,
     email: input.email,
@@ -94,6 +115,7 @@ export async function registerAccount(
         confirmUrl: `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`,
       });
     } else {
+      await deps.hasher.hash(SIGNUP_TIMING_DUMMY);
       await deps.emails.sendAccountExistsNotice({ to: parsed.data.email });
     }
   } catch {
@@ -105,6 +127,10 @@ export async function registerAccount(
     RESEND_COOLDOWN_LIMIT,
     RESEND_COOLDOWN_WINDOW_MS,
   );
+
+  const elapsed = (deps.clock?.() ?? performance.now()) - started;
+  const pad = signupResponsePadMs(elapsed, deps.random?.() ?? Math.random());
+  if (pad > 0) await (deps.sleep ?? waitForSignupPad)(pad);
 
   return { status: "pending", email: parsed.data.email };
 }

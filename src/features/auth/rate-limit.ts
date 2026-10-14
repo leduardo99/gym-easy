@@ -36,7 +36,7 @@ export interface RateLimiter {
     bucket: string,
     limit: number,
     windowMs: number,
-  ): Promise<{ allowed: boolean; retryAfterSeconds: number }>;
+  ): Promise<{ allowed: boolean; retryAfterSeconds: number; hits: number }>;
 }
 
 export function applyRateLimit(
@@ -82,6 +82,7 @@ export function createMemoryRateLimiter(
       return {
         allowed: decision.allowed,
         retryAfterSeconds: decision.retryAfterSeconds,
+        hits: decision.state.hits,
       };
     },
   };

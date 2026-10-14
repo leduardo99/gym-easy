@@ -55,7 +55,7 @@ export function createDrizzleRateLimiter(db: AppDatabase): RateLimiter {
             ),
           );
 
-      return { allowed, retryAfterSeconds };
+      return { allowed, retryAfterSeconds, hits };
     },
   };
 }
