@@ -65,16 +65,17 @@ function isClientIp(value: string): boolean {
  * Client address for IP rate limits.
  * X-Forwarded-For is read only when the proxy is trusted, and only the hop
  * Traefik appended (counted from the right). X-Real-IP is never trusted.
+ * Without a valid address the caller must skip the IP bucket.
  */
 export function getClientIp(input: {
   forwardedFor: string | null;
   socketAddress?: string | null;
   trustProxy: boolean;
   trustedProxyHops?: number;
-}): string {
+}): string | null {
   const socket = input.socketAddress?.trim() ?? "";
   const socketIp = isClientIp(socket) ? socket : null;
-  if (!input.trustProxy) return socketIp ?? "unknown";
+  if (!input.trustProxy) return socketIp;
 
   const hops = (input.forwardedFor ?? "")
     .split(",")
@@ -84,5 +85,5 @@ export function getClientIp(input: {
   const index = hops.length - trustedHops;
   const candidate = index >= 0 ? hops[index] : undefined;
   if (candidate && isClientIp(candidate)) return candidate;
-  return socketIp ?? "unknown";
+  return socketIp;
 }

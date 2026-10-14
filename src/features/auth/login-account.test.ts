@@ -4,6 +4,7 @@ import { createMemoryUserStore } from "./memory-user-store";
 import { loginAccount, loginFailureDelayMs } from "./login-account";
 import type { PasswordHasher } from "./password";
 import { LOGIN_IP_LIMIT, createMemoryRateLimiter } from "./rate-limit";
+import { getClientIp } from "./session-cookie";
 import { sha256 } from "./tokens";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -447,5 +448,60 @@ describe("loginAccount", () => {
 
     expect(blocked.status).toBe("rate_limited");
     expect(otherIp.status).toBe("invalid_credentials");
+  });
+
+  it("does not share a login block across two socket addresses", async () => {
+    const users = createMemoryUserStore();
+    await seed(users, true);
+    const limiter = createMemoryRateLimiter();
+    const deps = {
+      users,
+      hasher: hasher([]),
+      rateLimiter: limiter,
+      dummyHash: "hash:dummy",
+      createToken: () => "new-session",
+      delay: instant,
+    };
+    const forged = "203.0.113.5, 198.51.100.20";
+    const first = getClientIp({
+      forwardedFor: forged,
+      socketAddress: "198.51.100.10",
+      trustProxy: false,
+    });
+    const second = getClientIp({
+      forwardedFor: forged,
+      socketAddress: "198.51.100.11",
+      trustProxy: false,
+    });
+    expect(first).toBe("198.51.100.10");
+    expect(second).toBe("198.51.100.11");
+    expect(getClientIp({ forwardedFor: forged, trustProxy: false })).toBeNull();
+
+    const attempt = (ip: string | null, email: string) =>
+      loginAccount(
+        {
+          ...input,
+          ip,
+          email,
+          password: "errada",
+          existingTokenHash: null,
+        },
+        deps,
+      );
+
+    for (let index = 0; index < LOGIN_IP_LIMIT; index += 1) {
+      expect((await attempt(first, `a-${index}@example.com`)).status).toBe(
+        "invalid_credentials",
+      );
+    }
+    expect((await attempt(first, "blocked@example.com")).status).toBe(
+      "rate_limited",
+    );
+    expect((await attempt(second, "other@example.com")).status).toBe(
+      "invalid_credentials",
+    );
+    expect((await attempt(null, "missing-socket@example.com")).status).toBe(
+      "invalid_credentials",
+    );
   });
 });

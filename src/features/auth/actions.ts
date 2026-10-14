@@ -132,6 +132,7 @@ async function mutationContext() {
   return {
     ip: getClientIp({
       forwardedFor: headerStore.get("x-forwarded-for"),
+      socketAddress: headerStore.get("x-gym-easy-peer"),
       trustProxy: env.TRUST_PROXY,
       trustedProxyHops: env.TRUSTED_PROXY_HOPS,
     }),

@@ -166,4 +166,4 @@ jobs:
           set -euo pipefail
           test "$(docker inspect --format '{{.Config.User}}' gym-easy:ci)" = "nextjs"
           docker inspect --format '{{json .Config.Healthcheck.Test}}' gym-easy:ci | grep -q '/api/health'
-          docker run --rm --entrypoint node gym-easy:ci --input-type=module -e "import fs from 'node:fs'; if(!fs.existsSync('/app/server.js')) process.exit(1); if(!fs.existsSync('/app/migrate-on-deploy.mjs')) process.exit(3); if(!fs.existsSync('/app/migrations/meta/_journal.json')) process.exit(4); await import('postgres'); await import('drizzle-orm/postgres-js/migrator'); if(process.getuid()===0) process.exit(2);"
+          docker run --rm --entrypoint node gym-easy:ci --input-type=module -e "import fs from 'node:fs'; if(!fs.existsSync('/app/server.js')) process.exit(1); if(!fs.existsSync('/app/migrate-on-deploy.mjs')) process.exit(3); if(!fs.existsSync('/app/migrations/meta/_journal.json')) process.exit(4); if(!fs.existsSync('/app/scripts/purge-consent.mjs')) process.exit(5); await import('postgres'); await import('drizzle-orm/postgres-js/migrator'); if(process.getuid()===0) process.exit(2);"

@@ -66,7 +66,7 @@ describe("session cookies", () => {
         forwardedFor: forged,
         trustProxy: false,
       }),
-    ).toBe("unknown");
+    ).toBeNull();
     expect(
       getClientIp({
         forwardedFor: forged,
@@ -93,6 +93,6 @@ describe("session cookies", () => {
         forwardedFor: null,
         trustProxy: true,
       }),
-    ).toBe("unknown");
+    ).toBeNull();
   });
 });

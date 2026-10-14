@@ -10,6 +10,21 @@ import { repairPostgresJsSerializers } from "./postgres";
 import * as schema from "./schema";
 
 const clients = new Map<string, Sql>();
+let shutdownHooksInstalled = false;
+
+function installDbShutdownHooks(): void {
+  if (shutdownHooksInstalled) return;
+  shutdownHooksInstalled = true;
+  const shutdown = () => {
+    const pending = [...clients.values()].map((client) =>
+      client.end({ timeout: 5 }),
+    );
+    clients.clear();
+    void Promise.all(pending);
+  };
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
+}
 
 export function createDb(databaseUrl: string) {
   const env = getServerEnv();
@@ -25,6 +40,7 @@ export function createDb(databaseUrl: string) {
       }),
     );
     clients.set(databaseUrl, client);
+    installDbShutdownHooks();
   }
   const database = drizzle({ client, schema });
   repairPostgresJsSerializers(client);

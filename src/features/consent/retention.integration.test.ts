@@ -1,3 +1,5 @@
+import { spawnSync } from "node:child_process";
+
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -58,15 +60,18 @@ describe.skipIf(!runIntegration)("consent retention privileges", () => {
     await sql`set role gym_easy_app`;
     await sql`select set_config('gym_easy.consent_retention', 'delete', true)`;
 
-    await expect(sql`delete from "consent_log"`).rejects.toThrow(
-      /permission denied/i,
+    await expect(sql`delete from "consent_log"`).rejects.toSatisfy(
+      isInsufficientPrivilege,
     );
     await expect(
       sql`update "consent_log" set "source" = "source"`,
-    ).rejects.toThrow(/permission denied/i);
+    ).rejects.toSatisfy(isInsufficientPrivilege);
+    await expect(sql`truncate "consent_log"`).rejects.toSatisfy(
+      isInsufficientPrivilege,
+    );
     await expect(
       sql`select purge_expired_consent_proofs(now())`,
-    ).rejects.toThrow(/permission denied/i);
+    ).rejects.toSatisfy(isInsufficientPrivilege);
 
     await sql`select delete_account(${expiredId}::uuid, ${expiredPseudonym}, ${CONSENT_KEY_VERSION}::smallint, ${"2020-01-01T00:00:00.000Z"}::timestamptz)`;
     await sql`select delete_account(${recentId}::uuid, ${recentPseudonym}, ${CONSENT_KEY_VERSION}::smallint)`;
@@ -100,4 +105,48 @@ describe.skipIf(!runIntegration)("consent retention privileges", () => {
         .where(eq(users.id, expiredId)),
     ).toEqual([]);
   });
+
+  it("faz o migrate-on-deploy sair com 1 se a app recuperar UPDATE", async () => {
+    const migratorUrl = migratorDatabaseUrl(databaseUrl);
+    await sql`grant update on "consent_log" to gym_easy_app`;
+    try {
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/migrate-on-deploy.mjs"],
+        {
+          encoding: "utf8",
+          env: {
+            PATH: process.env.PATH,
+            NODE_ENV: "test",
+            RUN_MIGRATIONS: "true",
+            DATABASE_URL_MIGRATOR: migratorUrl,
+          },
+        },
+      );
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(
+        "gym_easy_app still has UPDATE on consent_log",
+      );
+      expect(result.stderr).not.toContain(migratorUrl);
+    } finally {
+      await sql`reset role`;
+      await sql`revoke update on "consent_log" from gym_easy_app`;
+    }
+  });
 });
+
+function isInsufficientPrivilege(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "42501"
+  );
+}
+
+function migratorDatabaseUrl(superuserUrl: string): string {
+  const url = new URL(superuserUrl);
+  url.username = "gym_easy_migrator";
+  url.password = "migrator";
+  return url.toString();
+}

@@ -77,6 +77,7 @@ export function postgresClientOptions(config: DbPoolConfig) {
     max: config.poolMax,
     idle_timeout: config.idleTimeoutSeconds,
     connect_timeout: config.connectTimeoutSeconds,
+    prepare: false,
     connection: {
       statement_timeout: config.statementTimeoutMs,
     },

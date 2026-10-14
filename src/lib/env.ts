@@ -75,11 +75,21 @@ export function isLocalSmtpHost(host: string): boolean {
   );
 }
 
+function isProductionAppUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    return new URL(value).hostname === "app.gaffer.pt";
+  } catch {
+    return false;
+  }
+}
+
 function captureIsActive(
   source: NodeJS.ProcessEnv,
   capturePath: string | undefined,
 ): boolean {
   if (!capturePath) return false;
+  if (isProductionAppUrl(source.APP_URL)) return false;
   if (source.NODE_ENV === "production" && source.CI !== "true") return false;
   return true;
 }

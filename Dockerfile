@@ -28,6 +28,7 @@ RUN groupadd --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/migrate-on-deploy.mjs ./migrate-on-deploy.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/purge-consent.mjs ./scripts/purge-consent.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/migrations ./migrations
 COPY --from=builder --chown=nextjs:nodejs /app/docker/entrypoint.sh ./entrypoint.sh
 RUN chmod 755 ./entrypoint.sh

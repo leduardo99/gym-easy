@@ -323,9 +323,23 @@ describe("readServerEnv", () => {
         CRON_SECRET: "cron-secret-value-32-characters-ok",
       }),
     ).toMatchObject({
-      EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+      EMAIL_CAPTURE_PATH: null,
       EMAIL_TRANSPORT: "resend",
     });
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        APP_URL: "http://127.0.0.1:3000",
+        CI: "true",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+      }).EMAIL_CAPTURE_PATH,
+    ).toBe(".data/e2e-emails.jsonl");
   });
 
   it("does not require email credentials during the next production build", () => {

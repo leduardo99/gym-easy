@@ -53,7 +53,7 @@ pnpm dev
 
 ## Banco
 
-O schema Drizzle mora em `src/db/schema.ts`. O cliente é `postgres.js` (`drizzle-orm/postgres-js`), com pool de `DB_POOL_MAX` ligações (5 a 10, padrão 5), `idle_timeout` (`DB_IDLE_TIMEOUT`, padrão 20 segundos), `connect_timeout` (`DB_CONNECT_TIMEOUT`, padrão 10 segundos) e `statement_timeout` (`DB_STATEMENT_TIMEOUT`, padrão 15000 milissegundos). O TLS vem de `sslmode` na `DATABASE_URL` (`sslmode=require`). O driver HTTP do Neon não entra no runtime. O Neon continua a funcionar como fallback com a mesma URL.
+O schema Drizzle mora em `src/db/schema.ts`. O cliente é `postgres.js` (`drizzle-orm/postgres-js`), com pool de `DB_POOL_MAX` ligações (5 a 10, padrão 5), `idle_timeout` (`DB_IDLE_TIMEOUT`, padrão 20 segundos), `connect_timeout` (`DB_CONNECT_TIMEOUT`, padrão 10 segundos), `statement_timeout` (`DB_STATEMENT_TIMEOUT`, padrão 15000 milissegundos) e `prepare: false` (compatível com o pooler do Neon). O TLS vem de `sslmode` na `DATABASE_URL` (`sslmode=require`). O driver HTTP do Neon não entra no runtime. O Neon continua a funcionar como fallback com a mesma URL.
 
 ```bash
 pnpm db:generate   # gera SQL em src/db/migrations
@@ -64,7 +64,7 @@ pnpm db:migrate    # aplica no DATABASE_URL
 
 - No pull request, a CI sobe um Postgres 16, corre `pnpm db:migrate` e, em seguida, `scripts/migrate-on-deploy.mjs` com `RUN_MIGRATIONS=true` e `DATABASE_URL_MIGRATOR` nesse mesmo banco.
 - Não migre produção a partir de uma branch de feature.
-- Em produção o contentor aplica as migrações. Com `RUN_MIGRATIONS=true`, `docker/entrypoint.sh` corre `scripts/migrate-on-deploy.mjs` antes do servidor. O script exige `DATABASE_URL_MIGRATOR` com o utilizador `gym_easy_migrator` (não usa `DATABASE_URL` da app), host direto e `sslmode=require`. Segura um `pg_advisory_lock` para dois contentores não migrarem ao mesmo tempo e só então o entrypoint faz `exec` do servidor. Se a migração falha, o contentor sai com código diferente de 0. O padrão de `RUN_MIGRATIONS` é `false`. O script recusa um host com `-pooler`, outro utilizador, e não imprime a URL nem a mensagem de erro.
+- Em produção no Coolify, `RUN_MIGRATIONS=true` é obrigatório. Com esse valor, `docker/entrypoint.sh` corre `scripts/migrate-on-deploy.mjs` antes do servidor. O script exige `DATABASE_URL_MIGRATOR` com o utilizador `gym_easy_migrator` (não usa `DATABASE_URL` da app), host direto e `sslmode=require`. Segura um `pg_advisory_lock` e, ainda dentro do lock, confirma que `gym_easy_app` não tem `UPDATE`/`DELETE`/`TRUNCATE` em `consent_log` nem `EXECUTE` em `purge_expired_consent_proofs`, e que o dono de `consent_log`, `delete_account` e `purge_consent_proofs` é `gym_easy_migrator`. Se a migração ou essa verificação falha, o contentor sai com código diferente de 0. O script recusa um host com `-pooler`, outro utilizador, e não imprime a URL. Um `GRANT` de bootstrap tem de correr antes das migrações.
 - O deploy fica em `.github/workflows/deploy-coolify.yml`. O fluxo é push na `main`, workflow `CI` com `conclusion` `success`, e só então o Deploy Coolify. O trigger é `workflow_run` com `types: [completed]`. O job exige `head_branch` `main` e evento original `push`. `concurrency` é `production-deploy` (`cancel-in-progress: false`) e `environment` é `production`. O job entra na tailnet com `tailscale/github-action` pinada por SHA e pede o deploy à API do Coolify (`COOLIFY_TOKEN`; `COOLIFY_APP_UUID` como variável ou secret). Não imprime o token nem o corpo da resposta. As migrações correm no arranque do contentor. O CI de um pull request não faz deploy. `permissions` é `contents: read`.
 
 Não edite uma migração que já tenha sido aplicada.
@@ -169,13 +169,13 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 | `SMTP_PASS`             | Servidor  | Obrigatório junto com `SMTP_USER` num host remoto. Segredo. Não use o prefixo `NEXT_PUBLIC_`.                                                                                                                     |
 | `SMTP_SECURE`           | Servidor  | Opcional. `true`, `false`, `1` ou `0`. Mailpit local pode ficar `false`. Outros hosts usam TLS.                                                                                                                   |
 | `CRON_SECRET`           | Servidor  | Obrigatório em produção, mínimo 32 caracteres. `POST /api/cron/purge-consent-proofs` compara com `timingSafeEqual`.                                                                                               |
-| `TRUST_PROXY`           | Servidor  | `true` atrás do Traefik do Coolify. Sem isto, `X-Forwarded-For` é ignorado e o rate limit usa o socket ou `unknown`.                                                                                              |
+| `TRUST_PROXY`           | Servidor  | `true` atrás do Traefik do Coolify. Sem isto, `X-Forwarded-For` é ignorado e o rate limit usa o socket. Sem IP válido, o login não usa um balde partilhado.                                                       |
 | `TRUSTED_PROXY_HOPS`    | Servidor  | Hops de `X-Forwarded-For` do proxy, contados da direita. Padrão 1. `X-Real-IP` nunca é usado.                                                                                                                     |
 | `DB_POOL_MAX`           | Servidor  | Opcional. Ligações no pool do `postgres.js`. Inteiro de 5 a 10. Padrão 5.                                                                                                                                         |
 | `DB_IDLE_TIMEOUT`       | Servidor  | Opcional. `idle_timeout` em segundos. Padrão 20.                                                                                                                                                                  |
 | `DB_CONNECT_TIMEOUT`    | Servidor  | Opcional. `connect_timeout` em segundos. Padrão 10.                                                                                                                                                               |
 | `DB_STATEMENT_TIMEOUT`  | Servidor  | Opcional. `statement_timeout` em milissegundos. Padrão 15000.                                                                                                                                                     |
-| `RUN_MIGRATIONS`        | Contentor | Opcional. `true` aplica migrações no arranque, dentro de `pg_advisory_lock`, e só depois sobe o servidor. Falha sai com código diferente de 0. Padrão `false`.                                                    |
+| `RUN_MIGRATIONS`        | Contentor | Obrigatório `true` no Coolify. Aplica migrações no arranque, dentro de `pg_advisory_lock`, verifica os privilégios do consentimento e só depois sobe o servidor. Falha sai com código diferente de 0.             |
 | `DATABASE_URL_MIGRATOR` | Contentor | Obrigatória quando `RUN_MIGRATIONS=true`. Utilizador `gym_easy_migrator`, host direto, sem `-pooler`, com `sslmode=require`. Não cai para `DATABASE_URL`. Não é impressa.                                         |
 
 Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
@@ -184,19 +184,17 @@ Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
 
 O Coolify chama `POST /api/cron/purge-consent-proofs` todos os dias às 03:15 UTC. O header é `Authorization: Bearer` com `CRON_SECRET` (mínimo 32 caracteres). A comparação é `SHA-256` + `timingSafeEqual`. Sem o segredo, com um valor diferente, em `GET`, ou com o segredo na query string, a rota responde 401. O corte de 3 anos fica dentro de `purge_consent_proofs()`; o chamador não escolhe a data.
 
-No Coolify, a Scheduled Task pode usar `scripts/coolify-purge-consent.sh` ou:
+No Coolify, a Scheduled Task corre no contentor da app, todos os dias às 03:15 UTC:
 
 ```bash
-curl --fail --silent --show-error --proto '=https' --max-time 30 \
-  --request POST \
-  --header "Authorization: Bearer ${CRON_SECRET}" \
-  --output /dev/null \
-  "${APP_URL%/}/api/cron/purge-consent-proofs"
+node scripts/purge-consent.mjs
 ```
+
+O script faz `POST` a `http://localhost:${PORT}/api/cron/purge-consent-proofs` com `Authorization: Bearer` e `CRON_SECRET`. Não usa `curl`. Se o pedido falhar, sai com código 1 e não imprime o segredo.
 
 ## Proxy
 
-Atrás do Traefik, defina `TRUST_PROXY=true` e `TRUSTED_PROXY_HOPS=1`. O rate limit por IP lê só esse hop de `X-Forwarded-For` (o da direita, acrescentado pelo Traefik). Um valor forjado à esquerda é ignorado, tal como `X-Real-IP`. Sem `TRUST_PROXY`, o endereço é o do socket, ou `unknown`. O cookie de sessão em produção é sempre `Secure`, mesmo que `x-forwarded-proto` venha errado.
+Atrás do Traefik, defina `TRUST_PROXY=true` e `TRUSTED_PROXY_HOPS=1`. O rate limit por IP lê só esse hop de `X-Forwarded-For` (o da direita, acrescentado pelo Traefik). Um valor forjado à esquerda é ignorado, tal como `X-Real-IP`. Sem `TRUST_PROXY`, o endereço é o do socket TCP (`x-gym-easy-peer`, escrito pelo servidor a partir de `remoteAddress`). Sem um IP válido, o login não usa um balde partilhado. O cookie de sessão em produção é sempre `Secure`, mesmo que `x-forwarded-proto` venha errado. O cliente `postgres.js` usa `prepare: false` para o pooler do Neon e fecha o pool com `sql.end({ timeout: 5 })` em `SIGTERM` e `SIGINT`.
 
 ## Headers
 
