@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   outputFileTracingIncludes: {
     "/*": [
+      "./node_modules/drizzle-orm/package.json",
       "./node_modules/drizzle-orm/migrator.js",
       "./node_modules/drizzle-orm/postgres-js/migrator.js",
       "./node_modules/postgres/**/*",
