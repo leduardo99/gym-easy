@@ -44,10 +44,17 @@ describe("renderExerciseSeedSql", () => {
 
   it("matches the versioned seed migration", () => {
     const migration = readFileSync(
-      "src/db/migrations/0006_seed_exercises.sql",
+      "src/db/migrations/0007_catalog_v2.sql",
       "utf8",
     );
-    expect(migration.trim()).toBe(sql.trim());
+    expect(migration).toContain(sql.trim());
+    const removeOld = migration.indexOf(
+      'DELETE FROM "exercises" WHERE "owner_user_id" IS NULL',
+    );
+    expect(removeOld).toBeGreaterThan(-1);
+    expect(migration.indexOf('INSERT INTO "exercises"')).toBeGreaterThan(
+      removeOld,
+    );
   });
 
   it("drops the previous catalog before the metadata check", () => {

@@ -121,6 +121,7 @@ export const movementPatternEnum = pgEnum(
   MOVEMENT_PATTERNS,
 );
 export const muscleEnum = pgEnum("muscle", MUSCLES);
+/** O mesmo enum vale para contraindicated_regions e, depois, para injury.region. */
 export const bodyRegionEnum = pgEnum("body_region", BODY_REGIONS);
 export const sessionStatusEnum = pgEnum(
   "workout_session_status",

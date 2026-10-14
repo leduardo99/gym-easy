@@ -1,12 +1,11 @@
-import seed from "./catalog/exercises.json";
+import seed from "./seed/exercises.v2.json";
 import type { TrainingLevel } from "./domain";
 import { LEVEL_VALUES } from "./domain";
 
 /**
- * Catálogo LED-32, versão 2026-10-14.
- * Chaves, slugs e enums ficam em inglês. O nome exibido fica em português.
- * A ordem de substituição de `bench_dip` segue a revisão da LED-32:
- * pegada neutra, paralelas para peito, supino fechado.
+ * Catálogo LED-32, versão 2026-10-14.v2.
+ * O JSON oficial é a fonte única. Ids em português são os slugs estáveis.
+ * Enums ficam em inglês. O nome exibido fica em `name_pt`.
  */
 
 export const MUSCLE_GROUPS = [
@@ -29,52 +28,51 @@ export const EQUIPMENT = [
   "barbell",
   "dumbbell",
   "machine",
+  "smith_machine",
   "cable",
   "bodyweight",
+  "resistance_band",
   "kettlebell",
-  "band",
-  "other",
-  "smith",
   "accessory",
 ] as const;
 
 export const MOVEMENT_PATTERNS = [
+  "squat",
+  "hip_hinge",
+  "lunge",
   "horizontal_push",
   "vertical_push",
   "horizontal_pull",
   "vertical_pull",
-  "squat",
-  "hip_hinge",
-  "lunge",
   "core",
   "isolation",
   "carry",
 ] as const;
 
 export const MUSCLES = [
-  "pectoralis",
-  "latissimus",
-  "rhomboids",
-  "upper_trapezius",
-  "middle_trapezius",
-  "erector_spinae",
-  "anterior_deltoid",
-  "lateral_deltoid",
-  "posterior_deltoid",
-  "rotator_cuff",
-  "biceps",
+  "chest",
   "triceps",
+  "biceps",
   "forearms",
+  "front_delts",
+  "side_delts",
+  "rear_delts",
+  "rotator_cuff",
+  "lats",
+  "rhomboids",
+  "mid_traps",
+  "upper_traps",
+  "spinal_erectors",
+  "abs",
+  "obliques",
+  "hip_flexors",
+  "glutes",
+  "glute_medius",
+  "adductors",
   "quadriceps",
   "hamstrings",
-  "glutes",
-  "gluteus_medius",
-  "adductors",
-  "hip_flexors",
   "calves",
   "soleus",
-  "abdominals",
-  "obliques",
 ] as const;
 
 export const BODY_REGIONS = [
@@ -82,7 +80,7 @@ export const BODY_REGIONS = [
   "elbow",
   "wrist",
   "neck",
-  "lumbar_spine",
+  "lower_back",
   "hip",
   "knee",
   "ankle",
@@ -114,52 +112,51 @@ export const EQUIPMENT_LABELS = {
   barbell: "Barra",
   dumbbell: "Halteres",
   machine: "Máquina",
+  smith_machine: "Smith",
   cable: "Cabo",
   bodyweight: "Peso corporal",
+  resistance_band: "Elástico",
   kettlebell: "Kettlebell",
-  band: "Elástico",
-  other: "Outro",
-  smith: "Smith",
   accessory: "Acessório",
 } as const satisfies Record<Equipment, string>;
 
 export const MOVEMENT_PATTERN_LABELS = {
+  squat: "Agachamento",
+  hip_hinge: "Dobradiça de quadril",
+  lunge: "Avanço",
   horizontal_push: "Empurrar horizontal",
   vertical_push: "Empurrar vertical",
   horizontal_pull: "Puxar horizontal",
   vertical_pull: "Puxar vertical",
-  squat: "Agachamento",
-  hip_hinge: "Dobradiça de quadril",
-  lunge: "Avanço",
   core: "Core",
   isolation: "Isolamento",
   carry: "Carregamento",
 } as const satisfies Record<MovementPattern, string>;
 
 export const MUSCLE_LABELS = {
-  pectoralis: "Peitoral",
-  latissimus: "Latíssimo",
-  rhomboids: "Romboides",
-  upper_trapezius: "Trapézio superior",
-  middle_trapezius: "Trapézio médio",
-  erector_spinae: "Eretores da espinha",
-  anterior_deltoid: "Deltoide anterior",
-  lateral_deltoid: "Deltoide lateral",
-  posterior_deltoid: "Deltoide posterior",
-  rotator_cuff: "Manguito rotador",
-  biceps: "Bíceps",
+  chest: "Peitoral",
   triceps: "Tríceps",
+  biceps: "Bíceps",
   forearms: "Antebraço",
+  front_delts: "Deltoide anterior",
+  side_delts: "Deltoide lateral",
+  rear_delts: "Deltoide posterior",
+  rotator_cuff: "Manguito rotador",
+  lats: "Latíssimo",
+  rhomboids: "Romboides",
+  mid_traps: "Trapézio médio",
+  upper_traps: "Trapézio superior",
+  spinal_erectors: "Eretores da espinha",
+  abs: "Abdômen",
+  obliques: "Oblíquos",
+  hip_flexors: "Flexores do quadril",
+  glutes: "Glúteos",
+  glute_medius: "Glúteo médio",
+  adductors: "Adutores",
   quadriceps: "Quadríceps",
   hamstrings: "Isquiotibiais",
-  glutes: "Glúteos",
-  gluteus_medius: "Glúteo médio",
-  adductors: "Adutores",
-  hip_flexors: "Flexores do quadril",
   calves: "Panturrilha",
   soleus: "Sóleo",
-  abdominals: "Abdômen",
-  obliques: "Oblíquos",
 } as const satisfies Record<Muscle, string>;
 
 export const BODY_REGION_LABELS = {
@@ -167,7 +164,7 @@ export const BODY_REGION_LABELS = {
   elbow: "Cotovelo",
   wrist: "Punho",
   neck: "Pescoço",
-  lumbar_spine: "Coluna lombar",
+  lower_back: "Coluna lombar",
   hip: "Quadril",
   knee: "Joelho",
   ankle: "Tornozelo",
@@ -181,29 +178,29 @@ export const LEVEL_LABELS = {
 
 /** Grupo amplo usado no filtro da biblioteca, a partir do primeiro músculo primário. */
 const COARSE_MUSCLE_GROUP = {
-  pectoralis: "chest",
-  latissimus: "back",
-  rhomboids: "back",
-  upper_trapezius: "back",
-  middle_trapezius: "back",
-  erector_spinae: "back",
-  anterior_deltoid: "shoulders",
-  lateral_deltoid: "shoulders",
-  posterior_deltoid: "shoulders",
-  rotator_cuff: "shoulders",
-  biceps: "biceps",
+  chest: "chest",
   triceps: "triceps",
+  biceps: "biceps",
   forearms: "forearms",
+  front_delts: "shoulders",
+  side_delts: "shoulders",
+  rear_delts: "shoulders",
+  rotator_cuff: "shoulders",
+  lats: "back",
+  rhomboids: "back",
+  mid_traps: "back",
+  upper_traps: "back",
+  spinal_erectors: "back",
+  abs: "abs",
+  obliques: "abs",
+  hip_flexors: "abs",
+  glutes: "glutes",
+  glute_medius: "glutes",
+  adductors: "glutes",
   quadriceps: "quadriceps",
   hamstrings: "hamstrings",
-  glutes: "glutes",
-  gluteus_medius: "glutes",
-  adductors: "glutes",
-  hip_flexors: "abs",
   calves: "calves",
   soleus: "calves",
-  abdominals: "abs",
-  obliques: "abs",
 } as const satisfies Record<Muscle, MuscleGroup>;
 
 export type CatalogExercise = {
@@ -246,36 +243,40 @@ function enumList<T extends string>(
 
 export const CATALOG_EXERCISES: readonly CatalogExercise[] = seed.exercises.map(
   (item) => {
-    const primaryMuscles = enumList(MUSCLES, item.primaryMuscles, "muscle");
+    const primaryMuscles = enumList(MUSCLES, item.primary_muscles, "muscle");
     const primary = primaryMuscles[0];
     if (primary === undefined) {
-      throw new Error(`Catálogo inválido: ${item.slug} sem músculo primário.`);
+      throw new Error(`Catálogo inválido: ${item.id} sem músculo primário.`);
+    }
+    const [defaultRepsMin, defaultRepsMax] = item.default_rep_range;
+    if (defaultRepsMin === undefined || defaultRepsMax === undefined) {
+      throw new Error(`Catálogo inválido: ${item.id} sem faixa de repetições.`);
     }
     return {
-      slug: item.slug,
-      name: item.name,
+      slug: item.id,
+      name: item.name_pt,
       muscleGroup: COARSE_MUSCLE_GROUP[primary],
       equipment: enumValue(EQUIPMENT, item.equipment, "equipment"),
       movementPattern: enumValue(
         MOVEMENT_PATTERNS,
-        item.movementPattern,
+        item.movement_pattern,
         "movementPattern",
       ),
       primaryMuscles,
       secondaryMuscles: enumList(
         MUSCLES,
-        item.secondaryMuscles,
+        item.secondary_muscles,
         "secondaryMuscle",
       ),
       level: enumValue(LEVEL_VALUES, item.level, "level"),
       contraindicatedRegions: enumList(
         BODY_REGIONS,
-        item.contraindicatedRegions,
+        item.contraindicated_regions,
         "region",
       ),
       unilateral: item.unilateral,
-      defaultRepsMin: item.defaultRepsMin,
-      defaultRepsMax: item.defaultRepsMax,
+      defaultRepsMin,
+      defaultRepsMax,
       substitutions: [...item.substitutions],
     };
   },

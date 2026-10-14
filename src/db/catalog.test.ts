@@ -21,7 +21,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(_[a-z0-9]+)*$/;
 
 describe("exercise catalog", () => {
   it("ships the 136 LED-32 exercises with unique English slugs", () => {
-    expect(CATALOG_VERSION).toBe("2026-10-14");
+    expect(CATALOG_VERSION).toBe("2026-10-14.v2");
     expect(CATALOG_EXERCISES).toHaveLength(136);
 
     const slugs = CATALOG_EXERCISES.map((item) => item.slug);
@@ -38,18 +38,20 @@ describe("exercise catalog", () => {
 
   it("keeps display names in Portuguese and keys in English", () => {
     const bench = CATALOG_EXERCISES.find(
-      (item) => item.slug === "barbell_bench_press",
+      (item) => item.slug === "supino_reto_com_barra",
     );
     expect(bench).toMatchObject({
       name: "Supino reto com barra",
       movementPattern: "horizontal_push",
       equipment: "barbell",
       muscleGroup: "chest",
-      primaryMuscles: ["pectoralis"],
+      primaryMuscles: ["chest"],
       level: "intermediate",
     });
 
-    const fly = CATALOG_EXERCISES.find((item) => item.slug === "dumbbell_fly");
+    const fly = CATALOG_EXERCISES.find(
+      (item) => item.slug === "crucifixo_com_halteres",
+    );
     expect(fly?.name).toBe("Crucifixo com halteres");
 
     for (const item of CATALOG_EXERCISES) {
@@ -67,15 +69,12 @@ describe("exercise catalog", () => {
     }
   });
 
-  it("orders bench dip substitutions by fewer contraindicated regions first", () => {
-    const benchDip = CATALOG_EXERCISES.find(
-      (item) => item.slug === "bench_dip",
+  it("keeps the official Portuguese slug for close-grip bench press", () => {
+    const closeGrip = CATALOG_EXERCISES.find(
+      (item) => item.slug === "supino_fechado",
     );
-    expect(benchDip?.substitutions).toEqual([
-      "neutral_grip_dumbbell_bench_press",
-      "chest_dip",
-      "close_grip_bench_press",
-    ]);
+    expect(closeGrip?.name).toBe("Supino fechado");
+    expect(closeGrip?.equipment).toBe("barbell");
   });
 
   it("labels enums in Portuguese", () => {
@@ -91,10 +90,12 @@ describe("exercise catalog", () => {
     );
     expect(Object.keys(LEVEL_LABELS).sort()).toEqual([...LEVEL_VALUES].sort());
     expect(MUSCLE_GROUP_LABELS.chest).toBe("Peito");
-    expect(EQUIPMENT_LABELS.smith).toBe("Smith");
+    expect(EQUIPMENT_LABELS.smith_machine).toBe("Smith");
+    expect(EQUIPMENT_LABELS.resistance_band).toBe("Elástico");
     expect(EQUIPMENT_LABELS.accessory).toBe("Acessório");
     expect(MOVEMENT_PATTERN_LABELS.hip_hinge).toBe("Dobradiça de quadril");
-    expect(BODY_REGION_LABELS.lumbar_spine).toBe("Coluna lombar");
+    expect(BODY_REGION_LABELS.lower_back).toBe("Coluna lombar");
+    expect(MUSCLE_LABELS.front_delts).toBe("Deltoide anterior");
     expect(LEVEL_LABELS.beginner).toBe("Iniciante");
   });
 });

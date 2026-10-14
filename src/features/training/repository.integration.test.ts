@@ -1,4 +1,4 @@
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
@@ -482,6 +482,17 @@ describe.skipIf(!runIntegration)("training data access", () => {
       action: "granted",
       source: "onboarding",
     });
+
+    const history = await db
+      .select({ id: exerciseSets.id })
+      .from(exerciseSets)
+      .where(
+        and(
+          eq(exerciseSets.userId, userId),
+          isNotNull(exerciseSets.completedAt),
+        ),
+      );
+    expect(history).toHaveLength(1);
 
     await db.delete(users).where(eq(users.id, userId));
 
