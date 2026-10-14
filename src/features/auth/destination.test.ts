@@ -34,6 +34,20 @@ describe("postAuthDestination", () => {
     );
   });
 
+  it("allows the reconsent page as a login return path", () => {
+    expect(isAllowedNext("/consentimento?scope=body_data&next=%2Fperfil")).toBe(
+      true,
+    );
+    expect(
+      loginRedirectPath(
+        "anonymous",
+        "/consentimento?scope=body_data&next=%2Fperfil",
+      ),
+    ).toBe(
+      "/login?next=%2Fconsentimento%3Fscope%3Dbody_data%26next%3D%252Fperfil",
+    );
+  });
+
   it("rejects open redirects", () => {
     expect(isAllowedNext("//evil.example")).toBe(false);
     expect(isAllowedNext("https://evil.example")).toBe(false);
