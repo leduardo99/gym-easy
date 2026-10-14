@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
@@ -22,9 +22,18 @@ import {
 import { CATALOG_EXERCISES } from "@/db/catalog";
 import { applyExerciseSeed } from "@/db/seed/apply-exercise-seed";
 import { createConsentRepository } from "@/features/consent/repository";
+import {
+  CONSENT_KEY_VERSION,
+  consentSubjectPseudonym,
+} from "@/features/consent/pseudonym";
+import {
+  deleteUserAccount,
+  purgeExpiredConsentProofs,
+} from "@/features/consent/retention";
 
 import { createTrainingRepository } from "./repository";
 
+const consentKey = "consent-pseudonym-test-key-32b!!";
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const runIntegration =
   databaseUrl.length > 0 &&
@@ -515,12 +524,38 @@ describe.skipIf(!runIntegration)("training data access", () => {
       errorText(error).includes("append-only"),
     );
 
-    await db.delete(users).where(eq(users.id, ownerId));
-    const leftover = await db
-      .select({ id: consentLog.id })
+    await expect(
+      db.delete(users).where(eq(users.id, ownerId)),
+    ).rejects.toSatisfy((error: unknown) =>
+      errorText(error).includes(
+        "consent proof must be pseudonymized before account deletion",
+      ),
+    );
+
+    await deleteUserAccount(db as unknown as AppDatabase, ownerId, consentKey);
+    const pseudonym = consentSubjectPseudonym(ownerId, consentKey);
+    const retained = await db
+      .select({
+        userId: consentLog.userId,
+        subjectPseudonym: consentLog.subjectPseudonym,
+        keyVersion: consentLog.keyVersion,
+        deletedAccountAt: consentLog.deletedAccountAt,
+      })
       .from(consentLog)
-      .where(eq(consentLog.userId, ownerId));
-    expect(leftover).toEqual([]);
+      .where(eq(consentLog.subjectPseudonym, pseudonym));
+    expect(retained).toHaveLength(2);
+    expect(retained.every((row) => row.userId === null)).toBe(true);
+    expect(
+      retained.every(
+        (row) => row.subjectPseudonym === pseudonym && row.keyVersion === 1,
+      ),
+    ).toBe(true);
+    expect(retained.every((row) => row.deletedAccountAt)).toBeTruthy();
+    await expect(
+      db.delete(consentLog).where(eq(consentLog.subjectPseudonym, pseudonym)),
+    ).rejects.toSatisfy((error: unknown) =>
+      errorText(error).includes("append-only"),
+    );
   });
 
   it("removes a custom exercise and the history that references it when the account is deleted", async () => {
@@ -589,7 +624,8 @@ describe.skipIf(!runIntegration)("training data access", () => {
       );
     expect(history).toHaveLength(1);
 
-    await db.delete(users).where(eq(users.id, userId));
+    const pseudonym = consentSubjectPseudonym(userId, consentKey);
+    await deleteUserAccount(db as unknown as AppDatabase, userId, consentKey);
 
     expect(
       await db
@@ -639,12 +675,56 @@ describe.skipIf(!runIntegration)("training data access", () => {
         .from(bodyMeasurements)
         .where(eq(bodyMeasurements.userId, userId)),
     ).toEqual([]);
+    const proofs = await db
+      .select({
+        userId: consentLog.userId,
+        subjectPseudonym: consentLog.subjectPseudonym,
+        keyVersion: consentLog.keyVersion,
+        deletedAccountAt: consentLog.deletedAccountAt,
+      })
+      .from(consentLog)
+      .where(eq(consentLog.subjectPseudonym, pseudonym));
+    expect(proofs.length).toBeGreaterThan(0);
+    expect(
+      proofs.every(
+        (row) =>
+          row.userId === null &&
+          row.subjectPseudonym === pseudonym &&
+          row.keyVersion === 1 &&
+          row.deletedAccountAt,
+      ),
+    ).toBe(true);
     expect(
       await db
         .select({ id: consentLog.id })
         .from(consentLog)
         .where(eq(consentLog.userId, userId)),
     ).toEqual([]);
+    const constraints = await db.execute(sql`
+      select
+        pg_get_constraintdef(oid) as definition,
+        confdeltype
+      from pg_constraint
+      where conname in (
+        'consent_log_id_user_id_unique',
+        'consent_log_user_id_users_id_fk'
+      )
+    `);
+    const constraintRows = Array.isArray(constraints)
+      ? constraints
+      : constraints.rows;
+    const definitions = constraintRows.map((row) =>
+      String(
+        (row as { definition?: string; confdeltype?: string }).definition ??
+          (row as { confdeltype?: string }).confdeltype,
+      ),
+    );
+    expect(definitions.join(" ")).toMatch(/UNIQUE \(id, user_id\)/);
+    expect(
+      constraintRows.some(
+        (row) => (row as { confdeltype?: string }).confdeltype === "n",
+      ),
+    ).toBe(true);
     expect(
       await db.select({ id: users.id }).from(users).where(eq(users.id, userId)),
     ).toEqual([]);
@@ -660,5 +740,54 @@ describe.skipIf(!runIntegration)("training data access", () => {
         .from(exercises)
         .where(isNull(exercises.ownerUserId)),
     ).toHaveLength(catalogBefore.length);
+  });
+
+  it("purges pseudonymized consent after three years and keeps live consent", async () => {
+    const expiredId = await insertUser("Expira");
+    const recentId = await insertUser("Recente");
+    const liveId = await insertUser("Vivo");
+    await grantBodyData(expiredId);
+    await grantBodyData(recentId);
+    await grantBodyData(liveId);
+
+    const expiredPseudonym = consentSubjectPseudonym(expiredId, consentKey);
+    await db.execute(sql`
+      select delete_account(
+        ${expiredId}::uuid,
+        ${expiredPseudonym},
+        ${CONSENT_KEY_VERSION}::smallint,
+        ${"2020-01-01T00:00:00.000Z"}::timestamptz
+      )
+    `);
+    await deleteUserAccount(db as unknown as AppDatabase, recentId, consentKey);
+
+    const removed = await purgeExpiredConsentProofs(
+      db as unknown as AppDatabase,
+      new Date("2026-10-14T00:00:00.000Z"),
+    );
+    expect(removed).toBeGreaterThanOrEqual(1);
+    expect(
+      await db
+        .select({ id: consentLog.id })
+        .from(consentLog)
+        .where(eq(consentLog.subjectPseudonym, expiredPseudonym)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: consentLog.id })
+        .from(consentLog)
+        .where(
+          eq(
+            consentLog.subjectPseudonym,
+            consentSubjectPseudonym(recentId, consentKey),
+          ),
+        ),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select({ id: consentLog.id })
+        .from(consentLog)
+        .where(eq(consentLog.userId, liveId)),
+    ).toHaveLength(1);
   });
 });

@@ -42,6 +42,12 @@ export default async function HomePage() {
           Entrar
         </Link>
       </div>
+      <Link
+        href="/privacidade"
+        className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
+        Privacidade
+      </Link>
       {isDesignCatalogEnabled() ? (
         <Link
           href="/design"

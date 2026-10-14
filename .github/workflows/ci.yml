@@ -29,6 +29,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gym_easy
       DATABASE_DRIVER: pg
+      CONSENT_PSEUDONYM_KEY: ci-consent-pseudonym-key-not-secret
+      CRON_SECRET: ci-cron-secret
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

@@ -57,6 +57,13 @@
       "when": 1792009041762,
       "tag": "0007_catalog_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792010246270,
+      "tag": "0008_consent_retention",
+      "breakpoints": true
     }
   ]
 }

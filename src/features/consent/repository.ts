@@ -26,6 +26,9 @@ function asDate(value: Date | string): Date {
 }
 
 function mapEvent(row: typeof consentLog.$inferSelect): ConsentEvent {
+  if (row.userId === null) {
+    throw new Error("retained consent proof is not a live event");
+  }
   return {
     id: row.id,
     userId: row.userId,

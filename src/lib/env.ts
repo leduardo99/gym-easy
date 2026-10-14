@@ -39,15 +39,21 @@ export const serverEnvSchema = z
       .optional(),
     EMAIL_CAPTURE_PATH: z.string().min(1).optional(),
     VERCEL_ENV: z.string().optional(),
+    CONSENT_PSEUDONYM_KEY: z.string().trim().min(32),
     NEXT_PUBLIC_DATABASE_URL: z.string().optional(),
     NEXT_PUBLIC_RESEND_API_KEY: z.string().optional(),
     NEXT_PUBLIC_EMAIL_FROM: z.string().optional(),
+    NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY: z.string().optional(),
   })
   .superRefine((value, context) => {
     const publicSecrets = [
       ["NEXT_PUBLIC_DATABASE_URL", value.NEXT_PUBLIC_DATABASE_URL],
       ["NEXT_PUBLIC_RESEND_API_KEY", value.NEXT_PUBLIC_RESEND_API_KEY],
       ["NEXT_PUBLIC_EMAIL_FROM", value.NEXT_PUBLIC_EMAIL_FROM],
+      [
+        "NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY",
+        value.NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY,
+      ],
     ] as const;
 
     for (const [key, keyValue] of publicSecrets) {
@@ -67,11 +73,16 @@ export type ServerEnv = {
   RESEND_API_KEY: string | null;
   EMAIL_FROM: string;
   EMAIL_CAPTURE_PATH: string | null;
+  CONSENT_PSEUDONYM_KEY: string;
 };
 
 /** Non-connecting stand-in so `next build` can evaluate server modules. */
 export const BUILD_DATABASE_URL =
   "postgresql://build:build@127.0.0.1:5432/build";
+
+/** Non-secret stand-in so `next build` can evaluate server modules. */
+export const BUILD_CONSENT_PSEUDONYM_KEY =
+  "build-consent-pseudonym-key-not-secret";
 
 export function isProductionBuild(source: NodeJS.ProcessEnv): boolean {
   return source.NEXT_PHASE === "phase-production-build";
@@ -83,6 +94,9 @@ export function readServerEnv(
   const databaseUrl =
     source.DATABASE_URL ??
     (isProductionBuild(source) ? BUILD_DATABASE_URL : undefined);
+  const consentPseudonymKey =
+    source.CONSENT_PSEUDONYM_KEY ||
+    (isProductionBuild(source) ? BUILD_CONSENT_PSEUDONYM_KEY : undefined);
 
   const parsed = serverEnvSchema.safeParse({
     DATABASE_URL: databaseUrl,
@@ -91,9 +105,11 @@ export function readServerEnv(
     EMAIL_FROM: source.EMAIL_FROM || undefined,
     EMAIL_CAPTURE_PATH: source.EMAIL_CAPTURE_PATH || undefined,
     VERCEL_ENV: source.VERCEL_ENV,
+    CONSENT_PSEUDONYM_KEY: consentPseudonymKey,
     NEXT_PUBLIC_DATABASE_URL: source.NEXT_PUBLIC_DATABASE_URL,
     NEXT_PUBLIC_RESEND_API_KEY: source.NEXT_PUBLIC_RESEND_API_KEY,
     NEXT_PUBLIC_EMAIL_FROM: source.NEXT_PUBLIC_EMAIL_FROM,
+    NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY: source.NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY,
   });
 
   if (!parsed.success) {
@@ -112,6 +128,7 @@ export function readServerEnv(
       parsed.data.VERCEL_ENV === "production"
         ? null
         : (parsed.data.EMAIL_CAPTURE_PATH ?? null),
+    CONSENT_PSEUDONYM_KEY: parsed.data.CONSENT_PSEUDONYM_KEY,
   };
 }
 

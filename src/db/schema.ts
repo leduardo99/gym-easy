@@ -177,27 +177,32 @@ export const userProfiles = pgTable(
 );
 
 /**
- * Append-only. A aplicação só insere. UPDATE e DELETE direto são recusados
- * por trigger; o cascade ao apagar a conta passa porque a exclusão nasce do pai.
+ * Append-only. A aplicação só insere. UPDATE e DELETE direto são recusados.
+ * Apagar a conta não apaga a prova: `delete_account` grava o pseudônimo HMAC,
+ * preenche `key_version` e `deleted_account_at`, e só então zera `user_id`.
  * Estado vigente = última linha por (user_id, purpose).
  */
 export const consentLog = pgTable(
   "consent_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     purpose: consentPurposeEnum("purpose").notNull(),
     action: consentActionEnum("action").notNull(),
     version: text("version").notNull(),
     textSha256: text("text_sha256").notNull(),
     source: consentSourceEnum("source").notNull(),
+    subjectPseudonym: text("subject_pseudonym"),
+    keyVersion: smallint("key_version"),
+    deletedAccountAt: timestamp("deleted_account_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => [
+    unique("consent_log_id_user_id_unique").on(table.id, table.userId),
     index("consent_log_user_purpose_created_idx").on(
       table.userId,
       table.purpose,
@@ -210,6 +215,20 @@ export const consentLog = pgTable(
     check(
       "consent_log_text_sha256_hex",
       sql`${table.textSha256} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "consent_log_retention_shape",
+      sql`(
+        ${table.userId} is not null
+        and ${table.subjectPseudonym} is null
+        and ${table.keyVersion} is null
+        and ${table.deletedAccountAt} is null
+      ) or (
+        ${table.userId} is null
+        and ${table.subjectPseudonym} ~ '^[a-f0-9]{64}$'
+        and ${table.keyVersion} >= 1
+        and ${table.deletedAccountAt} is not null
+      )`,
     ),
   ],
 );
