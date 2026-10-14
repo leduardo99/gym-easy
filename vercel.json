@@ -11,7 +11,7 @@
       ]
     },
     {
-      "source": "/:path((?!api/).*)",
+      "source": "/:path((?!api(?:/|$)).*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
