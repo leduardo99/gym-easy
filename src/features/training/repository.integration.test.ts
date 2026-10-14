@@ -482,6 +482,62 @@ describe.skipIf(!runIntegration)("training data access", () => {
     ).toHaveLength(1);
   });
 
+  it("rejects profile and weight writes when the body_data grant is stale", async () => {
+    const profileInput = { birthYear: 1990, heightCm: 170 };
+    const weightInput = {
+      recordedOn: "2026-10-14",
+      weight: "70",
+      unit: "kg" as const,
+    };
+
+    const staleVersion = await insertUser("Versao antiga corpo");
+    await db.insert(consentLog).values({
+      userId: staleVersion,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "onboarding",
+    });
+    expect(
+      await repository.saveProfile(staleVersion, profileInput),
+    ).toMatchObject({ ok: false, error: "consent_required" });
+    expect(
+      await repository.recordWeight(staleVersion, weightInput),
+    ).toMatchObject({ ok: false, error: "consent_required" });
+
+    const staleHash = await insertUser("Hash antigo corpo");
+    await db.insert(consentLog).values({
+      userId: staleHash,
+      purpose: "body_data",
+      action: "granted",
+      version: CONSENT_TEXTS.body_data.version,
+      textSha256: "ab".repeat(32),
+      source: "onboarding",
+    });
+    expect(await repository.saveProfile(staleHash, profileInput)).toMatchObject(
+      { ok: false, error: "consent_required" },
+    );
+    expect(await repository.recordWeight(staleHash, weightInput)).toMatchObject(
+      { ok: false, error: "consent_required" },
+    );
+
+    for (const userId of [staleVersion, staleHash]) {
+      expect(
+        await db
+          .select({ userId: userProfiles.userId })
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, userId)),
+      ).toEqual([]);
+      expect(
+        await db
+          .select({ id: bodyMeasurements.id })
+          .from(bodyMeasurements)
+          .where(eq(bodyMeasurements.userId, userId)),
+      ).toEqual([]);
+    }
+  });
+
   it("does not let another user's body_data consent authorize profile or weight writes", async () => {
     const userA = await insertUser("Consentiu");
     const userB = await insertUser("Sem consentimento");

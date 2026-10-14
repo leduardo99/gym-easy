@@ -32,6 +32,7 @@ import {
   workoutSessions,
   workouts,
 } from "@/db/schema";
+import { isCurrentConsent } from "@/features/consent/repository";
 
 import { normalizeExerciseName } from "./normalize";
 import { summarizeLoadProgression, type ProgressionPoint } from "./progression";
@@ -238,14 +239,20 @@ export function createTrainingRepository(db: AppDatabase) {
 
   async function hasActiveBodyDataConsent(userId: string): Promise<boolean> {
     const rows = await db
-      .select({ action: consentLog.action })
+      .select({
+        action: consentLog.action,
+        version: consentLog.version,
+        textSha256: consentLog.textSha256,
+      })
       .from(consentLog)
       .where(
         and(eq(consentLog.userId, userId), eq(consentLog.purpose, "body_data")),
       )
       .orderBy(desc(consentLog.createdAt))
       .limit(1);
-    return rows[0]?.action === "granted";
+    const row = rows[0];
+    if (!row) return false;
+    return isCurrentConsent({ purpose: "body_data", ...row });
   }
 
   const api = {
