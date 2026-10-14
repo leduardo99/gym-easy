@@ -1,5 +1,6 @@
 import { copy } from "./copy";
-import type { EmailSender } from "./email/types";
+import { settleEmailDelivery } from "./email/settle-delivery";
+import type { EmailDelivery, EmailSender } from "./email/types";
 import type { PasswordBreachChecker } from "./hibp";
 import type { PasswordHasher } from "./password";
 import {
@@ -16,25 +17,12 @@ import { CONFIRMATION_TTL_MS } from "./session-policy";
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
-function logSignupEmailFailure(error: unknown) {
-  console.error(
-    "auth.signup_email_failed",
-    error instanceof Error ? error.name : "error",
-  );
-}
-
-function deliverQuietly(send: () => Promise<void>): () => Promise<void> {
-  return async () => {
-    try {
-      await send();
-    } catch (error) {
-      logSignupEmailFailure(error);
-    }
-  };
-}
-
 export type RegisterResult =
-  | { status: "pending"; email: string; deliver: () => Promise<void> }
+  | {
+      status: "pending";
+      email: string;
+      deliver: () => Promise<EmailDelivery>;
+    }
   | { status: "invalid"; fieldErrors: FieldErrors }
   | { status: "breached" }
   | { status: "rate_limited"; retryAfterSeconds: number }
@@ -89,7 +77,7 @@ export async function registerAccount(
     return { status: "breached" };
   }
 
-  let deliver: () => Promise<void>;
+  let deliver: () => Promise<EmailDelivery>;
   try {
     const existing = await deps.users.findUserByEmail(parsed.data.email);
     if (existing) {
@@ -100,7 +88,7 @@ export async function registerAccount(
         email: parsed.data.email,
         passwordHash: await deps.hasher.hash(parsed.data.password),
       });
-      deliver = deliverQuietly(() =>
+      deliver = settleEmailDelivery("auth.signup_email_failed", () =>
         deps.emails.sendAccountExistsNotice({ to: parsed.data.email }),
       );
     } else {
@@ -113,7 +101,7 @@ export async function registerAccount(
         passwordHash,
       });
       if (outcome === "exists") {
-        deliver = deliverQuietly(() =>
+        deliver = settleEmailDelivery("auth.signup_email_failed", () =>
           deps.emails.sendAccountExistsNotice({ to: parsed.data.email }),
         );
       } else {
@@ -121,7 +109,7 @@ export async function registerAccount(
         const tokenHash = sha256(token);
         const expiresAt = new Date(input.now.getTime() + CONFIRMATION_TTL_MS);
         const confirmUrl = `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`;
-        deliver = deliverQuietly(async () => {
+        deliver = settleEmailDelivery("auth.signup_email_failed", async () => {
           await deps.users.saveVerificationToken({
             tokenHash,
             userId: id,

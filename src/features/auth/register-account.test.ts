@@ -33,6 +33,8 @@ function emails(sent: string[], wait = 0): EmailSender {
       if (wait > 0) await delay(wait);
       sent.push(`notice:${message.to}`);
     },
+    async sendPasswordReset() {},
+    async probe() {},
   };
 }
 
@@ -127,6 +129,12 @@ describe("registerAccount", () => {
       async sendAccountExistsNotice() {
         throw new Error("email_send_failed");
       },
+      async sendPasswordReset() {
+        throw new Error("email_send_failed");
+      },
+      async probe() {
+        throw new Error("email_send_failed");
+      },
     };
     const deps = {
       users,
@@ -148,8 +156,11 @@ describe("registerAccount", () => {
     expect(created).toMatchObject({ status: "pending", email: "ana@x.com" });
     expect(duplicate).toMatchObject({ status: "pending", email: "ana@x.com" });
     if (created.status !== "pending" || duplicate.status !== "pending") return;
-    await expect(created.deliver()).resolves.toBeUndefined();
-    await expect(duplicate.deliver()).resolves.toBeUndefined();
+    expect(await created.deliver()).toBe("failed");
+    expect(await duplicate.deliver()).toBe("failed");
+    expect(await users.findUserByEmail("ana@x.com")).toMatchObject({
+      id: "user-1",
+    });
     const logged = error.mock.calls.flat().join(" ");
     expect(logged).toContain("auth.signup_email_failed");
     expect(logged).not.toContain("ana@x.com");

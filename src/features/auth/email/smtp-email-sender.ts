@@ -13,6 +13,7 @@ export type SmtpMailTransport = {
     subject: string;
     text: string;
   }): Promise<unknown>;
+  verify?(): Promise<unknown>;
 };
 
 function smtpErrorCode(error: unknown): string {
@@ -92,6 +93,29 @@ export function createSmtpEmailSender(options: {
         subject: copy.accountExistsSubject,
         text: copy.accountExistsNotice,
       });
+    },
+    async sendPasswordReset({ to }) {
+      await send({
+        to,
+        subject: copy.passwordResetSubject,
+        text: copy.passwordResetNotice,
+      });
+    },
+    async probe() {
+      if (!transport.verify) return;
+      try {
+        await transport.verify();
+      } catch (error) {
+        console.error(
+          "email.smtp_response",
+          smtpErrorCode(error),
+          redactLogMessage(error instanceof Error ? error.message : "unknown", [
+            pass ?? "",
+            user ?? "",
+          ]),
+        );
+        throw new Error("email_send_failed");
+      }
     },
   };
 }

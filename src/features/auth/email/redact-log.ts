@@ -1,3 +1,10 @@
+/** One visible character and no domain, so the log is not the full address. */
+export function redactRecipient(email: string): string {
+  const at = email.indexOf("@");
+  if (at <= 0) return "[redacted]";
+  return `${email.charAt(0)}***@[redacted]`;
+}
+
 /** Same redaction the Resend adapter uses: addresses, secrets, then a short line. */
 export function redactLogMessage(
   value: unknown,

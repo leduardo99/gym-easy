@@ -1,7 +1,7 @@
-# Mailpit accepts mail for local development and for Coolify.
-# SMTP 1025 and the web UI 8025 are bound to 127.0.0.1 only.
-# Do not attach a public domain or a 0.0.0.0 port to the UI.
-# Reach it through the tailnet or Coolify's internal network.
+# Dev on Coolify: the app and Mailpit share the gym-easy network.
+# SMTP_HOST=mailpit. No host ports are published.
+# The Mailpit UI has no authentication. Reach it through Coolify's
+# internal network or the tailnet, never through a public domain.
 
 services:
   mailpit:
@@ -10,14 +10,10 @@ services:
     expose:
       - "1025"
       - "8025"
-    ports:
-      - "127.0.0.1:1025:1025"
-      - "127.0.0.1:8025:8025"
     networks:
       - gym-easy
 
   app:
-    profiles: ["app"]
     image: node:22-bookworm-slim
     working_dir: /workspace
     volumes:
@@ -28,16 +24,16 @@ services:
         "-c",
         "corepack enable && corepack prepare pnpm@10.33.4 --activate && pnpm install --frozen-lockfile && pnpm dev --hostname 0.0.0.0 --port 3000",
       ]
-    env_file:
-      - .env.local
     environment:
       NODE_ENV: development
       EMAIL_TRANSPORT: smtp
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_SECURE: "false"
-    ports:
-      - "127.0.0.1:3000:3000"
+      DATABASE_URL: ${DATABASE_URL}
+      CONFIRM_EMAIL_SECRET: ${CONFIRM_EMAIL_SECRET}
+    expose:
+      - "3000"
     depends_on:
       - mailpit
     networks:

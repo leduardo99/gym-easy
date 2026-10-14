@@ -141,4 +141,31 @@ describe("createSmtpEmailSender", () => {
       }),
     );
   });
+
+  it("fails the probe when verify rejects and redacts secrets", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failure = new Error("connect ECONNREFUSED mailer smtp-pass");
+    Object.assign(failure, { code: "ECONNECTION" });
+    const verify = vi.fn().mockRejectedValue(failure);
+    const sender = createSmtpEmailSender({
+      host: "mailpit",
+      port: 1025,
+      user: "mailer",
+      pass: "smtp-pass",
+      secure: false,
+      from: DEFAULT_EMAIL_FROM,
+      transport: { sendMail: vi.fn(), verify },
+    });
+
+    await expect(sender.probe()).rejects.toThrow(/^email_send_failed$/);
+    const logged = error.mock.calls.flat().join(" ");
+    expect(error).toHaveBeenCalledWith(
+      "email.smtp_response",
+      "ECONNECTION",
+      expect.stringContaining("[redacted]"),
+    );
+    expect(logged).not.toContain("mailer");
+    expect(logged).not.toContain("smtp-pass");
+    error.mockRestore();
+  });
 });

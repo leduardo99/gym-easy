@@ -2,7 +2,6 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { after } from "next/server";
 
 import { getDb } from "@/db";
 import { getServerEnv } from "@/lib/env";
@@ -10,6 +9,7 @@ import { getServerEnv } from "@/lib/env";
 import { confirmEmail } from "./confirm-email";
 import { openConfirmEmail, sealConfirmEmail } from "./confirm-email-cookie";
 import { copy, rateLimitMessage } from "./copy";
+import { RESEND_COOLDOWN_WINDOW_MS } from "./rate-limit";
 import { postAuthDestination } from "./destination";
 import { createDrizzleRateLimiter } from "./drizzle-rate-limiter";
 import { createDrizzleUserStore } from "./drizzle-user-store";
@@ -20,6 +20,7 @@ import { loginAccount } from "./login-account";
 import { lookupSession } from "./lookup-session";
 import { argon2Hasher, getDummyPasswordHash } from "./password";
 import { registerAccount } from "./register-account";
+import { requestPasswordReset } from "./request-password-reset";
 import { resendConfirmation } from "./resend-confirmation";
 import {
   CONFIRM_EMAIL_COOKIE_NAME,
@@ -35,7 +36,8 @@ import type { FieldErrors } from "./schemas";
 import { createOpaqueToken, createUserId, sha256 } from "./tokens";
 
 export type AuthFormError = {
-  code: "credentials" | "rate_limit" | "server" | "cooldown" | "expired";
+  code:
+    "credentials" | "rate_limit" | "server" | "cooldown" | "expired" | "email";
   message: string;
   retryAfterSeconds?: number;
 };
@@ -46,6 +48,22 @@ export type AuthActionResult =
 
 export type ResendActionResult =
   { ok: true } | { ok: false; formError: AuthFormError };
+
+export type PasswordResetActionResult =
+  | { ok: true; message: string }
+  | {
+      ok: false;
+      formError?: AuthFormError;
+      fieldErrors?: FieldErrors;
+    };
+
+function emailSendError(): AuthFormError {
+  return {
+    code: "email",
+    message: copy.emailSendFailed,
+    retryAfterSeconds: RESEND_COOLDOWN_WINDOW_MS / 1000,
+  };
+}
 
 let lastEmailMs = 200;
 
@@ -63,6 +81,22 @@ function timedEmailSender(inner: EmailSender): EmailSender {
       const started = performance.now();
       try {
         await inner.sendAccountExistsNotice(message);
+      } finally {
+        lastEmailMs = performance.now() - started;
+      }
+    },
+    async sendPasswordReset(message) {
+      const started = performance.now();
+      try {
+        await inner.sendPasswordReset(message);
+      } finally {
+        lastEmailMs = performance.now() - started;
+      }
+    },
+    async probe() {
+      const started = performance.now();
+      try {
+        await inner.probe();
       } finally {
         lastEmailMs = performance.now() - started;
       }
@@ -135,21 +169,17 @@ export async function signupAction(input: unknown): Promise<AuthActionResult> {
     );
 
     if (result.status === "pending") {
-      const deliver = result.deliver;
-      after(() =>
-        deliver().catch((error: unknown) => {
-          logAuthFailure("auth.signup_email_failed", error);
-        }),
-      );
+      const delivery = await result.deliver();
       const jar = await cookies();
       jar.set(
         CONFIRM_EMAIL_COOKIE_NAME,
         sealConfirmEmail(result.email, getServerEnv().CONFIRM_EMAIL_SECRET),
         confirmEmailCookieOptions(context.secure),
       );
+      const failed = delivery === "failed" ? "&delivery=failed" : "";
       return {
         ok: true,
-        redirectTo: "/cadastro/confirme?fresh=1",
+        redirectTo: `/cadastro/confirme?fresh=1${failed}`,
       };
     }
     if (result.status === "invalid") {
@@ -294,12 +324,10 @@ export async function resendConfirmationAction(): Promise<ResendActionResult> {
       },
     );
     if (result.status === "sent") {
-      const deliver = result.deliver;
-      after(() =>
-        deliver().catch((error: unknown) => {
-          logAuthFailure("auth.resend_email_failed", error);
-        }),
-      );
+      const delivery = await result.deliver();
+      if (delivery === "failed") {
+        return { ok: false, formError: emailSendError() };
+      }
       return { ok: true };
     }
     if (result.status === "cooldown") {
@@ -325,6 +353,52 @@ export async function resendConfirmationAction(): Promise<ResendActionResult> {
     return { ok: false, formError: serverError() };
   } catch (error) {
     logAuthFailure("auth.resend_failed", error);
+    return { ok: false, formError: serverError() };
+  }
+}
+
+export async function requestPasswordResetAction(
+  input: unknown,
+): Promise<PasswordResetActionResult> {
+  const context = await mutationContext();
+  if (!context) return { ok: false, formError: serverError() };
+
+  try {
+    const result = await requestPasswordReset(
+      { email: readString(input, "email") },
+      {
+        users: createDrizzleUserStore(getDb()),
+        emails: timedEmailSender(createEmailSender(getServerEnv())),
+        rateLimiter: createDrizzleRateLimiter(getDb()),
+        balance: () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, lastEmailMs);
+          }),
+      },
+    );
+    if (result.status === "accepted") {
+      const delivery = await result.deliver();
+      if (delivery === "failed") {
+        return { ok: false, formError: emailSendError() };
+      }
+      return { ok: true, message: copy.passwordResetAccepted };
+    }
+    if (result.status === "invalid") {
+      return { ok: false, fieldErrors: result.fieldErrors };
+    }
+    if (result.status === "cooldown" || result.status === "rate_limited") {
+      return {
+        ok: false,
+        formError: {
+          code: result.status === "cooldown" ? "cooldown" : "rate_limit",
+          message: rateLimitMessage(result.retryAfterSeconds),
+          retryAfterSeconds: result.retryAfterSeconds,
+        },
+      };
+    }
+    return { ok: false, formError: serverError() };
+  } catch (error) {
+    logAuthFailure("auth.password_reset_failed", error);
     return { ok: false, formError: serverError() };
   }
 }

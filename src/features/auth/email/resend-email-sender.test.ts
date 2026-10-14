@@ -94,4 +94,62 @@ describe("createResendEmailSender", () => {
     expect(fetchImpl.mock.calls).toHaveLength(1);
     expect(String(fetchImpl.mock.calls[0]?.[0])).toBe(RESEND_EMAILS_URL);
   });
+
+  it("treats a validation response as a healthy probe and sends no recipient", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            statusCode: 422,
+            name: "validation_error",
+            message: "The `to` field must contain at least one address",
+          }),
+          { status: 422 },
+        ),
+    );
+    const sender = createResendEmailSender({
+      apiKey: "test-resend-key",
+      from: DEFAULT_EMAIL_FROM,
+      fetchImpl,
+    });
+
+    await expect(sender.probe()).resolves.toBeUndefined();
+    expect(error).not.toHaveBeenCalled();
+    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)) as {
+      from: string;
+      to: string[];
+    };
+    expect(body).toEqual({ from: DEFAULT_EMAIL_FROM, to: [] });
+    expect(body).not.toHaveProperty("text");
+    error.mockRestore();
+  });
+
+  it("fails the probe on quota without logging the key or an address", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            statusCode: 429,
+            name: "rate_limit_exceeded",
+            message: "quota exceeded for test-resend-key ana@example.com",
+          }),
+          { status: 429 },
+        ),
+    );
+    const sender = createResendEmailSender({
+      apiKey: "test-resend-key",
+      from: DEFAULT_EMAIL_FROM,
+      fetchImpl,
+    });
+
+    await expect(sender.probe()).rejects.toThrow(/^email_send_failed$/);
+    const logged = error.mock.calls.flat().join(" ");
+    expect(logged).toContain("email.resend_response");
+    expect(logged).toContain("429");
+    expect(logged).not.toContain("test-resend-key");
+    expect(logged).not.toContain("ana@example.com");
+    error.mockRestore();
+  });
 });

@@ -192,6 +192,34 @@ describe("readServerEnv", () => {
     });
   });
 
+  it("defaults a vercel preview to log without a resend key", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        VERCEL_ENV: "preview",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "log",
+      RESEND_API_KEY: null,
+      SMTP_HOST: null,
+      SMTP_PORT: null,
+    });
+  });
+
+  it("accepts an explicit log transport in production without a resend key", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        VERCEL_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        EMAIL_TRANSPORT: "log",
+      }).EMAIL_TRANSPORT,
+    ).toBe("log");
+  });
+
   it("allows smtp on a vercel preview without the production opt-in", () => {
     expect(
       readServerEnv({

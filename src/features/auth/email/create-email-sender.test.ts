@@ -141,8 +141,14 @@ describe("createEmailSender", () => {
 
     await sender.sendAccountExistsNotice({ to: "ana@example.com" });
 
-    expect(info).toHaveBeenCalledWith("email.account_exists_notice");
-    expect(info.mock.calls.flat().join(" ")).not.toContain("ana@example.com");
+    expect(info).toHaveBeenCalledWith(
+      "email.account_exists_notice",
+      "a***@[redacted]",
+      expect.any(String),
+    );
+    const logged = info.mock.calls.flat().join(" ");
+    expect(logged).not.toContain("ana@example.com");
+    expect(logged).not.toContain("example.com");
     expect(createResendEmailSender).not.toHaveBeenCalled();
     expect(createSmtpEmailSender).not.toHaveBeenCalled();
     info.mockRestore();

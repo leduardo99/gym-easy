@@ -52,6 +52,8 @@ describe("resendConfirmation", () => {
         await delay(20);
         sent.push(`notice:${message.to}`);
       },
+      async sendPasswordReset() {},
+      async probe() {},
     };
     let tokens = 0;
     const deps = {
@@ -136,6 +138,8 @@ describe("resendConfirmation", () => {
           sent.push(`${message.to}:${message.confirmUrl}`);
         },
         async sendAccountExistsNotice() {},
+        async sendPasswordReset() {},
+        async probe() {},
       },
       hasher: {
         async hash() {
@@ -206,6 +210,12 @@ describe("resendConfirmation", () => {
       async sendAccountExistsNotice() {
         throw new Error("email_send_failed");
       },
+      async sendPasswordReset() {
+        throw new Error("email_send_failed");
+      },
+      async probe() {
+        throw new Error("email_send_failed");
+      },
     };
     const deps = {
       users,
@@ -245,9 +255,11 @@ describe("resendConfirmation", () => {
       "sent",
       "sent",
     ]);
+    const deliveries = [];
     for (const result of results) {
-      if (result.status === "sent") await result.deliver();
+      if (result.status === "sent") deliveries.push(await result.deliver());
     }
+    expect(deliveries).toEqual(["failed", "failed", "failed"]);
     const logged = error.mock.calls.flat().join(" ");
     expect(logged).toContain("auth.resend_email_failed");
     expect(logged).not.toContain("ana@example.com");
@@ -291,6 +303,8 @@ describe("resendConfirmation", () => {
           await delay(resendDelayMs());
           sent.push(message.to);
         },
+        async sendPasswordReset() {},
+        async probe() {},
       },
       hasher: {
         async hash() {
@@ -309,7 +323,7 @@ describe("resendConfirmation", () => {
     const pendingMs: number[] = [];
     const verifiedMs: number[] = [];
     const missingMs: number[] = [];
-    const deliveries: Array<() => Promise<void>> = [];
+    const deliveries: Array<() => Promise<unknown>> = [];
 
     for (let index = 0; index < samples; index += 1) {
       const startedPending = performance.now();
@@ -371,6 +385,8 @@ describe("resendConfirmation", () => {
       emails: {
         async sendAccountConfirmation() {},
         async sendAccountExistsNotice() {},
+        async sendPasswordReset() {},
+        async probe() {},
       },
       hasher: {
         async hash() {
@@ -396,5 +412,96 @@ describe("resendConfirmation", () => {
 
     expect(first).toMatchObject({ status: "sent" });
     expect(second.status).toBe("cooldown");
+  });
+
+  it("keeps a failed send on cooldown and allows a retry after the window", async () => {
+    const users = createMemoryUserStore();
+    await users.insertUser({
+      id: "pending",
+      name: "Ana",
+      email: "ana@example.com",
+      passwordHash: "hash",
+    });
+    let fail = true;
+    const emails: EmailSender = {
+      async sendAccountConfirmation() {
+        if (fail) throw new Error("email_send_failed");
+      },
+      async sendAccountExistsNotice() {
+        if (fail) throw new Error("email_send_failed");
+      },
+      async sendPasswordReset() {},
+      async probe() {
+        if (fail) throw new Error("email_send_failed");
+      },
+    };
+    let nowMs = Date.parse("2026-10-14T12:00:00.000Z");
+    const deps = {
+      users,
+      emails,
+      hasher: {
+        async hash() {
+          return "hash";
+        },
+        async verify() {
+          return false;
+        },
+      },
+      rateLimiter: createMemoryRateLimiter(() => nowMs),
+      createToken: () => "token",
+      balance: async () => {},
+    };
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const now = new Date(nowMs);
+
+    const known = await resendConfirmation(
+      { email: "ana@example.com", origin: "https://gym.example", now },
+      deps,
+    );
+    const unknown = await resendConfirmation(
+      { email: "ninguem@example.com", origin: "https://gym.example", now },
+      deps,
+    );
+    expect(known.status).toBe("sent");
+    expect(unknown.status).toBe("sent");
+    if (known.status !== "sent" || unknown.status !== "sent") return;
+    expect(await known.deliver()).toBe("failed");
+    expect(await unknown.deliver()).toBe("failed");
+
+    const blocked = await resendConfirmation(
+      { email: "ana@example.com", origin: "https://gym.example", now },
+      deps,
+    );
+    const blockedUnknown = await resendConfirmation(
+      { email: "ninguem@example.com", origin: "https://gym.example", now },
+      deps,
+    );
+    expect(blocked.status).toBe("cooldown");
+    expect(blockedUnknown.status).toBe("cooldown");
+
+    nowMs += 60_000;
+    fail = false;
+    const later = new Date(nowMs);
+    const retry = await resendConfirmation(
+      { email: "ana@example.com", origin: "https://gym.example", now: later },
+      deps,
+    );
+    const retryUnknown = await resendConfirmation(
+      {
+        email: "ninguem@example.com",
+        origin: "https://gym.example",
+        now: later,
+      },
+      deps,
+    );
+    expect(retry.status).toBe("sent");
+    expect(retryUnknown.status).toBe("sent");
+    if (retry.status !== "sent" || retryUnknown.status !== "sent") return;
+    expect(await retry.deliver()).toBe("sent");
+    expect(await retryUnknown.deliver()).toBe("sent");
+    const logged = error.mock.calls.flat().join(" ");
+    expect(logged).not.toContain("ana@example.com");
+    expect(logged).not.toContain("ninguem@example.com");
+    error.mockRestore();
   });
 });

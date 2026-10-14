@@ -1,4 +1,5 @@
-import type { EmailSender } from "./email/types";
+import { settleEmailDelivery } from "./email/settle-delivery";
+import type { EmailDelivery, EmailSender } from "./email/types";
 import type { PasswordHasher } from "./password";
 import {
   RESEND_COOLDOWN_LIMIT,
@@ -14,25 +15,8 @@ import { CONFIRMATION_TTL_MS } from "./session-policy";
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
-function logResendEmailFailure(error: unknown) {
-  console.error(
-    "auth.resend_email_failed",
-    error instanceof Error ? error.name : "error",
-  );
-}
-
-function deliverQuietly(work: () => Promise<void>): () => Promise<void> {
-  return async () => {
-    try {
-      await work();
-    } catch (error) {
-      logResendEmailFailure(error);
-    }
-  };
-}
-
 export type ResendResult =
-  | { status: "sent"; deliver: () => Promise<void> }
+  | { status: "sent"; deliver: () => Promise<EmailDelivery> }
   | { status: "cooldown"; retryAfterSeconds: number }
   | { status: "rate_limited"; retryAfterSeconds: number }
   | { status: "invalid" }
@@ -77,13 +61,17 @@ export async function resendConfirmation(
   }
 
   const user = await deps.users.findUserByEmail(parsed.data);
-  let deliver: () => Promise<void>;
+  let deliver: () => Promise<EmailDelivery>;
   try {
     const token = deps.createToken();
     // The digest is discarded. Both branches pay the same hash cost.
     await deps.hasher.hash(token);
     if (!user) {
-      deliver = deliverQuietly(() => deps.balance());
+      deliver = settleEmailDelivery("auth.resend_email_failed", () =>
+        Promise.all([deps.balance(), deps.emails.probe()]).then(
+          () => undefined,
+        ),
+      );
     } else if (!user.emailVerifiedAt) {
       await deps.users.invalidateVerificationTokens(user.id, input.now);
       await deps.users.saveVerificationToken({
@@ -92,17 +80,22 @@ export async function resendConfirmation(
         expiresAt: new Date(input.now.getTime() + CONFIRMATION_TTL_MS),
       });
       const confirmUrl = `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`;
-      deliver = deliverQuietly(() =>
+      deliver = settleEmailDelivery("auth.resend_email_failed", () =>
         deps.emails.sendAccountConfirmation({ to: user.email, confirmUrl }),
       );
     } else {
-      deliver = deliverQuietly(() =>
+      deliver = settleEmailDelivery("auth.resend_email_failed", () =>
         deps.emails.sendAccountExistsNotice({ to: user.email }),
       );
     }
   } catch (error) {
-    logResendEmailFailure(error);
-    deliver = deliverQuietly(() => deps.balance());
+    console.error(
+      "auth.resend_email_failed",
+      error instanceof Error ? error.name : "error",
+    );
+    deliver = settleEmailDelivery("auth.resend_email_failed", () =>
+      deps.balance(),
+    );
   }
 
   return { status: "sent", deliver };

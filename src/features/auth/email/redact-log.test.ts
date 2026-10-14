@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { redactLogMessage } from "./redact-log";
+import { redactLogMessage, redactRecipient } from "./redact-log";
 
 describe("redactLogMessage", () => {
   it("redacts email addresses and secrets and keeps the message short", () => {
@@ -15,5 +15,13 @@ describe("redactLogMessage", () => {
     expect(message).not.toContain("ana@example.com");
     expect(message).not.toContain("smtp-pass");
     expect(message).not.toContain("test-resend-key");
+  });
+});
+
+describe("redactRecipient", () => {
+  it("keeps one character and drops the domain", () => {
+    expect(redactRecipient("ana@example.com")).toBe("a***@[redacted]");
+    expect(redactRecipient("ana@example.com")).not.toContain("example.com");
+    expect(redactRecipient("sem-arroba")).toBe("[redacted]");
   });
 });

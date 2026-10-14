@@ -26,6 +26,8 @@ const emailAddress = z.email();
 
 export type EmailTransportSetting = "resend" | "smtp" | "log";
 
+const configuredEmailTransport = z.enum(["resend", "smtp", "log"]);
+
 const smtpPort = z
   .string()
   .regex(/^[0-9]{1,5}$/u, "SMTP_PORT must be an integer from 1 to 65535")
@@ -38,9 +40,11 @@ const smtpSecureValue = z.enum(["true", "false", "1", "0"]);
 
 function resolveEmailTransport(
   nodeEnv: "development" | "test" | "production",
-  configured: "resend" | "smtp" | undefined,
+  configured: z.infer<typeof configuredEmailTransport> | undefined,
+  vercelEnv: string | undefined,
 ): EmailTransportSetting {
   if (configured) return configured;
+  if (vercelEnv === "preview") return "log";
   if (nodeEnv === "production") return "resend";
   if (nodeEnv === "development") return "smtp";
   return "log";
@@ -120,7 +124,7 @@ export const serverEnvSchema = z
       .refine(isEmailFrom, "EMAIL_FROM must be an email or Name <email>")
       .optional(),
     EMAIL_CAPTURE_PATH: z.string().min(1).optional(),
-    EMAIL_TRANSPORT: z.enum(["resend", "smtp"]).optional(),
+    EMAIL_TRANSPORT: configuredEmailTransport.optional(),
     SMTP_HOST: z.string().min(1).optional(),
     SMTP_PORT: smtpPort.optional(),
     SMTP_USER: z.string().min(1).optional(),
@@ -245,6 +249,7 @@ export function readServerEnv(
   const transport = resolveEmailTransport(
     parsed.data.NODE_ENV,
     parsed.data.EMAIL_TRANSPORT,
+    parsed.data.VERCEL_ENV,
   );
   const captureActive =
     Boolean(parsed.data.EMAIL_CAPTURE_PATH) &&

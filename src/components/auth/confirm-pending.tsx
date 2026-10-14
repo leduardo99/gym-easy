@@ -16,15 +16,17 @@ export function ConfirmPending({
   email,
   fresh,
   expired,
+  deliveryFailed,
 }: {
   email: string | null;
   fresh: boolean;
   expired: boolean;
+  deliveryFailed?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(fresh ? 60 : 0);
   const [message, setMessage] = useState<string | null>(
-    expired ? copy.linkExpired : null,
+    expired ? copy.linkExpired : deliveryFailed ? copy.emailSendFailed : null,
   );
 
   useEffect(() => {
