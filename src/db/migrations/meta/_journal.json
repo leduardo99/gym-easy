@@ -8,6 +8,62 @@
       "when": 1792002460416,
       "tag": "0000_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792005081883,
+      "tag": "0001_training_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792005083397,
+      "tag": "0002_seed_exercises",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792006981369,
+      "tag": "0003_birth_year_consent",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792007520371,
+      "tag": "0004_cascade_exercise_refs",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792008220274,
+      "tag": "0005_catalog_exercises",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792008221274,
+      "tag": "0006_seed_exercises",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792009041762,
+      "tag": "0007_catalog_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792010246270,
+      "tag": "0008_consent_retention",
+      "breakpoints": true
     }
   ]
 }

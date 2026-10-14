@@ -1,0 +1,2192 @@
+{
+  "version": "2026-10-14.v2",
+  "count": 136,
+  "exercises": [
+    {
+      "id": "supino_reto_com_barra",
+      "name_pt": "Supino reto com barra",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps", "front_delts"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "wrist"],
+      "unilateral": false,
+      "default_rep_range": [6, 10],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "supino_reto_com_halteres",
+      "name_pt": "Supino reto com halteres",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps", "front_delts"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra",
+        "supino_na_maquina"
+      ]
+    },
+    {
+      "id": "supino_inclinado_com_barra",
+      "name_pt": "Supino inclinado com barra",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest", "front_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "wrist"],
+      "unilateral": false,
+      "default_rep_range": [6, 10],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "supino_inclinado_com_halteres",
+      "name_pt": "Supino inclinado com halteres",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest", "front_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_declinado_com_barra",
+        "supino_na_maquina"
+      ]
+    },
+    {
+      "id": "supino_declinado_com_barra",
+      "name_pt": "Supino declinado com barra",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_na_maquina"
+      ]
+    },
+    {
+      "id": "supino_na_maquina",
+      "name_pt": "Supino na máquina",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps", "front_delts"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "supino_inclinado_na_maquina",
+      "name_pt": "Supino inclinado na máquina",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest", "front_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "supino_no_smith",
+      "name_pt": "Supino no Smith",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps", "front_delts"],
+      "equipment": "smith_machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "crucifixo_com_halteres",
+      "name_pt": "Crucifixo com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "crucifixo_na_maquina_peck_deck",
+        "crossover_no_cabo",
+        "crossover_baixo_no_cabo"
+      ]
+    },
+    {
+      "id": "crucifixo_inclinado_com_halteres",
+      "name_pt": "Crucifixo inclinado com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "crucifixo_na_maquina_peck_deck",
+        "crossover_no_cabo",
+        "crossover_baixo_no_cabo"
+      ]
+    },
+    {
+      "id": "crucifixo_na_maquina_peck_deck",
+      "name_pt": "Crucifixo na máquina (peck deck)",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "crossover_no_cabo",
+        "crossover_baixo_no_cabo",
+        "pullover_com_halter"
+      ]
+    },
+    {
+      "id": "crossover_no_cabo",
+      "name_pt": "Crossover no cabo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "crucifixo_na_maquina_peck_deck",
+        "crossover_baixo_no_cabo",
+        "pullover_com_halter"
+      ]
+    },
+    {
+      "id": "crossover_baixo_no_cabo",
+      "name_pt": "Crossover baixo no cabo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "crucifixo_na_maquina_peck_deck",
+        "crossover_no_cabo",
+        "pullover_com_halter"
+      ]
+    },
+    {
+      "id": "flexao_de_braco",
+      "name_pt": "Flexão de braço",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps", "front_delts", "abs"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder", "wrist"],
+      "unilateral": false,
+      "default_rep_range": [8, 20],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "flexao_de_braco_inclinada_maos_elevadas",
+      "name_pt": "Flexão de braço inclinada (mãos elevadas)",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps", "front_delts"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["wrist"],
+      "unilateral": false,
+      "default_rep_range": [8, 20],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "flexao_de_braco_declinada",
+      "name_pt": "Flexão de braço declinada",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest", "front_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "bodyweight",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "wrist"],
+      "unilateral": false,
+      "default_rep_range": [8, 15],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "paralelas_mergulho_para_peito",
+      "name_pt": "Paralelas (mergulho) para peito",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest", "triceps"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "bodyweight",
+      "level": "advanced",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [6, 12],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "pullover_com_halter",
+      "name_pt": "Pullover com halter",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["lats", "chest"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "crucifixo_na_maquina_peck_deck",
+        "crossover_no_cabo",
+        "crossover_baixo_no_cabo"
+      ]
+    },
+    {
+      "id": "supino_com_halteres_pegada_neutra",
+      "name_pt": "Supino com halteres pegada neutra",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest", "triceps"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "flexao_de_braco_com_joelhos_apoiados",
+      "name_pt": "Flexão de braço com joelhos apoiados",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["triceps", "front_delts"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["wrist"],
+      "unilateral": false,
+      "default_rep_range": [8, 20],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "barra_fixa_pronada",
+      "name_pt": "Barra fixa pronada",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps", "rhomboids", "mid_traps"],
+      "equipment": "bodyweight",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [5, 10],
+      "substitutions": [
+        "barra_fixa_assistida_maquina",
+        "puxada_na_frente_pegada_aberta",
+        "puxada_na_frente_pegada_fechada"
+      ]
+    },
+    {
+      "id": "barra_fixa_supinada",
+      "name_pt": "Barra fixa supinada",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats", "biceps"],
+      "secondary_muscles": ["rhomboids", "mid_traps"],
+      "equipment": "bodyweight",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [5, 10],
+      "substitutions": [
+        "barra_fixa_assistida_maquina",
+        "puxada_na_frente_pegada_aberta",
+        "puxada_na_frente_pegada_fechada"
+      ]
+    },
+    {
+      "id": "barra_fixa_assistida_maquina",
+      "name_pt": "Barra fixa assistida (máquina)",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps", "rhomboids", "mid_traps"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "puxada_na_frente_pegada_aberta",
+        "puxada_na_frente_pegada_fechada",
+        "puxada_unilateral_no_cabo"
+      ]
+    },
+    {
+      "id": "puxada_na_frente_pegada_aberta",
+      "name_pt": "Puxada na frente pegada aberta",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps", "rhomboids", "mid_traps"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "barra_fixa_assistida_maquina",
+        "puxada_na_frente_pegada_fechada",
+        "puxada_unilateral_no_cabo"
+      ]
+    },
+    {
+      "id": "puxada_na_frente_pegada_fechada",
+      "name_pt": "Puxada na frente pegada fechada",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "barra_fixa_assistida_maquina",
+        "puxada_na_frente_pegada_aberta",
+        "puxada_unilateral_no_cabo"
+      ]
+    },
+    {
+      "id": "puxada_supinada_no_cabo",
+      "name_pt": "Puxada supinada no cabo",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats", "biceps"],
+      "secondary_muscles": ["rhomboids", "mid_traps"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "barra_fixa_assistida_maquina",
+        "puxada_na_frente_pegada_aberta",
+        "puxada_na_frente_pegada_fechada"
+      ]
+    },
+    {
+      "id": "puxada_unilateral_no_cabo",
+      "name_pt": "Puxada unilateral no cabo",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "cable",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "barra_fixa_assistida_maquina",
+        "puxada_na_frente_pegada_aberta",
+        "puxada_na_frente_pegada_fechada"
+      ]
+    },
+    {
+      "id": "remada_curvada_com_barra",
+      "name_pt": "Remada curvada com barra",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["lats", "rhomboids", "mid_traps"],
+      "secondary_muscles": ["biceps", "spinal_erectors"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [6, 10],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "remada_curvada_supinada_yates",
+      "name_pt": "Remada curvada supinada (Yates)",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["lats", "rhomboids", "mid_traps"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [6, 10],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "remada_unilateral_com_halter_serrote",
+      "name_pt": "Remada unilateral com halter (serrote)",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["lats", "rhomboids", "mid_traps"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo",
+        "remada_na_maquina"
+      ]
+    },
+    {
+      "id": "remada_sentada_no_cabo",
+      "name_pt": "Remada sentada no cabo",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["rhomboids", "mid_traps", "lats"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_baixa_pegada_aberta_no_cabo",
+        "remada_na_maquina"
+      ]
+    },
+    {
+      "id": "remada_baixa_pegada_aberta_no_cabo",
+      "name_pt": "Remada baixa pegada aberta no cabo",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["rhomboids", "mid_traps", "rear_delts"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_na_maquina"
+      ]
+    },
+    {
+      "id": "remada_na_maquina",
+      "name_pt": "Remada na máquina",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["rhomboids", "mid_traps", "lats"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "remada_cavalinho_t_bar",
+      "name_pt": "Remada cavalinho (T-bar)",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["lats", "rhomboids", "mid_traps"],
+      "secondary_muscles": ["biceps", "spinal_erectors"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [6, 10],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "remada_apoiada_no_banco_inclinado",
+      "name_pt": "Remada apoiada no banco inclinado",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["rhomboids", "mid_traps", "lats"],
+      "secondary_muscles": ["biceps", "rear_delts"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "remada_invertida",
+      "name_pt": "Remada invertida",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["rhomboids", "mid_traps", "lats"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 15],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "pulldown_bracos_estendidos_no_cabo",
+      "name_pt": "Pulldown braços estendidos no cabo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": ["pullover_com_halter"]
+    },
+    {
+      "id": "remada_pendlay",
+      "name_pt": "Remada Pendlay",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["lats", "rhomboids", "mid_traps"],
+      "secondary_muscles": ["spinal_erectors"],
+      "equipment": "barbell",
+      "level": "advanced",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [5, 8],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "remada_unilateral_no_cabo",
+      "name_pt": "Remada unilateral no cabo",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["lats", "rhomboids", "mid_traps"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "remada_com_elastico",
+      "name_pt": "Remada com elástico",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["rhomboids", "mid_traps"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "resistance_band",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "puxada_com_elastico",
+      "name_pt": "Puxada com elástico",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "resistance_band",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "barra_fixa_assistida_maquina",
+        "puxada_na_frente_pegada_aberta",
+        "puxada_na_frente_pegada_fechada"
+      ]
+    },
+    {
+      "id": "desenvolvimento_com_barra_em_pe",
+      "name_pt": "Desenvolvimento com barra em pé",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts"],
+      "secondary_muscles": ["triceps", "side_delts", "abs"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "lower_back"],
+      "unilateral": false,
+      "default_rep_range": [5, 8],
+      "substitutions": [
+        "landmine_press_unilateral",
+        "desenvolvimento_com_halteres_sentado",
+        "desenvolvimento_na_maquina"
+      ]
+    },
+    {
+      "id": "desenvolvimento_com_halteres_sentado",
+      "name_pt": "Desenvolvimento com halteres sentado",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts"],
+      "secondary_muscles": ["triceps", "side_delts"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "landmine_press_unilateral",
+        "desenvolvimento_na_maquina",
+        "desenvolvimento_arnold"
+      ]
+    },
+    {
+      "id": "desenvolvimento_na_maquina",
+      "name_pt": "Desenvolvimento na máquina",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts"],
+      "secondary_muscles": ["triceps", "side_delts"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "landmine_press_unilateral",
+        "desenvolvimento_com_halteres_sentado",
+        "desenvolvimento_arnold"
+      ]
+    },
+    {
+      "id": "desenvolvimento_arnold",
+      "name_pt": "Desenvolvimento Arnold",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts", "side_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "landmine_press_unilateral",
+        "desenvolvimento_com_halteres_sentado",
+        "desenvolvimento_na_maquina"
+      ]
+    },
+    {
+      "id": "desenvolvimento_no_smith",
+      "name_pt": "Desenvolvimento no Smith",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "smith_machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "landmine_press_unilateral",
+        "desenvolvimento_com_halteres_sentado",
+        "desenvolvimento_na_maquina"
+      ]
+    },
+    {
+      "id": "landmine_press_unilateral",
+      "name_pt": "Landmine press unilateral",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts", "chest"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": [],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "desenvolvimento_com_halteres_sentado",
+        "desenvolvimento_na_maquina",
+        "desenvolvimento_arnold"
+      ]
+    },
+    {
+      "id": "elevacao_lateral_com_halteres",
+      "name_pt": "Elevação lateral com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["side_delts"],
+      "secondary_muscles": ["upper_traps"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "elevacao_lateral_no_cabo",
+        "elevacao_lateral_na_maquina"
+      ]
+    },
+    {
+      "id": "elevacao_lateral_no_cabo",
+      "name_pt": "Elevação lateral no cabo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["side_delts"],
+      "secondary_muscles": [],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": true,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "elevacao_lateral_com_halteres",
+        "elevacao_lateral_na_maquina"
+      ]
+    },
+    {
+      "id": "elevacao_lateral_na_maquina",
+      "name_pt": "Elevação lateral na máquina",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["side_delts"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "elevacao_lateral_com_halteres",
+        "elevacao_lateral_no_cabo"
+      ]
+    },
+    {
+      "id": "elevacao_frontal_com_halteres",
+      "name_pt": "Elevação frontal com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["front_delts"],
+      "secondary_muscles": ["side_delts"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": []
+    },
+    {
+      "id": "crucifixo_invertido_com_halteres",
+      "name_pt": "Crucifixo invertido com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["rear_delts"],
+      "secondary_muscles": ["rhomboids", "mid_traps"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": ["crucifixo_invertido_na_maquina"]
+    },
+    {
+      "id": "crucifixo_invertido_na_maquina",
+      "name_pt": "Crucifixo invertido na máquina",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["rear_delts"],
+      "secondary_muscles": ["rhomboids", "mid_traps"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": ["crucifixo_invertido_com_halteres"]
+    },
+    {
+      "id": "face_pull_no_cabo",
+      "name_pt": "Face pull no cabo",
+      "movement_pattern": "horizontal_pull",
+      "primary_muscles": ["rear_delts", "rhomboids", "mid_traps"],
+      "secondary_muscles": ["rotator_cuff"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "remada_unilateral_com_halter_serrote",
+        "remada_sentada_no_cabo",
+        "remada_baixa_pegada_aberta_no_cabo"
+      ]
+    },
+    {
+      "id": "encolhimento_com_halteres",
+      "name_pt": "Encolhimento com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["upper_traps"],
+      "secondary_muscles": ["forearms"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["neck"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": ["encolhimento_com_barra"]
+    },
+    {
+      "id": "encolhimento_com_barra",
+      "name_pt": "Encolhimento com barra",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["upper_traps"],
+      "secondary_muscles": ["forearms"],
+      "equipment": "barbell",
+      "level": "beginner",
+      "contraindicated_regions": ["neck"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": ["encolhimento_com_halteres"]
+    },
+    {
+      "id": "remada_alta_com_cabo",
+      "name_pt": "Remada alta com cabo",
+      "movement_pattern": "vertical_pull",
+      "primary_muscles": ["side_delts", "upper_traps"],
+      "secondary_muscles": ["biceps"],
+      "equipment": "cable",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": []
+    },
+    {
+      "id": "rotacao_externa_no_cabo",
+      "name_pt": "Rotação externa no cabo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["rotator_cuff"],
+      "secondary_muscles": ["rear_delts"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": true,
+      "default_rep_range": [12, 20],
+      "substitutions": []
+    },
+    {
+      "id": "pike_push_up",
+      "name_pt": "Pike push-up",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "bodyweight",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "wrist"],
+      "unilateral": false,
+      "default_rep_range": [6, 12],
+      "substitutions": [
+        "landmine_press_unilateral",
+        "desenvolvimento_com_halteres_sentado",
+        "desenvolvimento_na_maquina"
+      ]
+    },
+    {
+      "id": "desenvolvimento_com_elastico",
+      "name_pt": "Desenvolvimento com elástico",
+      "movement_pattern": "vertical_push",
+      "primary_muscles": ["front_delts"],
+      "secondary_muscles": ["triceps"],
+      "equipment": "resistance_band",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "landmine_press_unilateral",
+        "desenvolvimento_com_halteres_sentado",
+        "desenvolvimento_na_maquina"
+      ]
+    },
+    {
+      "id": "rosca_direta_com_barra",
+      "name_pt": "Rosca direta com barra",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": ["forearms"],
+      "equipment": "barbell",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow", "wrist"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_direta_com_barra_w",
+        "rosca_alternada_com_halteres"
+      ]
+    },
+    {
+      "id": "rosca_direta_com_barra_w",
+      "name_pt": "Rosca direta com barra W",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": ["forearms"],
+      "equipment": "barbell",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_alternada_com_halteres",
+        "rosca_martelo"
+      ]
+    },
+    {
+      "id": "rosca_alternada_com_halteres",
+      "name_pt": "Rosca alternada com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": ["forearms"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_direta_com_barra_w",
+        "rosca_martelo"
+      ]
+    },
+    {
+      "id": "rosca_martelo",
+      "name_pt": "Rosca martelo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps", "forearms"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_direta_com_barra_w",
+        "rosca_alternada_com_halteres"
+      ]
+    },
+    {
+      "id": "rosca_inclinada_com_halteres",
+      "name_pt": "Rosca inclinada com halteres",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_direta_com_barra_w",
+        "rosca_alternada_com_halteres"
+      ]
+    },
+    {
+      "id": "rosca_scott_na_maquina",
+      "name_pt": "Rosca Scott na máquina",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_direta_com_barra_w",
+        "rosca_alternada_com_halteres"
+      ]
+    },
+    {
+      "id": "rosca_concentrada",
+      "name_pt": "Rosca concentrada",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_direta_com_barra_w",
+        "rosca_alternada_com_halteres"
+      ]
+    },
+    {
+      "id": "rosca_no_cabo",
+      "name_pt": "Rosca no cabo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": ["forearms"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "rosca_com_elastico",
+        "rosca_direta_com_barra_w",
+        "rosca_alternada_com_halteres"
+      ]
+    },
+    {
+      "id": "rosca_com_elastico",
+      "name_pt": "Rosca com elástico",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": [],
+      "equipment": "resistance_band",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "rosca_direta_com_barra_w",
+        "rosca_alternada_com_halteres",
+        "rosca_martelo"
+      ]
+    },
+    {
+      "id": "triceps_na_polia_com_barra",
+      "name_pt": "Tríceps na polia com barra",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "triceps_na_polia_com_corda",
+        "triceps_testa_com_barra_w",
+        "triceps_coice_com_halter"
+      ]
+    },
+    {
+      "id": "triceps_na_polia_com_corda",
+      "name_pt": "Tríceps na polia com corda",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "triceps_na_polia_com_barra",
+        "triceps_testa_com_barra_w",
+        "triceps_coice_com_halter"
+      ]
+    },
+    {
+      "id": "triceps_testa_com_barra_w",
+      "name_pt": "Tríceps testa com barra W",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "triceps_na_polia_com_barra",
+        "triceps_na_polia_com_corda",
+        "triceps_coice_com_halter"
+      ]
+    },
+    {
+      "id": "triceps_frances_com_halter",
+      "name_pt": "Tríceps francês com halter",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow", "shoulder"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "triceps_na_polia_com_barra",
+        "triceps_na_polia_com_corda",
+        "triceps_testa_com_barra_w"
+      ]
+    },
+    {
+      "id": "extensao_de_triceps_acima_da_cabeca_no_cabo",
+      "name_pt": "Extensão de tríceps acima da cabeça no cabo",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow", "shoulder"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "triceps_na_polia_com_barra",
+        "triceps_na_polia_com_corda",
+        "triceps_testa_com_barra_w"
+      ]
+    },
+    {
+      "id": "triceps_coice_com_halter",
+      "name_pt": "Tríceps coice com halter",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": true,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "triceps_na_polia_com_barra",
+        "triceps_na_polia_com_corda",
+        "triceps_testa_com_barra_w"
+      ]
+    },
+    {
+      "id": "supino_fechado",
+      "name_pt": "Supino fechado",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["triceps", "chest"],
+      "secondary_muscles": ["front_delts"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["wrist", "shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [6, 10],
+      "substitutions": [
+        "supino_reto_com_halteres",
+        "supino_inclinado_com_halteres",
+        "supino_declinado_com_barra"
+      ]
+    },
+    {
+      "id": "mergulho_no_banco",
+      "name_pt": "Mergulho no banco",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": ["chest", "front_delts"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder", "wrist"],
+      "unilateral": false,
+      "default_rep_range": [8, 15],
+      "substitutions": [
+        "supino_com_halteres_pegada_neutra",
+        "supino_fechado",
+        "paralelas_mergulho_para_peito"
+      ]
+    },
+    {
+      "id": "paralelas_para_triceps",
+      "name_pt": "Paralelas para tríceps",
+      "movement_pattern": "horizontal_push",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": ["chest", "front_delts"],
+      "equipment": "bodyweight",
+      "level": "advanced",
+      "contraindicated_regions": ["shoulder", "elbow"],
+      "unilateral": false,
+      "default_rep_range": [6, 12],
+      "substitutions": [
+        "supino_com_halteres_pegada_neutra",
+        "mergulho_no_banco",
+        "supino_fechado"
+      ]
+    },
+    {
+      "id": "triceps_na_maquina",
+      "name_pt": "Tríceps na máquina",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["elbow"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "triceps_na_polia_com_barra",
+        "triceps_na_polia_com_corda",
+        "triceps_testa_com_barra_w"
+      ]
+    },
+    {
+      "id": "rosca_de_punho",
+      "name_pt": "Rosca de punho",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["forearms"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["wrist"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": ["rosca_martelo"]
+    },
+    {
+      "id": "agachamento_livre_com_barra",
+      "name_pt": "Agachamento livre com barra",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": ["adductors", "spinal_erectors"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["knee", "lower_back", "hip"],
+      "unilateral": false,
+      "default_rep_range": [5, 8],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "agachamento_frontal",
+      "name_pt": "Agachamento frontal",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps"],
+      "secondary_muscles": ["glutes", "abs"],
+      "equipment": "barbell",
+      "level": "advanced",
+      "contraindicated_regions": ["knee", "wrist", "lower_back"],
+      "unilateral": false,
+      "default_rep_range": [5, 8],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "agachamento_goblet",
+      "name_pt": "Agachamento goblet",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": ["abs"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina",
+        "agachamento_com_peso_corporal"
+      ]
+    },
+    {
+      "id": "agachamento_no_smith",
+      "name_pt": "Agachamento no Smith",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": [],
+      "equipment": "smith_machine",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_hack_na_maquina",
+        "agachamento_com_peso_corporal"
+      ]
+    },
+    {
+      "id": "agachamento_hack_na_maquina",
+      "name_pt": "Agachamento hack na máquina",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps"],
+      "secondary_muscles": ["glutes"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_com_peso_corporal"
+      ]
+    },
+    {
+      "id": "leg_press_45",
+      "name_pt": "Leg press 45°",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": ["adductors"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["knee", "lower_back"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "agachamento_com_peso_corporal",
+      "name_pt": "Agachamento com peso corporal",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": [],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "agachamento_no_banco_box_squat",
+      "name_pt": "Agachamento no banco (box squat)",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": [],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["knee", "lower_back"],
+      "unilateral": false,
+      "default_rep_range": [5, 8],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "agachamento_bulgaro",
+      "name_pt": "Agachamento búlgaro",
+      "movement_pattern": "lunge",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": ["adductors"],
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["knee"],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "avanco_afundo_com_halteres",
+        "avanco_reverso",
+        "avanco_caminhando"
+      ]
+    },
+    {
+      "id": "avanco_afundo_com_halteres",
+      "name_pt": "Avanço (afundo) com halteres",
+      "movement_pattern": "lunge",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": ["adductors"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "agachamento_bulgaro",
+        "avanco_reverso",
+        "avanco_caminhando"
+      ]
+    },
+    {
+      "id": "avanco_reverso",
+      "name_pt": "Avanço reverso",
+      "movement_pattern": "lunge",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "agachamento_bulgaro",
+        "avanco_afundo_com_halteres",
+        "avanco_caminhando"
+      ]
+    },
+    {
+      "id": "avanco_caminhando",
+      "name_pt": "Avanço caminhando",
+      "movement_pattern": "lunge",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": ["adductors"],
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["knee"],
+      "unilateral": true,
+      "default_rep_range": [10, 16],
+      "substitutions": [
+        "agachamento_bulgaro",
+        "avanco_afundo_com_halteres",
+        "avanco_reverso"
+      ]
+    },
+    {
+      "id": "subida_no_banco_step_up",
+      "name_pt": "Subida no banco (step-up)",
+      "movement_pattern": "lunge",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": true,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "agachamento_bulgaro",
+        "avanco_afundo_com_halteres",
+        "avanco_reverso"
+      ]
+    },
+    {
+      "id": "cadeira_extensora",
+      "name_pt": "Cadeira extensora",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["quadriceps"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": []
+    },
+    {
+      "id": "cadeira_flexora",
+      "name_pt": "Cadeira flexora",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["hamstrings"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "mesa_flexora",
+        "flexora_unilateral_em_pe",
+        "nordic_curl"
+      ]
+    },
+    {
+      "id": "mesa_flexora",
+      "name_pt": "Mesa flexora",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["hamstrings"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "cadeira_flexora",
+        "flexora_unilateral_em_pe",
+        "nordic_curl"
+      ]
+    },
+    {
+      "id": "flexora_unilateral_em_pe",
+      "name_pt": "Flexora unilateral em pé",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["hamstrings"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": true,
+      "default_rep_range": [10, 15],
+      "substitutions": ["cadeira_flexora", "mesa_flexora", "nordic_curl"]
+    },
+    {
+      "id": "levantamento_terra_convencional",
+      "name_pt": "Levantamento terra convencional",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes", "hamstrings", "spinal_erectors"],
+      "secondary_muscles": ["quadriceps", "upper_traps", "forearms"],
+      "equipment": "barbell",
+      "level": "advanced",
+      "contraindicated_regions": ["lower_back", "hip"],
+      "unilateral": false,
+      "default_rep_range": [3, 6],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "levantamento_terra_sumo",
+      "name_pt": "Levantamento terra sumô",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes", "adductors", "hamstrings"],
+      "secondary_muscles": ["quadriceps", "spinal_erectors"],
+      "equipment": "barbell",
+      "level": "advanced",
+      "contraindicated_regions": ["lower_back", "hip"],
+      "unilateral": false,
+      "default_rep_range": [3, 6],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "levantamento_terra_romeno_com_barra",
+      "name_pt": "Levantamento terra romeno com barra",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["hamstrings", "glutes"],
+      "secondary_muscles": ["spinal_erectors"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [6, 10],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_halteres"
+      ]
+    },
+    {
+      "id": "levantamento_terra_romeno_com_halteres",
+      "name_pt": "Levantamento terra romeno com halteres",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["hamstrings", "glutes"],
+      "secondary_muscles": ["spinal_erectors"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "stiff_unilateral_com_halter",
+      "name_pt": "Stiff unilateral com halter",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["hamstrings", "glutes"],
+      "secondary_muscles": ["spinal_erectors"],
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "levantamento_terra_com_trap_bar",
+      "name_pt": "Levantamento terra com trap bar",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes", "quadriceps", "hamstrings"],
+      "secondary_muscles": ["spinal_erectors", "upper_traps"],
+      "equipment": "barbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [5, 8],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "good_morning",
+      "name_pt": "Good morning",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["hamstrings", "spinal_erectors"],
+      "secondary_muscles": ["glutes"],
+      "equipment": "barbell",
+      "level": "advanced",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "levantamento_terra_romeno_com_barra",
+        "levantamento_terra_romeno_com_halteres",
+        "stiff_unilateral_com_halter"
+      ]
+    },
+    {
+      "id": "hip_thrust_com_barra",
+      "name_pt": "Hip thrust com barra",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes"],
+      "secondary_muscles": ["hamstrings"],
+      "equipment": "barbell",
+      "level": "beginner",
+      "contraindicated_regions": ["hip"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "hip_thrust_na_maquina",
+      "name_pt": "Hip thrust na máquina",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes"],
+      "secondary_muscles": ["hamstrings"],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["hip"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "ponte_de_gluteo",
+      "name_pt": "Ponte de glúteo",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes"],
+      "secondary_muscles": ["hamstrings"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra",
+        "levantamento_terra_romeno_com_halteres"
+      ]
+    },
+    {
+      "id": "ponte_de_gluteo_unilateral",
+      "name_pt": "Ponte de glúteo unilateral",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes"],
+      "secondary_muscles": ["hamstrings"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": true,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "levantamento_terra_romeno_com_barra",
+        "levantamento_terra_romeno_com_halteres"
+      ]
+    },
+    {
+      "id": "gluteo_no_cabo_coice",
+      "name_pt": "Glúteo no cabo (coice)",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["glutes"],
+      "secondary_muscles": [],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["hip"],
+      "unilateral": true,
+      "default_rep_range": [12, 15],
+      "substitutions": []
+    },
+    {
+      "id": "abducao_de_quadril_na_maquina",
+      "name_pt": "Abdução de quadril na máquina",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["glute_medius"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["hip"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": []
+    },
+    {
+      "id": "aducao_de_quadril_na_maquina",
+      "name_pt": "Adução de quadril na máquina",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["adductors"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["hip"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": []
+    },
+    {
+      "id": "extensao_lombar_no_banco_45",
+      "name_pt": "Extensão lombar no banco 45°",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["spinal_erectors", "glutes"],
+      "secondary_muscles": ["hamstrings"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "kettlebell_swing",
+      "name_pt": "Kettlebell swing",
+      "movement_pattern": "hip_hinge",
+      "primary_muscles": ["glutes", "hamstrings"],
+      "secondary_muscles": ["spinal_erectors", "abs"],
+      "equipment": "kettlebell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "ponte_de_gluteo",
+        "ponte_de_gluteo_unilateral",
+        "levantamento_terra_romeno_com_barra"
+      ]
+    },
+    {
+      "id": "panturrilha_em_pe_na_maquina",
+      "name_pt": "Panturrilha em pé na máquina",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["calves"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["ankle"],
+      "unilateral": false,
+      "default_rep_range": [10, 20],
+      "substitutions": [
+        "panturrilha_no_leg_press",
+        "panturrilha_unilateral_com_halter"
+      ]
+    },
+    {
+      "id": "panturrilha_sentado",
+      "name_pt": "Panturrilha sentado",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["soleus"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["ankle"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": []
+    },
+    {
+      "id": "panturrilha_no_leg_press",
+      "name_pt": "Panturrilha no leg press",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["calves"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["ankle"],
+      "unilateral": false,
+      "default_rep_range": [10, 20],
+      "substitutions": [
+        "panturrilha_em_pe_na_maquina",
+        "panturrilha_unilateral_com_halter"
+      ]
+    },
+    {
+      "id": "panturrilha_unilateral_com_halter",
+      "name_pt": "Panturrilha unilateral com halter",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["calves"],
+      "secondary_muscles": [],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["ankle"],
+      "unilateral": true,
+      "default_rep_range": [10, 20],
+      "substitutions": [
+        "panturrilha_em_pe_na_maquina",
+        "panturrilha_no_leg_press"
+      ]
+    },
+    {
+      "id": "agachamento_com_salto",
+      "name_pt": "Agachamento com salto",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": ["calves"],
+      "equipment": "bodyweight",
+      "level": "advanced",
+      "contraindicated_regions": ["knee", "ankle", "lower_back"],
+      "unilateral": false,
+      "default_rep_range": [5, 10],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "agachamento_com_elastico",
+      "name_pt": "Agachamento com elástico",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps", "glutes"],
+      "secondary_muscles": [],
+      "equipment": "resistance_band",
+      "level": "beginner",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "nordic_curl",
+      "name_pt": "Nordic curl",
+      "movement_pattern": "isolation",
+      "primary_muscles": ["hamstrings"],
+      "secondary_muscles": [],
+      "equipment": "bodyweight",
+      "level": "advanced",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [3, 6],
+      "substitutions": [
+        "cadeira_flexora",
+        "mesa_flexora",
+        "flexora_unilateral_em_pe"
+      ]
+    },
+    {
+      "id": "sissy_squat",
+      "name_pt": "Sissy squat",
+      "movement_pattern": "squat",
+      "primary_muscles": ["quadriceps"],
+      "secondary_muscles": [],
+      "equipment": "bodyweight",
+      "level": "advanced",
+      "contraindicated_regions": ["knee"],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": [
+        "agachamento_goblet",
+        "agachamento_no_smith",
+        "agachamento_hack_na_maquina"
+      ]
+    },
+    {
+      "id": "prancha_frontal",
+      "name_pt": "Prancha frontal",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": ["obliques"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": false,
+      "default_rep_range": [20, 60],
+      "substitutions": ["dead_bug", "bird_dog", "abdominal_crunch"]
+    },
+    {
+      "id": "prancha_lateral",
+      "name_pt": "Prancha lateral",
+      "movement_pattern": "core",
+      "primary_muscles": ["obliques"],
+      "secondary_muscles": ["abs"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["shoulder"],
+      "unilateral": true,
+      "default_rep_range": [20, 45],
+      "substitutions": ["pallof_press", "rotacao_no_cabo_lenhador"]
+    },
+    {
+      "id": "abdominal_crunch",
+      "name_pt": "Abdominal crunch",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": [],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["neck"],
+      "unilateral": false,
+      "default_rep_range": [12, 20],
+      "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
+    },
+    {
+      "id": "abdominal_na_polia_ajoelhado",
+      "name_pt": "Abdominal na polia (ajoelhado)",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": [],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
+    },
+    {
+      "id": "elevacao_de_pernas_suspenso",
+      "name_pt": "Elevação de pernas suspenso",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": ["hip_flexors"],
+      "equipment": "bodyweight",
+      "level": "advanced",
+      "contraindicated_regions": ["shoulder", "lower_back"],
+      "unilateral": false,
+      "default_rep_range": [8, 15],
+      "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
+    },
+    {
+      "id": "elevacao_de_pernas_deitado",
+      "name_pt": "Elevação de pernas deitado",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": ["hip_flexors"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
+    },
+    {
+      "id": "dead_bug",
+      "name_pt": "Dead bug",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": [],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": false,
+      "default_rep_range": [8, 12],
+      "substitutions": ["bird_dog", "prancha_frontal", "abdominal_crunch"]
+    },
+    {
+      "id": "bird_dog",
+      "name_pt": "Bird dog",
+      "movement_pattern": "core",
+      "primary_muscles": ["spinal_erectors", "abs"],
+      "secondary_muscles": ["glutes"],
+      "equipment": "bodyweight",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": true,
+      "default_rep_range": [8, 12],
+      "substitutions": ["dead_bug", "prancha_frontal", "abdominal_crunch"]
+    },
+    {
+      "id": "pallof_press",
+      "name_pt": "Pallof press",
+      "movement_pattern": "core",
+      "primary_muscles": ["obliques"],
+      "secondary_muscles": ["abs"],
+      "equipment": "cable",
+      "level": "beginner",
+      "contraindicated_regions": [],
+      "unilateral": true,
+      "default_rep_range": [10, 15],
+      "substitutions": ["prancha_lateral", "rotacao_no_cabo_lenhador"]
+    },
+    {
+      "id": "roda_abdominal",
+      "name_pt": "Roda abdominal",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": ["lats"],
+      "equipment": "accessory",
+      "level": "advanced",
+      "contraindicated_regions": ["lower_back", "shoulder"],
+      "unilateral": false,
+      "default_rep_range": [6, 12],
+      "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
+    },
+    {
+      "id": "rotacao_no_cabo_lenhador",
+      "name_pt": "Rotação no cabo (lenhador)",
+      "movement_pattern": "core",
+      "primary_muscles": ["obliques"],
+      "secondary_muscles": ["abs"],
+      "equipment": "cable",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": true,
+      "default_rep_range": [10, 15],
+      "substitutions": ["pallof_press", "prancha_lateral"]
+    },
+    {
+      "id": "hollow_hold",
+      "name_pt": "Hollow hold",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": [],
+      "equipment": "bodyweight",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [15, 40],
+      "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
+    },
+    {
+      "id": "abdominal_na_maquina",
+      "name_pt": "Abdominal na máquina",
+      "movement_pattern": "core",
+      "primary_muscles": ["abs"],
+      "secondary_muscles": [],
+      "equipment": "machine",
+      "level": "beginner",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [10, 15],
+      "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
+    },
+    {
+      "id": "caminhada_do_fazendeiro",
+      "name_pt": "Caminhada do fazendeiro",
+      "movement_pattern": "carry",
+      "primary_muscles": ["forearms", "upper_traps"],
+      "secondary_muscles": ["abs", "glutes"],
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": false,
+      "default_rep_range": [20, 40],
+      "substitutions": ["caminhada_da_mala_unilateral"]
+    },
+    {
+      "id": "caminhada_da_mala_unilateral",
+      "name_pt": "Caminhada da mala (unilateral)",
+      "movement_pattern": "carry",
+      "primary_muscles": ["obliques", "forearms"],
+      "secondary_muscles": ["upper_traps"],
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "contraindicated_regions": ["lower_back"],
+      "unilateral": true,
+      "default_rep_range": [20, 40],
+      "substitutions": ["caminhada_do_fazendeiro"]
+    }
+  ]
+}
