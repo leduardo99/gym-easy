@@ -481,6 +481,77 @@ describe.skipIf(!runIntegration)("training data access", () => {
     ).toHaveLength(1);
   });
 
+  it("does not let another user's body_data consent authorize profile or weight writes", async () => {
+    const userA = await insertUser("Consentiu");
+    const userB = await insertUser("Sem consentimento");
+    await grantBodyData(userA);
+    const profileInput = { birthYear: 1991, heightCm: 175 };
+    const weightInput = {
+      recordedOn: "2026-10-14",
+      weight: "72",
+      unit: "kg" as const,
+    };
+
+    const profile = await repository.saveProfile(userB, profileInput);
+    const weight = await repository.recordWeight(userB, weightInput);
+    expect(profile).toMatchObject({ ok: false, error: "consent_required" });
+    expect(weight).toMatchObject({ ok: false, error: "consent_required" });
+
+    expect(
+      await db
+        .select({ userId: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userB)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userB)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ userId: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userA)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userA)),
+    ).toEqual([]);
+
+    const savedProfile = await repository.saveProfile(userA, profileInput);
+    const savedWeight = await repository.recordWeight(userA, weightInput);
+    expect(savedProfile.ok).toBe(true);
+    expect(savedWeight.ok).toBe(true);
+    expect(
+      await db
+        .select({ userId: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userA)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userA)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select({ userId: userProfiles.userId })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userB)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select({ id: bodyMeasurements.id })
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userB)),
+    ).toEqual([]);
+  });
+
   it("appends consent and treats revocation as a new event", async () => {
     const ownerId = await insertUser("Consentimento");
     const intruderId = await insertUser("Outro");
