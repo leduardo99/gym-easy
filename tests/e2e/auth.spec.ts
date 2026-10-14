@@ -36,7 +36,8 @@ async function signup(page: Page, email: string, name = "Ana Souza") {
   );
   expect(confirmEmail?.httpOnly).toBe(true);
   expect(confirmEmail?.sameSite).toBe("Lax");
-  expect(decodeURIComponent(confirmEmail?.value ?? "")).toBe(email);
+  expect(confirmEmail?.value).toBeTruthy();
+  expect(decodeURIComponent(confirmEmail?.value ?? "")).not.toContain(email);
 }
 
 test("cadastro, confirmação, logout e login", async ({ page }) => {

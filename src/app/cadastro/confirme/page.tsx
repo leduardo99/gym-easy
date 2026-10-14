@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { ConfirmPending } from "@/components/auth/confirm-pending";
 import { postAuthDestination } from "@/features/auth/destination";
 import { lookupSession } from "@/features/auth/lookup-session";
-import { emailSchema } from "@/features/auth/schemas";
+import { openConfirmEmail } from "@/features/auth/confirm-email-cookie";
 import { CONFIRM_EMAIL_COOKIE_NAME } from "@/features/auth/session-cookie";
+import { getServerEnv } from "@/lib/env";
 
 export const instant = false;
 
@@ -21,12 +22,13 @@ export default async function ConfirmPendingPage({
 
   const params = await searchParams;
   const jar = await cookies();
-  const parsed = emailSchema.safeParse(
+  const email = openConfirmEmail(
     jar.get(CONFIRM_EMAIL_COOKIE_NAME)?.value ?? "",
+    getServerEnv().CONFIRM_EMAIL_SECRET,
   );
   return (
     <ConfirmPending
-      email={parsed.success ? parsed.data : null}
+      email={email}
       fresh={params.fresh === "1"}
       expired={params.status === "expired"}
     />

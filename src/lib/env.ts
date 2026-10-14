@@ -14,6 +14,14 @@ const postgresUrl = z
 /** Display name plus Resend's shared onboarding address. Used when EMAIL_FROM is unset. */
 export const DEFAULT_EMAIL_FROM = "Gym Easy <onboarding@resend.dev>";
 
+/** Stand-in so `next build` can evaluate server modules. Never used at runtime. */
+export const BUILD_CONFIRM_EMAIL_SECRET =
+  "build-only-confirm-email-secret-not-runtime";
+
+const confirmEmailSecret = z
+  .string()
+  .min(32, "CONFIRM_EMAIL_SECRET must be at least 32 characters");
+
 const emailAddress = z.email();
 
 export function isEmailFrom(value: string): boolean {
@@ -39,15 +47,21 @@ export const serverEnvSchema = z
       .optional(),
     EMAIL_CAPTURE_PATH: z.string().min(1).optional(),
     VERCEL_ENV: z.string().optional(),
+    CONFIRM_EMAIL_SECRET: confirmEmailSecret,
     NEXT_PUBLIC_DATABASE_URL: z.string().optional(),
     NEXT_PUBLIC_RESEND_API_KEY: z.string().optional(),
     NEXT_PUBLIC_EMAIL_FROM: z.string().optional(),
+    NEXT_PUBLIC_CONFIRM_EMAIL_SECRET: z.string().optional(),
   })
   .superRefine((value, context) => {
     const publicSecrets = [
       ["NEXT_PUBLIC_DATABASE_URL", value.NEXT_PUBLIC_DATABASE_URL],
       ["NEXT_PUBLIC_RESEND_API_KEY", value.NEXT_PUBLIC_RESEND_API_KEY],
       ["NEXT_PUBLIC_EMAIL_FROM", value.NEXT_PUBLIC_EMAIL_FROM],
+      [
+        "NEXT_PUBLIC_CONFIRM_EMAIL_SECRET",
+        value.NEXT_PUBLIC_CONFIRM_EMAIL_SECRET,
+      ],
     ] as const;
 
     for (const [key, keyValue] of publicSecrets) {
@@ -67,6 +81,7 @@ export type ServerEnv = {
   RESEND_API_KEY: string | null;
   EMAIL_FROM: string;
   EMAIL_CAPTURE_PATH: string | null;
+  CONFIRM_EMAIL_SECRET: string;
 };
 
 /** Non-connecting stand-in so `next build` can evaluate server modules. */
@@ -83,6 +98,9 @@ export function readServerEnv(
   const databaseUrl =
     source.DATABASE_URL ??
     (isProductionBuild(source) ? BUILD_DATABASE_URL : undefined);
+  const confirmSecret =
+    source.CONFIRM_EMAIL_SECRET ||
+    (isProductionBuild(source) ? BUILD_CONFIRM_EMAIL_SECRET : undefined);
 
   const parsed = serverEnvSchema.safeParse({
     DATABASE_URL: databaseUrl,
@@ -90,10 +108,12 @@ export function readServerEnv(
     RESEND_API_KEY: source.RESEND_API_KEY || undefined,
     EMAIL_FROM: source.EMAIL_FROM || undefined,
     EMAIL_CAPTURE_PATH: source.EMAIL_CAPTURE_PATH || undefined,
+    CONFIRM_EMAIL_SECRET: confirmSecret,
     VERCEL_ENV: source.VERCEL_ENV,
     NEXT_PUBLIC_DATABASE_URL: source.NEXT_PUBLIC_DATABASE_URL,
     NEXT_PUBLIC_RESEND_API_KEY: source.NEXT_PUBLIC_RESEND_API_KEY,
     NEXT_PUBLIC_EMAIL_FROM: source.NEXT_PUBLIC_EMAIL_FROM,
+    NEXT_PUBLIC_CONFIRM_EMAIL_SECRET: source.NEXT_PUBLIC_CONFIRM_EMAIL_SECRET,
   });
 
   if (!parsed.success) {
@@ -112,6 +132,7 @@ export function readServerEnv(
       parsed.data.VERCEL_ENV === "production"
         ? null
         : (parsed.data.EMAIL_CAPTURE_PATH ?? null),
+    CONFIRM_EMAIL_SECRET: parsed.data.CONFIRM_EMAIL_SECRET,
   };
 }
 

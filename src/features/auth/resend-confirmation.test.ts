@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { EmailSender } from "./email/types";
 import { createMemoryUserStore } from "./memory-user-store";
@@ -161,6 +161,85 @@ describe("resendConfirmation", () => {
       "ana@example.com:https://gym.example/cadastro/confirmar?token=fresh-0",
       "bia@example.com:https://gym.example/cadastro/confirmar?token=fresh-1",
     ]);
+  });
+
+  it("returns sent when Resend fails for known and unknown emails", async () => {
+    const users = createMemoryUserStore();
+    await users.insertUser({
+      id: "none",
+      name: "Ana",
+      email: "ana@example.com",
+      passwordHash: "hash",
+    });
+    await users.insertUser({
+      id: "has-token",
+      name: "Bia",
+      email: "bia@example.com",
+      passwordHash: "hash",
+    });
+    await users.saveVerificationToken({
+      tokenHash: sha256("still-valid"),
+      userId: "has-token",
+      expiresAt: new Date("2026-10-20T00:00:00.000Z"),
+    });
+    const emails: EmailSender = {
+      async sendAccountConfirmation() {
+        await delay(25);
+        throw new Error("email_send_failed");
+      },
+      async sendAccountExistsNotice() {
+        throw new Error("email_send_failed");
+      },
+    };
+    const deps = {
+      users,
+      emails,
+      hasher: {
+        async hash() {
+          await delay(25);
+          return "hash";
+        },
+        async verify() {
+          return false;
+        },
+      },
+      rateLimiter: createMemoryRateLimiter(),
+      createToken: () => "fresh-token",
+      balance: () => delay(25),
+    };
+    const now = new Date("2026-10-14T12:00:00.000Z");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cases = [
+      "ana@example.com",
+      "bia@example.com",
+      "ninguem@example.com",
+    ] as const;
+    const results: { status: string }[] = [];
+    const elapsed: number[] = [];
+
+    for (const email of cases) {
+      const started = performance.now();
+      results.push(
+        await resendConfirmation(
+          { email, origin: "https://gym.example", now },
+          deps,
+        ),
+      );
+      elapsed.push(performance.now() - started);
+    }
+
+    expect(results).toEqual([
+      { status: "sent" },
+      { status: "sent" },
+      { status: "sent" },
+    ]);
+    expect(Math.max(...elapsed) - Math.min(...elapsed)).toBeLessThan(80);
+    const logged = error.mock.calls.flat().join(" ");
+    expect(logged).toContain("auth.resend_email_failed");
+    expect(logged).not.toContain("ana@example.com");
+    expect(logged).not.toContain("bia@example.com");
+    expect(logged).not.toContain("ninguem@example.com");
+    error.mockRestore();
   });
 
   it("enforces the 60 second cooldown", async () => {

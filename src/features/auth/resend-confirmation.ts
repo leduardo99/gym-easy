@@ -84,7 +84,17 @@ export async function resendConfirmation(
 
     await deps.emails.sendAccountExistsNotice({ to: user.email });
     return { status: "sent" };
-  } catch {
-    return { status: "server_error" };
+  } catch (error) {
+    console.error(
+      "auth.resend_email_failed",
+      error instanceof Error ? error.name : "error",
+    );
+    try {
+      await deps.hasher.hash(deps.createToken());
+    } catch {
+      // The extra hash only keeps the failure near the unknown-email path.
+    }
+    await deps.balance();
+    return { status: "sent" };
   }
 }
