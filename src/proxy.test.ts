@@ -10,6 +10,8 @@ afterEach(() => {
 describe("proxy design catalog", () => {
   it("returns a real 404 for /design in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    // CI exports APP_URL. This case is the unset origin, so the header stays off.
+    vi.stubEnv("APP_URL", "");
 
     const response = proxy(new NextRequest("https://gym.example/design"));
 
