@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 
+import { accessControlAllowOrigin } from "./src/lib/app-url";
 import { staticSecurityHeaders } from "./src/lib/security-headers";
+
+function configuredHeaders(isProduction: boolean) {
+  const headers = staticSecurityHeaders(isProduction);
+  const allowOrigin = accessControlAllowOrigin(process.env.APP_URL);
+  if (allowOrigin) {
+    headers.push({
+      key: "Access-Control-Allow-Origin",
+      value: allowOrigin,
+    });
+  }
+  return headers;
+}
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -26,7 +39,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: staticSecurityHeaders(process.env.NODE_ENV === "production"),
+        headers: configuredHeaders(process.env.NODE_ENV === "production"),
       },
     ];
   },

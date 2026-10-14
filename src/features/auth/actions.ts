@@ -130,7 +130,6 @@ async function mutationContext() {
   const existing = jar.get(SESSION_COOKIE_NAME)?.value;
   return {
     ip: clientIp(headerStore),
-    origin,
     secure: shouldUseSecureCookie(headerStore.get("x-forwarded-proto")),
     existingTokenHash: existing ? sha256(existing) : null,
   };
@@ -151,7 +150,7 @@ export async function signupAction(input: unknown): Promise<AuthActionResult> {
         email: readString(input, "email"),
         password: readString(input, "password"),
         ip: context.ip,
-        origin: context.origin,
+        origin: getServerEnv().APP_URL,
         now: new Date(),
       },
       {
@@ -305,7 +304,7 @@ export async function resendConfirmationAction(): Promise<ResendActionResult> {
     const result = await resendConfirmation(
       {
         email,
-        origin: context.origin,
+        origin: getServerEnv().APP_URL,
         now: new Date(),
       },
       {

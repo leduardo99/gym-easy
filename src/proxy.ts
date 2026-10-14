@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { accessControlAllowOrigin } from "@/lib/app-url";
 import { shouldBlockDesignCatalog } from "@/lib/design-catalog";
 import { buildSecurityHeaders } from "@/lib/security-headers";
 
@@ -9,6 +10,11 @@ function applySecurityHeaders(
 ): NextResponse {
   for (const [name, value] of Object.entries(headers)) {
     response.headers.set(name, value);
+  }
+
+  const allowOrigin = accessControlAllowOrigin(process.env.APP_URL);
+  if (allowOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", allowOrigin);
   }
 
   return response;

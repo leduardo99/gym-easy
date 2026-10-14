@@ -1,6 +1,7 @@
-# Coolify: the app and Mailpit share gym-easy.
-# Only the app is exposed. Coolify proxies that port and owns the domain.
-# Mailpit SMTP 1025 and UI 8025 stay on the docker network.
+# Local dev and Coolify production share this compose.
+# Mailpit SMTP 1025 and UI 8025 stay on the docker network, with no host ports.
+# The app is reachable on 127.0.0.1:3000 for local dev. Coolify proxies
+# production at https://app.gaffer.pt.
 
 services:
   mailpit:
@@ -26,12 +27,14 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_SECURE: "false"
+      APP_URL: ${APP_URL:-http://127.0.0.1:3000}
       DATABASE_URL: ${DATABASE_URL}
       CONFIRM_EMAIL_SECRET: ${CONFIRM_EMAIL_SECRET}
+      CONSENT_PSEUDONYM_KEY: ${CONSENT_PSEUDONYM_KEY}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
       CRON_SECRET: ${CRON_SECRET:-}
-    expose:
-      - "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
     depends_on:
       mailpit:
         condition: service_healthy

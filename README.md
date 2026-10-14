@@ -17,31 +17,31 @@ cp .env.example .env.local
 
 Preencha `DATABASE_URL` em `.env.local` com a connection string do Neon. Use o host **pooled** para o app e o host **direct** para migrações. A variável é só de servidor: não use o prefixo `NEXT_PUBLIC_`.
 
-O email de autenticação sai pelo transporte em `EMAIL_TRANSPORT` (`smtp`, `resend` ou `log`). Há um ambiente só, no Coolify. O padrão é `smtp`, com `SMTP_HOST=mailpit` e `SMTP_PORT=1025` na rede Docker. `resend` é opcional e só exige `RESEND_API_KEY` quando está selecionado. `log` registra só o tipo (`email.account_confirmation`, `email.account_exists_notice` ou `email.password_reset`), o destinatário redigido (`a***@[redacted]`) e um id. Não registra corpo, token, link de confirmação nem o endereço completo. O teste (`NODE_ENV=test`) usa `log` quando a variável não está definida.
+O email de autenticação sai pelo transporte em `EMAIL_TRANSPORT` (`smtp`, `resend` ou `log`). O padrão, no compose local e em produção, é `smtp`, com `SMTP_HOST=mailpit` e `SMTP_PORT=1025` na rede Docker. `resend` é opcional e só exige `RESEND_API_KEY` quando está selecionado. `log` registra só o tipo (`email.account_confirmation`, `email.account_exists_notice` ou `email.password_reset`), o destinatário redigido (`a***@[redacted]`) e um id. Não registra corpo, token, link de confirmação nem o endereço completo. O teste (`NODE_ENV=test`) usa `log` quando a variável não está definida.
 
-O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e. No runtime do Coolify (`NODE_ENV=production` sem `CI=true`) esse caminho é ignorado. A CI define `CI=true`, então o Playwright continua a ler o capture.
+Os links absolutos dos emails usam `APP_URL`, não o `Host` do pedido. Em produção o valor é `https://app.gaffer.pt`. No compose local o padrão é `http://127.0.0.1:3000`.
+
+O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e. No runtime de produção (`NODE_ENV=production` sem `CI=true`) esse caminho é ignorado. A CI define `CI=true`, então o Playwright continua a ler o capture.
 
 Se o envio falhar (SMTP ou Resend), o cadastro continua: a conta fica criada e o app abre `/cadastro/confirme?fresh=1&delivery=failed` com o aviso "Não conseguimos enviar o email agora. Tente de novo em instantes." O reenvio de confirmação e o pedido em `/esqueci-senha` mostram o mesmo aviso, exista a conta ou não. O cooldown de 60 segundos continua valendo; depois dele dá para tentar de novo.
 
-## Deploy no Coolify
+## Desenvolvimento local
 
-A app e o Mailpit sobem no mesmo compose, na rede `gym-easy`:
+O Coolify serve só produção (`https://app.gaffer.pt`). O desenvolvimento corre nesta máquina, com o compose (app + Mailpit) e a branch Neon `dev`:
 
 ```bash
 docker compose up --build
 ```
 
-O serviço `app` usa o `Dockerfile` de produção (`output: 'standalone'`, multi-stage, pnpm, utilizador `nextjs`). Só a porta 3000 da app fica em `expose`. O Coolify faz o proxy e o domínio nesse serviço. O SMTP 1025 e a UI 8025 do Mailpit não são publicados nem recebem domínio. A UI do Mailpit não tem autenticação.
+O `Dockerfile` é standalone, na porta 3000, com healthcheck em `GET /api/health`. O compose publica a app só em `127.0.0.1:3000`. O SMTP 1025 e a UI 8025 do Mailpit não têm porta no host e não recebem domínio. A UI do Mailpit não tem autenticação.
 
-No serviço `app` do Coolify, defina `DATABASE_URL` (host pooled do Neon) e `CONFIRM_EMAIL_SECRET`. O compose já fixa `EMAIL_TRANSPORT=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025` e `SMTP_SECURE=false`. O healthcheck do container chama `GET /api/health`.
+Copie `.env.example` para `.env` (o compose interpola esse arquivo, não `.env.local`). Preencha `DATABASE_URL` com o host pooled da branch Neon `dev`, `CONFIRM_EMAIL_SECRET` e `CONSENT_PSEUDONYM_KEY`. Não grave segredos no repositório. O compose já fixa `EMAIL_TRANSPORT=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025` e `SMTP_SECURE=false`.
 
 ```bash
 pnpm dev
 ```
 
-Fora do compose, o `pnpm dev` no host não resolve o nome `mailpit`. O caminho de desenvolvimento previsto é o compose no Coolify.
-
-O app abre em `http://127.0.0.1:3000` quando a porta é publicada à parte. `GET /api/health` executa `select 1` e responde `{ "status": "ok", "db": "ok" }`. Se o banco falhar, responde 503 `{ "status": "error", "db": "unavailable" }` sem detalhes do erro. O catálogo visual fica em `/design` e responde 404 quando `NODE_ENV=production`.
+`pnpm dev` no host não resolve o nome `mailpit`. Para falar com o Mailpit, use o compose. `GET /api/health` executa `select 1` e responde `{ "status": "ok", "db": "ok" }`. Se o banco falhar, responde 503 `{ "status": "error", "db": "unavailable" }` sem detalhes do erro. O catálogo visual fica em `/design` e responde 404 quando `NODE_ENV=production`.
 
 `pnpm build` não precisa de um Postgres real. Durante o build, se `DATABASE_URL` estiver ausente, `src/lib/env.ts` usa um placeholder que não abre conexão. Em `pnpm dev` e `pnpm start` a variável continua obrigatória para qualquer código que chame `getDb()`.
 
@@ -58,8 +58,9 @@ pnpm db:migrate    # aplica no DATABASE_URL (host direct)
 
 - No pull request, a CI sobe um Postgres 16 e migra só esse banco.
 - Na branch Neon `dev`, aplique com o host direct dessa branch. A branch `main` do Neon é produção: não migre a partir de uma branch de feature.
-- O caminho em uso é `.github/workflows/migrate.yml`: corre em todo push na `main` e executa `pnpm db:migrate`. O valor vem do secret `DATABASE_URL_UNPOOLED` do environment `production` no GitHub (Settings → Environments → production → Environment secrets). Use a connection string direct da branch Neon `main`. O job falha se o secret estiver vazio ou se o host tiver `-pooler`, e não imprime a URL. O job é idempotente.
-- Há um segundo caminho, desligado: `RUN_MIGRATIONS=true` faz o contentor aplicar o SQL pendente no arranque, via `scripts/migrate-on-deploy.mjs`. O padrão do compose é `false`. Se a Infra ligar esta opção, defina `DATABASE_URL_UNPOOLED` com o host direct; o script recusa um host com `-pooler` e não imprime a URL. Não ligue os dois caminhos ao mesmo tempo sem alinhar com a Infra. A decisão fica com a Infra; este repositório mantém o workflow do GitHub como está.
+- O caminho principal é `.github/workflows/migrate.yml`: no push para `main` (e em `workflow_dispatch`) corre no environment `production` e executa `pnpm db:migrate`. O valor vem do secret `DATABASE_URL_UNPOOLED`. Use a connection string direct da branch Neon `main`. O job falha se o secret estiver vazio ou se o host tiver `-pooler`, e não imprime a URL.
+- Se o migrate passa, um step separado chama o deploy do Coolify: `curl` para o secret `COOLIFY_DEPLOY_WEBHOOK` com `Authorization: Bearer` e o secret `COOLIFY_TOKEN`. Os dois secrets ficam no environment `production`; a Infra cria os valores. O step não imprime a URL nem o token. Um migrate que falha não dispara o deploy.
+- O fallback no contentor fica desligado: `RUN_MIGRATIONS=true` aplica o SQL pendente no arranque, via `scripts/migrate-on-deploy.mjs`. O padrão é `false`. Se a Infra ligar esta opção, defina `DATABASE_URL_UNPOOLED` com o host direct; o script recusa um host com `-pooler` e não imprime a URL.
 
 Não edite uma migração que já tenha sido aplicada.
 
@@ -151,6 +152,7 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 
 | Variável                | Onde      | Notas                                                                                                                                      |
 | ----------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `APP_URL`               | Servidor  | Origem pública. Produção: `https://app.gaffer.pt`. Links de email e `Access-Control-Allow-Origin`. Obrigatória em produção.                |
 | `DATABASE_URL`          | Servidor  | Postgres do Neon, host pooled. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão. |
 | `CONSENT_PSEUDONYM_KEY` | Servidor  | Chave do HMAC da prova de consentimento. Mínimo de 32 caracteres. Obrigatória em runtime. No build, um placeholder não secreto.            |
 | `EMAIL_TRANSPORT`       | Servidor  | `smtp`, `resend` ou `log`. Padrão: `smtp` no Coolify e em development, `log` em test.                                                      |
@@ -169,19 +171,11 @@ Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
 
 ## Tarefa agendada
 
-Não há cron da Vercel. `POST` ou `GET /api/cron` com `Authorization: Bearer $CRON_SECRET` apaga sessões expiradas, tokens de confirmação expirados e janelas antigas de rate limit. Sem `CRON_SECRET`, a rota responde 404. O segredo não vai na query string.
-
-No Coolify, uma Scheduled Task dentro do contentor da app (a imagem tem Node, não curl):
-
-```bash
-node -e "fetch('http://127.0.0.1:3000/api/cron',{method:'POST',headers:{authorization:'Bearer '+process.env.CRON_SECRET}}).then(async (response)=>{if(!response.ok){console.error(response.status);process.exit(1)}})"
-```
-
-No Trigger.dev, um schedule faz o mesmo `POST` para o domínio público do Coolify, com o mesmo header. O segredo fica na env do Trigger.dev, não no repositório.
+O Coolify chama `GET /api/cron/purge-consent-proofs` às 03:15 UTC, com `Authorization: Bearer` e o valor de `CRON_SECRET`. Sem o segredo, ou com um valor diferente, a rota responde 401. O segredo não vai na query string.
 
 ## Headers
 
-`next.config.ts` envia `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` e, em produção, `Strict-Transport-Security`. A CSP com nonce continua no proxy, porque o valor muda a cada pedido. A app não depende de headers injectados por uma CDN.
+`next.config.ts` e o proxy enviam `Access-Control-Allow-Origin` com a origem de `APP_URL` (nunca `*` e nunca o `Origin` do pedido). O mesmo arquivo envia `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` e, em produção, `Strict-Transport-Security`. A CSP com nonce continua no proxy, porque o valor muda a cada pedido.
 
 ## CI
 

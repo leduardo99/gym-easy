@@ -25,6 +25,8 @@ function serverEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
     EMAIL_FROM: DEFAULT_EMAIL_FROM,
     EMAIL_CAPTURE_PATH: null,
     CONFIRM_EMAIL_SECRET: confirmSecret,
+    CONSENT_PSEUDONYM_KEY: "consent-pseudonym-test-key-32b!!",
+    APP_URL: "http://127.0.0.1:3000",
     EMAIL_TRANSPORT: "log",
     SMTP_HOST: null,
     SMTP_PORT: null,

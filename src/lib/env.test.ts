@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BUILD_APP_URL,
   BUILD_CONFIRM_EMAIL_SECRET,
   BUILD_CONSENT_PSEUDONYM_KEY,
   BUILD_DATABASE_URL,
+  DEFAULT_DEV_APP_URL,
   DEFAULT_EMAIL_FROM,
   readServerEnv,
 } from "./env";
@@ -37,6 +39,7 @@ describe("readServerEnv", () => {
       SMTP_PASS: null,
       SMTP_SECURE: false,
       CRON_SECRET: null,
+      APP_URL: DEFAULT_DEV_APP_URL,
     });
   });
 
@@ -56,6 +59,7 @@ describe("readServerEnv", () => {
       EMAIL_FROM: "Gym Easy <treino@example.com>",
       EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
       CONFIRM_EMAIL_SECRET: confirmSecret,
+      CONSENT_PSEUDONYM_KEY: validConsentKey,
       EMAIL_TRANSPORT: "log",
     });
   });
@@ -86,6 +90,7 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
@@ -101,6 +106,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "development",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         SMTP_HOST: "mailpit",
         SMTP_PORT: "1025",
       }),
@@ -117,6 +123,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "development",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         SMTP_HOST: "",
         SMTP_PORT: "1025",
       }),
@@ -128,7 +135,9 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         SMTP_HOST: "mailpit",
         SMTP_PORT: "1025",
       }),
@@ -142,7 +151,9 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
       }),
     ).toThrow(/SMTP_HOST/);
   });
@@ -153,6 +164,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         EMAIL_TRANSPORT: "resend",
       }),
     ).toThrow(/RESEND_API_KEY/);
@@ -163,7 +175,9 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         EMAIL_TRANSPORT: "smtp",
         SMTP_HOST: "mailpit",
         SMTP_PORT: "1025",
@@ -187,7 +201,9 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         EMAIL_TRANSPORT: "log",
       }),
     ).toMatchObject({
@@ -203,6 +219,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         EMAIL_TRANSPORT: "sendmail",
       }),
     ).toThrow(/EMAIL_TRANSPORT/);
@@ -211,6 +228,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "development",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         SMTP_HOST: "mailpit",
         SMTP_PORT: "70000",
       }),
@@ -223,6 +241,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         NEXT_PUBLIC_SMTP_PASS: "smtp-pass",
       }),
     ).toThrow(/NEXT_PUBLIC_/);
@@ -231,6 +250,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         NEXT_PUBLIC_SMTP_USER: "mailer",
       }),
     ).toThrow(/NEXT_PUBLIC_/);
@@ -242,6 +262,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "development",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
       }),
     ).toMatchObject({
@@ -253,8 +274,10 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         CI: "true",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
       }),
     ).toMatchObject({
@@ -343,6 +366,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         CRON_SECRET: "cron-secret-value",
       }).CRON_SECRET,
     ).toBe("cron-secret-value");
@@ -351,6 +375,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         CRON_SECRET: "short",
       }),
     ).toThrow(/CRON_SECRET/);
@@ -359,6 +384,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
         NEXT_PUBLIC_CRON_SECRET: "cron-secret-value",
       }),
     ).toThrow(/NEXT_PUBLIC_/);
@@ -381,6 +407,7 @@ describe("readServerEnv", () => {
     expect(() =>
       readServerEnv({
         NODE_ENV: "production",
+        APP_URL: "https://app.gaffer.pt",
         npm_lifecycle_event: "build",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
@@ -430,5 +457,56 @@ describe("readServerEnv", () => {
         NEXT_PHASE: "phase-production-build",
       }).CONSENT_PSEUDONYM_KEY,
     ).toBe(BUILD_CONSENT_PSEUDONYM_KEY);
+  });
+
+  it("requires APP_URL in production and uses it as the email origin", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
+      }),
+    ).toThrow(/APP_URL is required in production/);
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
+        APP_URL: "https://app.gaffer.pt/cadastro",
+      }).APP_URL,
+    ).toBe("https://app.gaffer.pt");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        APP_URL: "not a url",
+      }),
+    ).toThrow(/APP_URL must be an http/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        NEXT_PUBLIC_APP_URL: "https://app.gaffer.pt",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("uses a local APP_URL placeholder during next build", () => {
+    expect(
+      readServerEnv({
+        NODE_ENV: "production",
+        NEXT_PHASE: "phase-production-build",
+      }).APP_URL,
+    ).toBe(BUILD_APP_URL);
   });
 });

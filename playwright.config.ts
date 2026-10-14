@@ -21,6 +21,7 @@ export default defineConfig({
     env: {
       ...process.env,
       EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+      APP_URL: process.env.APP_URL ?? baseURL,
       DATABASE_DRIVER: process.env.DATABASE_DRIVER ?? "pg",
       CONFIRM_EMAIL_SECRET:
         process.env.CONFIRM_EMAIL_SECRET ??

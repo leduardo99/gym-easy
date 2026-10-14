@@ -25,6 +25,17 @@ describe("proxy design catalog", () => {
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
 
+  it("sets Access-Control-Allow-Origin from APP_URL", () => {
+    vi.stubEnv("APP_URL", "https://app.gaffer.pt/cadastro");
+    vi.stubEnv("NODE_ENV", "production");
+
+    const response = proxy(new NextRequest("https://gym.example/"));
+
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      "https://app.gaffer.pt",
+    );
+  });
+
   it.each(["/Design", "/design/", "/%64esign"])(
     "returns 404 for %s in production",
     (pathname) => {

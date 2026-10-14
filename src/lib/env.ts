@@ -2,6 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
+import { accessControlAllowOrigin } from "./app-url";
+
 const postgresUrl = z
   .string()
   .min(1)
@@ -131,6 +133,8 @@ export const serverEnvSchema = z
     NEXT_PUBLIC_SMTP_USER: z.string().optional(),
     NEXT_PUBLIC_SMTP_PASS: z.string().optional(),
     NEXT_PUBLIC_CRON_SECRET: z.string().optional(),
+    APP_URL: z.string().optional(),
+    NEXT_PUBLIC_APP_URL: z.string().optional(),
   })
   .superRefine((value, context) => {
     const publicSecrets = [
@@ -149,6 +153,7 @@ export const serverEnvSchema = z
       ["NEXT_PUBLIC_SMTP_USER", value.NEXT_PUBLIC_SMTP_USER],
       ["NEXT_PUBLIC_SMTP_PASS", value.NEXT_PUBLIC_SMTP_PASS],
       ["NEXT_PUBLIC_CRON_SECRET", value.NEXT_PUBLIC_CRON_SECRET],
+      ["NEXT_PUBLIC_APP_URL", value.NEXT_PUBLIC_APP_URL],
     ] as const;
 
     for (const [key, keyValue] of publicSecrets) {
@@ -177,6 +182,7 @@ export type ServerEnv = {
   SMTP_PASS: string | null;
   SMTP_SECURE: boolean;
   CRON_SECRET: string | null;
+  APP_URL: string;
 };
 
 /** Non-connecting stand-in so `next build` can evaluate server modules. */
@@ -186,6 +192,11 @@ export const BUILD_DATABASE_URL =
 /** Non-secret stand-in so `next build` can evaluate server modules. */
 export const BUILD_CONSENT_PSEUDONYM_KEY =
   "build-consent-pseudonym-key-not-secret";
+
+/** Local origin used when APP_URL is unset outside production. */
+export const DEFAULT_DEV_APP_URL = "http://127.0.0.1:3000";
+
+export const BUILD_APP_URL = DEFAULT_DEV_APP_URL;
 
 export function isProductionBuild(source: NodeJS.ProcessEnv): boolean {
   return source.NEXT_PHASE === "phase-production-build";
@@ -228,6 +239,8 @@ export function readServerEnv(
     NEXT_PUBLIC_SMTP_USER: source.NEXT_PUBLIC_SMTP_USER,
     NEXT_PUBLIC_SMTP_PASS: source.NEXT_PUBLIC_SMTP_PASS,
     NEXT_PUBLIC_CRON_SECRET: source.NEXT_PUBLIC_CRON_SECRET,
+    APP_URL: source.APP_URL || undefined,
+    NEXT_PUBLIC_APP_URL: source.NEXT_PUBLIC_APP_URL,
   });
 
   if (!parsed.success) {
@@ -242,6 +255,14 @@ export function readServerEnv(
     parsed.data.EMAIL_TRANSPORT,
   );
   const captureActive = captureIsActive(source, parsed.data.EMAIL_CAPTURE_PATH);
+  const appUrl = resolveAppUrl(
+    parsed.data.NODE_ENV,
+    parsed.data.APP_URL,
+    isProductionBuild(source),
+  );
+  if (typeof appUrl !== "string") {
+    throw new Error(`Invalid environment variables:\n${appUrl.error}`);
+  }
   const transportIssues = emailTransportIssues({
     transport,
     captureActive,
@@ -273,7 +294,25 @@ export function readServerEnv(
     SMTP_PASS: parsed.data.SMTP_PASS ?? null,
     SMTP_SECURE: isSmtpSecure(parsed.data.SMTP_SECURE),
     CRON_SECRET: parsed.data.CRON_SECRET ?? null,
+    APP_URL: appUrl,
   };
+}
+
+function resolveAppUrl(
+  nodeEnv: "development" | "test" | "production",
+  configured: string | undefined,
+  productionBuild: boolean,
+): string | { error: string } {
+  if (configured) {
+    const origin = accessControlAllowOrigin(configured.trim());
+    if (!origin) return { error: "APP_URL: APP_URL must be an http(s) URL" };
+    return origin;
+  }
+  if (productionBuild) return BUILD_APP_URL;
+  if (nodeEnv === "production") {
+    return { error: "APP_URL: APP_URL is required in production" };
+  }
+  return DEFAULT_DEV_APP_URL;
 }
 
 let cached: ServerEnv | undefined;
