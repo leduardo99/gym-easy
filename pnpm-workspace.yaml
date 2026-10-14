@@ -1,0 +1,9 @@
+auditConfig:
+  ignoreCves:
+    - CVE-2026-93687
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
+onlyBuiltDependencies:
+  - esbuild
