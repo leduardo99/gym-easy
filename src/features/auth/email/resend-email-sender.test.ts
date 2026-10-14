@@ -38,13 +38,18 @@ describe("createResendEmailSender", () => {
     expect(body.text).toBe(copy.accountExistsNotice);
   });
 
-  it("logs the HTTP status and not the key or response body", async () => {
-    const info = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("logs the error name and status without the key, address, or body", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const fetchImpl = vi.fn<typeof fetch>(
       async () =>
-        new Response(JSON.stringify({ message: "API key is invalid" }), {
-          status: 401,
-        }),
+        new Response(
+          JSON.stringify({
+            statusCode: 401,
+            name: "validation_error",
+            message: "API key is invalid for ana@example.com",
+          }),
+          { status: 401 },
+        ),
     );
     const sender = createResendEmailSender({
       apiKey: "test-resend-key",
@@ -55,10 +60,16 @@ describe("createResendEmailSender", () => {
     await expect(
       sender.sendAccountExistsNotice({ to: "ana@example.com" }),
     ).rejects.toThrow("email_send_failed");
-    expect(info).toHaveBeenCalledWith("email.resend_response", 401);
-    expect(info.mock.calls.flat().join(" ")).not.toContain("test-resend-key");
-    expect(info.mock.calls.flat().join(" ")).not.toContain("invalid");
-    info.mockRestore();
+    expect(error).toHaveBeenCalledWith(
+      "email.resend_response",
+      401,
+      "validation_error",
+    );
+    const logged = error.mock.calls.flat().join(" ");
+    expect(logged).not.toContain("test-resend-key");
+    expect(logged).not.toContain("ana@example.com");
+    expect(logged).not.toContain("invalid");
+    error.mockRestore();
   });
 
   it("does not create a Resend account or domain", async () => {

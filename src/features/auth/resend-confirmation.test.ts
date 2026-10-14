@@ -92,6 +92,77 @@ describe("resendConfirmation", () => {
     expect(Math.abs(pendingMs - missingMs)).toBeLessThan(80);
   });
 
+  it("creates a confirmation token when the account has none valid", async () => {
+    const users = createMemoryUserStore();
+    await users.insertUser({
+      id: "pending",
+      name: "Ana",
+      email: "ana@example.com",
+      passwordHash: "hash",
+    });
+    await users.insertUser({
+      id: "expired-user",
+      name: "Bia",
+      email: "bia@example.com",
+      passwordHash: "hash",
+    });
+    await users.saveVerificationToken({
+      tokenHash: sha256("expired"),
+      userId: "expired-user",
+      expiresAt: new Date("2026-10-01T00:00:00.000Z"),
+    });
+    const sent: string[] = [];
+    let issued = 0;
+    const deps = {
+      users,
+      emails: {
+        async sendAccountConfirmation(message: {
+          to: string;
+          confirmUrl: string;
+        }) {
+          sent.push(`${message.to}:${message.confirmUrl}`);
+        },
+        async sendAccountExistsNotice() {},
+      },
+      hasher: {
+        async hash() {
+          return "hash";
+        },
+        async verify() {
+          return false;
+        },
+      },
+      rateLimiter: createMemoryRateLimiter(),
+      createToken: () => `fresh-${issued++}`,
+      balance: async () => {},
+    };
+    const now = new Date("2026-10-14T12:00:00.000Z");
+
+    const missing = await resendConfirmation(
+      { email: "ana@example.com", origin: "https://gym.example", now },
+      deps,
+    );
+    const expired = await resendConfirmation(
+      { email: "bia@example.com", origin: "https://gym.example", now },
+      deps,
+    );
+
+    expect(missing).toEqual({ status: "sent" });
+    expect(expired).toEqual({ status: "sent" });
+    expect(await users.findVerificationToken(sha256("fresh-0"))).toMatchObject({
+      userId: "pending",
+      usedAt: null,
+    });
+    expect(await users.findVerificationToken(sha256("fresh-1"))).toMatchObject({
+      userId: "expired-user",
+      usedAt: null,
+    });
+    expect(sent).toEqual([
+      "ana@example.com:https://gym.example/cadastro/confirmar?token=fresh-0",
+      "bia@example.com:https://gym.example/cadastro/confirmar?token=fresh-1",
+    ]);
+  });
+
   it("enforces the 60 second cooldown", async () => {
     const deps = {
       users: createMemoryUserStore(),
