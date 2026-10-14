@@ -44,6 +44,57 @@ pnpm db:migrate    # aplica no DATABASE_URL (host direct)
 
 Não edite uma migração que já tenha sido aplicada.
 
+## Modelo de dados
+
+A V1 guarda credenciais, perfil, catálogo de exercícios, modelos de treino e o que foi executado. O `user_id` de cada linha vem da sessão. Nenhum schema Zod aceita `userId` no corpo da requisição. As queries de `src/features/training/repository.ts` filtram por esse id e respondem "não encontrado" quando o recurso é de outra pessoa.
+
+```mermaid
+erDiagram
+  users ||--o| user_profiles : perfil
+  users ||--o{ body_measurements : peso
+  users ||--o{ exercises : personalizados
+  users ||--o{ workouts : modelos
+  users ||--o{ workout_sessions : sessoes
+  workouts ||--|{ workout_exercises : ordem
+  exercises ||--o{ workout_exercises : referencia
+  workouts o|--o{ workout_sessions : origem
+  workout_sessions ||--o{ session_exercises : blocos
+  exercises ||--o{ session_exercises : referencia
+  session_exercises ||--|{ exercise_sets : series
+```
+
+| Tabela                                                               | Papel                                                                                                                     |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `users`, `sessions`, `email_verification_tokens`, `auth_rate_limits` | Conta e sessão (LED-6).                                                                                                   |
+| `user_profiles`                                                      | Um perfil por usuário: nascimento, sexo, altura, objetivo, nível, unidade, tema e descanso padrão.                        |
+| `body_measurements`                                                  | Histórico de peso. No máximo um registro por usuário e dia; o do mesmo dia substitui o anterior.                          |
+| `exercises`                                                          | Catálogo compartilhado (`owner_user_id` nulo) e exercícios criados pelo usuário.                                          |
+| `workouts`, `workout_exercises`                                      | Modelo de treino e a ordem dos exercícios, com metas de séries, repetições, carga e descanso.                             |
+| `workout_sessions`, `session_exercises`, `exercise_sets`             | Treino realizado. A sessão copia o nome do modelo. Cada série guarda carga, repetições e o instante em que foi concluída. |
+
+Idade não é coluna: ela é calculada a partir de `birth_date` (13–100 anos). Altura fica em centímetros (100–250). Massa fica sempre em quilogramas, com uma casa (`numeric`): peso corporal em `weight_kg`, carga em `load_kg` e `target_load_kg`. Libra só existe na borda da validação (1 kg = 2,20462 lb, faixas 30–300 kg e 66–660 lb). O check do banco em `weight_kg` é 29,0–301,0 para absorver o arredondamento dessa conversão.
+
+Exercícios padrão não têm dono e não podem ser arquivados. O nome é único no catálogo e, para os personalizados, único por usuário depois de ignorar maiúsculas e acentos (`normalized_name`). Um personalizado com histórico ou presente num modelo é arquivado (`archived_at`); sem uso, é apagado. O seed idempotente está em `0002_seed_exercises.sql` (84 exercícios, `ON CONFLICT DO NOTHING`).
+
+Apagar um modelo não apaga sessões: `workout_sessions.workout_id` usa `ON DELETE SET NULL` e o nome já foi copiado na sessão. Filhos de treino e de sessão carregam o mesmo `user_id` do pai, amarrado por chave estrangeira composta. Há no máximo uma sessão `in_progress` por usuário.
+
+Progressão de carga é calculada, não armazenada. Entram só séries com `completed_at` em sessões `completed`. Por sessão, a maior carga com pelo menos 1 repetição e o volume (`soma de carga × repetições`) saem em ordem de `finished_at`. A carga é recorde pessoal quando supera todas as sessões anteriores. Os índices de leitura são `(user_id, finished_at)` em `workout_sessions` e `(exercise_id)` em `session_exercises`.
+
+Valores estáveis:
+
+| Campo                    | Valores                                                                                                                                     | Rótulos                                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `sex`                    | `male`, `female`, `undisclosed`                                                                                                             | Masculino, Feminino, Prefiro não dizer                                                                                         |
+| `goal`                   | `hypertrophy`, `strength`, `fat_loss`, `conditioning`                                                                                       | Hipertrofia, Força, Emagrecimento, Condicionamento                                                                             |
+| `training_level`         | `beginner`, `intermediate`, `advanced`                                                                                                      | Iniciante, Intermediário, Avançado                                                                                             |
+| `mass_unit`              | `kg`, `lb`                                                                                                                                  | kg, lb. O banco continua em kg.                                                                                                |
+| `theme`                  | `dark`, `light`, `system`                                                                                                                   | Escuro, Claro, Sistema. Padrão `dark`.                                                                                         |
+| `muscle_group`           | `chest`, `back`, `shoulders`, `biceps`, `triceps`, `forearms`, `quadriceps`, `hamstrings`, `glutes`, `calves`, `abs`, `full_body`, `cardio` | Peito, Costas, Ombros, Bíceps, Tríceps, Antebraço, Quadríceps, Posterior, Glúteos, Panturrilha, Abdômen, Corpo inteiro, Cardio |
+| `equipment`              | `barbell`, `dumbbell`, `machine`, `cable`, `bodyweight`, `kettlebell`, `band`, `other`                                                      | Barra, Halteres, Máquina, Cabo, Peso corporal, Kettlebell, Elástico, Outro                                                     |
+| `workout_session_status` | `in_progress`, `completed`                                                                                                                  | Em andamento, Concluída                                                                                                        |
+
+Migrações desta etapa: `0001_training_model` (tabelas) e `0002_seed_exercises` (catálogo). Elas sobem na branch Neon `dev` e no Postgres da CI. A branch Neon `main` continua só com o que já foi aplicado em produção; o workflow de produção roda no push da `main`.
+
 ## Autenticação
 
 Cadastro, confirmação de email, login e logout ficam em `/cadastro`, `/cadastro/confirme`, `/cadastro/confirmar` e `/login`. A senha usa argon2id. A sessão é um cookie `ge_session` (`HttpOnly`, `Secure` em HTTPS, `SameSite=Lax`) cujo valor no banco é só o hash. Rotas do app (`/inicio`, `/onboarding`, `/treinos`, `/historico`, `/perfil`) exigem sessão. O cadastro sempre responde "Se o email for válido, enviamos um link para continuar." Conta nova recebe um link de confirmação; email já usado avisa o dono. Sem `RESEND_API_KEY`, esses envios só entram no log.
