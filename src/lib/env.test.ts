@@ -48,6 +48,9 @@ describe("readServerEnv", () => {
       DB_IDLE_TIMEOUT: 20,
       DB_CONNECT_TIMEOUT: 10,
       DB_STATEMENT_TIMEOUT: 15_000,
+      OPENROUTER_API_KEY: null,
+      COACH_MODELS: [],
+      PLAN_MODELS: [],
     });
   });
 
@@ -503,6 +506,42 @@ describe("readServerEnv", () => {
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
         NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY: validConsentKey,
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("keeps the OpenRouter key server-only and accepts only :free models", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_API_KEY: "or-test-key",
+        COACH_MODELS: "alpha:free, beta:free",
+        PLAN_MODELS: "gamma:free",
+      }),
+    ).toMatchObject({
+      OPENROUTER_API_KEY: "or-test-key",
+      COACH_MODELS: ["alpha:free", "beta:free"],
+      PLAN_MODELS: ["gamma:free"],
+    });
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        COACH_MODELS: "paid-model",
+      }),
+    ).toThrow(/COACH_MODELS/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        NEXT_PUBLIC_OPENROUTER_API_KEY: "or-test-key",
       }),
     ).toThrow(/NEXT_PUBLIC_/);
   });

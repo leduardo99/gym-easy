@@ -8,6 +8,7 @@ import {
 } from "@/db/database-tls.mjs";
 import { readDbPoolConfig } from "@/db/driver";
 
+import { parseFreeModelList } from "@/lib/ai/models";
 import { accessControlAllowOrigin } from "./app-url";
 
 const postgresUrl = z
@@ -189,6 +190,9 @@ export const serverEnvSchema = z
       .optional(),
     TRUST_PROXY: z.enum(["true", "false", "1", "0"]).optional(),
     TRUSTED_PROXY_HOPS: z.string().optional(),
+    OPENROUTER_API_KEY: z.string().min(1).optional(),
+    COACH_MODELS: z.string().optional(),
+    PLAN_MODELS: z.string().optional(),
     NEXT_PUBLIC_DATABASE_URL: z.string().optional(),
     NEXT_PUBLIC_RESEND_API_KEY: z.string().optional(),
     NEXT_PUBLIC_EMAIL_FROM: z.string().optional(),
@@ -199,6 +203,7 @@ export const serverEnvSchema = z
     NEXT_PUBLIC_SMTP_USER: z.string().optional(),
     NEXT_PUBLIC_SMTP_PASS: z.string().optional(),
     NEXT_PUBLIC_CRON_SECRET: z.string().optional(),
+    NEXT_PUBLIC_OPENROUTER_API_KEY: z.string().optional(),
     APP_URL: z.string().optional(),
     NEXT_PUBLIC_APP_URL: z.string().optional(),
     DB_POOL_MAX: z.string().optional(),
@@ -223,6 +228,7 @@ export const serverEnvSchema = z
       ["NEXT_PUBLIC_SMTP_USER", value.NEXT_PUBLIC_SMTP_USER],
       ["NEXT_PUBLIC_SMTP_PASS", value.NEXT_PUBLIC_SMTP_PASS],
       ["NEXT_PUBLIC_CRON_SECRET", value.NEXT_PUBLIC_CRON_SECRET],
+      ["NEXT_PUBLIC_OPENROUTER_API_KEY", value.NEXT_PUBLIC_OPENROUTER_API_KEY],
       ["NEXT_PUBLIC_APP_URL", value.NEXT_PUBLIC_APP_URL],
     ] as const;
 
@@ -259,6 +265,9 @@ export type ServerEnv = {
   DB_IDLE_TIMEOUT: number;
   DB_CONNECT_TIMEOUT: number;
   DB_STATEMENT_TIMEOUT: number;
+  OPENROUTER_API_KEY: string | null;
+  COACH_MODELS: string[];
+  PLAN_MODELS: string[];
 };
 
 /** Non-connecting stand-in so `next build` can evaluate server modules. */
@@ -307,6 +316,9 @@ export function readServerEnv(
     CRON_SECRET: source.CRON_SECRET || undefined,
     TRUST_PROXY: source.TRUST_PROXY || undefined,
     TRUSTED_PROXY_HOPS: source.TRUSTED_PROXY_HOPS || undefined,
+    OPENROUTER_API_KEY: source.OPENROUTER_API_KEY || undefined,
+    COACH_MODELS: source.COACH_MODELS || undefined,
+    PLAN_MODELS: source.PLAN_MODELS || undefined,
     NEXT_PUBLIC_DATABASE_URL: source.NEXT_PUBLIC_DATABASE_URL,
     NEXT_PUBLIC_RESEND_API_KEY: source.NEXT_PUBLIC_RESEND_API_KEY,
     NEXT_PUBLIC_EMAIL_FROM: source.NEXT_PUBLIC_EMAIL_FROM,
@@ -317,6 +329,7 @@ export function readServerEnv(
     NEXT_PUBLIC_SMTP_USER: source.NEXT_PUBLIC_SMTP_USER,
     NEXT_PUBLIC_SMTP_PASS: source.NEXT_PUBLIC_SMTP_PASS,
     NEXT_PUBLIC_CRON_SECRET: source.NEXT_PUBLIC_CRON_SECRET,
+    NEXT_PUBLIC_OPENROUTER_API_KEY: source.NEXT_PUBLIC_OPENROUTER_API_KEY,
     APP_URL: source.APP_URL || undefined,
     NEXT_PUBLIC_APP_URL: source.NEXT_PUBLIC_APP_URL,
     DB_POOL_MAX: source.DB_POOL_MAX || undefined,
@@ -408,6 +421,22 @@ export function readServerEnv(
   });
   if (tlsWarning) console.warn(tlsWarning);
 
+  const coachModels = parseFreeModelList(parsed.data.COACH_MODELS);
+  const planModels = parseFreeModelList(parsed.data.PLAN_MODELS);
+  const modelIssues = [
+    coachModels.ok
+      ? null
+      : "COACH_MODELS: must list only OpenRouter :free models",
+    planModels.ok
+      ? null
+      : "PLAN_MODELS: must list only OpenRouter :free models",
+  ].filter((issue) => issue !== null);
+  if (!coachModels.ok || !planModels.ok) {
+    throw new Error(
+      `Invalid environment variables:\n${modelIssues.join("\n")}`,
+    );
+  }
+
   return {
     DATABASE_URL: parsed.data.DATABASE_URL,
     CONSENT_PSEUDONYM_KEY: parsed.data.CONSENT_PSEUDONYM_KEY,
@@ -432,6 +461,9 @@ export function readServerEnv(
     DB_IDLE_TIMEOUT: poolConfig.idleTimeoutSeconds,
     DB_CONNECT_TIMEOUT: poolConfig.connectTimeoutSeconds,
     DB_STATEMENT_TIMEOUT: poolConfig.statementTimeoutMs,
+    OPENROUTER_API_KEY: parsed.data.OPENROUTER_API_KEY ?? null,
+    COACH_MODELS: coachModels.models,
+    PLAN_MODELS: planModels.models,
   };
 }
 

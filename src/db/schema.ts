@@ -6,6 +6,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -527,5 +528,117 @@ export const exerciseSets = pgTable(
       sql`${table.loadKg} is null or (${table.loadKg} >= 0 and ${table.loadKg} <= 1000)`,
     ),
     check("exercise_sets_position_nonnegative", sql`${table.position} >= 0`),
+  ],
+);
+
+export const coachMessages = pgTable(
+  "coach_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    risk: text("risk"),
+    model: text("model"),
+    dataPolicy: text("data_policy"),
+    promptVersion: text("prompt_version"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("coach_messages_user_created_idx").on(
+      table.userId,
+      table.createdAt.desc(),
+    ),
+    check("coach_messages_role", sql`${table.role} in ('user', 'assistant')`),
+    check(
+      "coach_messages_content_length",
+      sql`char_length(${table.content}) between 1 and 8000`,
+    ),
+    check(
+      "coach_messages_risk",
+      sql`${table.risk} is null or ${table.risk} in ('none', 'caution', 'red_flag')`,
+    ),
+    check(
+      "coach_messages_data_policy",
+      sql`${table.dataPolicy} is null or ${table.dataPolicy} in ('zdr', 'any_free')`,
+    ),
+  ],
+);
+
+/**
+ * Log operacional da IA. Sem prompt, sem mensagem e sem dado de saúde.
+ */
+export const aiGenerationLogs = pgTable(
+  "ai_generation_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requestId: text("request_id").notNull(),
+    userIdHash: text("user_id_hash").notNull(),
+    model: text("model"),
+    dataPolicy: text("data_policy"),
+    latencyMs: integer("latency_ms").notNull(),
+    tokensIn: integer("tokens_in"),
+    tokensOut: integer("tokens_out"),
+    outcome: text("outcome").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("ai_generation_logs_created_idx").on(table.createdAt.desc()),
+    check(
+      "ai_generation_logs_user_hash",
+      sql`${table.userIdHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "ai_generation_logs_outcome",
+      sql`${table.outcome} in ('ok', 'timeout', 'provider_error', 'schema_invalid', 'validation_rejected', 'safety_block', 'rate_limited', 'internal')`,
+    ),
+    check(
+      "ai_generation_logs_data_policy",
+      sql`${table.dataPolicy} is null or ${table.dataPolicy} in ('zdr', 'any_free')`,
+    ),
+    check(
+      "ai_generation_logs_latency_nonnegative",
+      sql`${table.latencyMs} >= 0`,
+    ),
+  ],
+);
+
+export const coachRedFlagLocks = pgTable("coach_red_flag_locks", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  clearedAt: timestamp("cleared_at", { withTimezone: true }),
+});
+
+export const planChangeProposals = pgTable(
+  "plan_change_proposals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("proposed"),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("plan_change_proposals_user_created_idx").on(
+      table.userId,
+      table.createdAt.desc(),
+    ),
+    check(
+      "plan_change_proposals_status",
+      sql`${table.status} in ('proposed', 'confirmed', 'rejected', 'expired')`,
+    ),
   ],
 );
