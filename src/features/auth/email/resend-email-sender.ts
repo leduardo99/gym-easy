@@ -1,18 +1,8 @@
 import { copy } from "../copy";
+import { redactLogMessage } from "./redact-log";
 import type { EmailSender } from "./types";
 
 export const RESEND_EMAILS_URL = "https://api.resend.com/emails";
-
-function safeResendMessage(value: unknown, apiKey: string): string {
-  if (typeof value !== "string") return "unknown";
-  const emailAddress =
-    /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/gi;
-  let message = value.replace(emailAddress, "[redacted]");
-  if (apiKey.length > 0) message = message.split(apiKey).join("[redacted]");
-  message = message.replace(/\s+/g, " ").trim();
-  if (message.length === 0) return "unknown";
-  return message.slice(0, 200);
-}
 
 function resendFailure(
   httpStatus: number,
@@ -44,7 +34,7 @@ function resendFailure(
       ) {
         name = record.name;
       }
-      message = safeResendMessage(record.message, apiKey);
+      message = redactLogMessage(record.message, [apiKey]);
     }
   } catch {
     // Keep the HTTP status when the body is not JSON.

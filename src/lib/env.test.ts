@@ -30,6 +30,12 @@ describe("readServerEnv", () => {
       EMAIL_CAPTURE_PATH: null,
       CONFIRM_EMAIL_SECRET: confirmSecret,
       CONSENT_PSEUDONYM_KEY: validConsentKey,
+      EMAIL_TRANSPORT: "log",
+      SMTP_HOST: null,
+      SMTP_PORT: null,
+      SMTP_USER: null,
+      SMTP_PASS: null,
+      SMTP_SECURE: false,
     });
   });
 
@@ -49,6 +55,7 @@ describe("readServerEnv", () => {
       EMAIL_FROM: "Gym Easy <treino@example.com>",
       EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
       CONFIRM_EMAIL_SECRET: confirmSecret,
+      EMAIL_TRANSPORT: "log",
     });
   });
 
@@ -82,8 +89,216 @@ describe("readServerEnv", () => {
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
+        RESEND_API_KEY: "test-resend-key",
       }).EMAIL_CAPTURE_PATH,
     ).toBeNull();
+  });
+
+  it("defaults development to smtp and requires host and port", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: "mailpit",
+      SMTP_PORT: 1025,
+      SMTP_USER: null,
+      SMTP_PASS: null,
+      SMTP_SECURE: false,
+    });
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        SMTP_HOST: "",
+        SMTP_PORT: "1025",
+      }),
+    ).toThrow(/SMTP_HOST/);
+  });
+
+  it("defaults production to resend and requires the api key", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        VERCEL_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        RESEND_API_KEY: "test-resend-key",
+      }).EMAIL_TRANSPORT,
+    ).toBe("resend");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        VERCEL_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+      }),
+    ).toThrow(/RESEND_API_KEY/);
+  });
+
+  it("requires a resend key when the transport is explicitly resend", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        EMAIL_TRANSPORT: "resend",
+      }),
+    ).toThrow(/RESEND_API_KEY/);
+  });
+
+  it("refuses smtp in production unless SMTP_ALLOW_PRODUCTION=true", () => {
+    const base = {
+      DATABASE_URL: validUrl,
+      NODE_ENV: "production" as const,
+      CONFIRM_EMAIL_SECRET: confirmSecret,
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: "smtp.example.com",
+      SMTP_PORT: "587",
+      SMTP_USER: "mailer",
+      SMTP_PASS: "smtp-pass",
+    };
+    expect(() => readServerEnv(base)).toThrow(/SMTP_ALLOW_PRODUCTION/);
+    expect(() => readServerEnv({ ...base, VERCEL_ENV: "production" })).toThrow(
+      /SMTP_ALLOW_PRODUCTION/,
+    );
+    try {
+      readServerEnv(base);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).not.toContain("smtp-pass");
+      expect(message).not.toContain("mailer");
+    }
+    expect(
+      readServerEnv({
+        ...base,
+        VERCEL_ENV: "production",
+        SMTP_ALLOW_PRODUCTION: "true",
+        SMTP_SECURE: "true",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: "smtp.example.com",
+      SMTP_PORT: 587,
+      SMTP_USER: "mailer",
+      SMTP_PASS: "smtp-pass",
+      SMTP_SECURE: true,
+    });
+  });
+
+  it("allows smtp on a vercel preview without the production opt-in", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        VERCEL_ENV: "preview",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        EMAIL_TRANSPORT: "smtp",
+        SMTP_HOST: "smtp.public.example",
+        SMTP_PORT: "587",
+        SMTP_SECURE: "false",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: "smtp.public.example",
+      SMTP_PORT: 587,
+      SMTP_SECURE: false,
+    });
+  });
+
+  it("rejects an unknown transport, a bad port, and a vague opt-in", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        EMAIL_TRANSPORT: "sendmail",
+      }),
+    ).toThrow(/EMAIL_TRANSPORT/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "70000",
+      }),
+    ).toThrow(/SMTP_PORT/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        RESEND_API_KEY: "test-resend-key",
+        SMTP_ALLOW_PRODUCTION: "yes",
+      }),
+    ).toThrow(/SMTP_ALLOW_PRODUCTION/);
+  });
+
+  it("rejects smtp secrets exposed with the public prefix", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        NEXT_PUBLIC_SMTP_PASS: "smtp-pass",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        NEXT_PUBLIC_SMTP_USER: "mailer",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("skips transport credentials while the capture sink is active", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "development",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+      }),
+    ).toMatchObject({
+      EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: null,
+    });
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+      }),
+    ).toMatchObject({
+      EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+      EMAIL_TRANSPORT: "resend",
+      RESEND_API_KEY: null,
+    });
+  });
+
+  it("does not require email credentials during the next production build", () => {
+    expect(
+      readServerEnv({
+        NODE_ENV: "production",
+        NEXT_PHASE: "phase-production-build",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "resend",
+      RESEND_API_KEY: null,
+      SMTP_HOST: null,
+      SMTP_PORT: null,
+    });
   });
 
   it("rejects a missing database url outside of the production build", () => {

@@ -17,7 +17,19 @@ cp .env.example .env.local
 
 Preencha `DATABASE_URL` em `.env.local` com a connection string do Neon. Use o host **pooled** para o app e o host **direct** para migrações. A variável é só de servidor: não use o prefixo `NEXT_PUBLIC_`.
 
-`RESEND_API_KEY` e `EMAIL_FROM` também são só de servidor e opcionais. Sem a chave, o app usa o adapter de log (sem email, link ou corpo da mensagem). O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e local e é ignorado quando `VERCEL_ENV=production`.
+O email de autenticação sai pelo transporte em `EMAIL_TRANSPORT` (`resend` ou `smtp`). Em desenvolvimento o padrão é `smtp`; em produção o padrão é `resend`. O teste usa o adapter de log, que registra só o nome do evento, sem endereço, link ou corpo. O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e e é ignorado quando `VERCEL_ENV=production`. Com o capture ativo, as credenciais do transporte não são exigidas.
+
+Para o desenvolvimento local, suba o Mailpit e deixe o app falar com ele:
+
+```bash
+docker compose up mailpit
+```
+
+A UI abre em `http://127.0.0.1:8025` e o SMTP em `127.0.0.1:1025`. O `docker-compose.yml` publica essas portas só em `127.0.0.1` e também as expõe na rede interna `gym-easy`. `.env.example` aponta `SMTP_HOST=127.0.0.1` e `SMTP_PORT=1025` para o `pnpm dev` no host. `docker compose --profile app up` sobe o app na mesma rede com `EMAIL_TRANSPORT=smtp` e `SMTP_HOST=mailpit` (precisa de `.env.local` com `DATABASE_URL` e `CONFIRM_EMAIL_SECRET`).
+
+No Coolify, não crie um domínio público nem mapeie a UI do Mailpit em `0.0.0.0`. A interface não tem autenticação. O acesso fica só na tailnet ou na rede interna do Coolify.
+
+Previews da Vercel não alcançam esse Mailpit: o runtime da Vercel só fala com um SMTP que esteja na internet. O padrão do preview continua sendo Resend (`NODE_ENV=production` e `VERCEL_ENV=preview`). Este repositório não configura a Vercel. SMTP em produção (`VERCEL_ENV=production`, ou `NODE_ENV=production` fora de um preview) só liga com `EMAIL_TRANSPORT=smtp` e `SMTP_ALLOW_PRODUCTION=true`. Sem esse opt-in o processo recusa subir, para não enviar email real por engano.
 
 ```bash
 pnpm dev
@@ -114,7 +126,7 @@ O projeto Neon deste app é `app-de-treino` (`blue-cell-40302441`), banco `app_t
 
 ## Autenticação
 
-Cadastro, confirmação de email, login e logout ficam em `/cadastro`, `/cadastro/confirme`, `/cadastro/confirmar` e `/login`. A senha usa argon2id. A sessão é um cookie `ge_session` (`HttpOnly`, `Secure` em HTTPS, `SameSite=Lax`) cujo valor no banco é só o hash. Rotas do app (`/inicio`, `/onboarding`, `/treinos`, `/historico`, `/perfil`) exigem sessão. O cadastro sempre responde "Se o email for válido, enviamos um link para continuar." Conta nova recebe um link de confirmação; email já usado avisa o dono. Sem `RESEND_API_KEY`, esses envios só entram no log.
+Cadastro, confirmação de email, login e logout ficam em `/cadastro`, `/cadastro/confirme`, `/cadastro/confirmar` e `/login`. A senha usa argon2id. A sessão é um cookie `ge_session` (`HttpOnly`, `Secure` em HTTPS, `SameSite=Lax`) cujo valor no banco é só o hash. Rotas do app (`/inicio`, `/onboarding`, `/treinos`, `/historico`, `/perfil`) exigem sessão. O cadastro sempre responde "Se o email for válido, enviamos um link para continuar." Conta nova recebe um link de confirmação; email já usado avisa o dono. Com transporte `log`, esses envios só entram no log, sem endereço nem segredo.
 
 ## Qualidade
 
@@ -135,8 +147,15 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 | `DATABASE_URL`          | Servidor       | Postgres do Neon, host pooled. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão.                                              |
 | `CONSENT_PSEUDONYM_KEY` | Servidor       | Chave do HMAC da prova de consentimento. Mínimo de 32 caracteres. Obrigatória em runtime. No build, se estiver ausente, entra um placeholder que não é segredo. Não use `NEXT_PUBLIC_`. |
 | `CRON_SECRET`           | Servidor       | Segredo do cron diário que apaga provas com mais de 3 anos. A Vercel envia `Authorization: Bearer`. Sem ele, a rota responde 401.                                                       |
-| `RESEND_API_KEY`        | Servidor       | Opcional. Sem ela, os emails de auth vão para o log, sem dados sensíveis.                                                                                                               |
+| `EMAIL_TRANSPORT`       | Servidor       | `resend` ou `smtp`. Padrão: `smtp` em development, `resend` em production, `log` em test.                                                                                               |
+| `RESEND_API_KEY`        | Servidor       | Obrigatória quando o transporte é `resend`. Sem transporte utilizável, o log não leva dados sensíveis.                                                                                  |
 | `EMAIL_FROM`            | Servidor       | Opcional. Padrão `Gym Easy <onboarding@resend.dev>`.                                                                                                                                    |
+| `SMTP_HOST`             | Servidor       | Obrigatório quando o transporte é `smtp`. No host local, `127.0.0.1`. Na rede do compose, `mailpit`.                                                                                    |
+| `SMTP_PORT`             | Servidor       | Obrigatório quando o transporte é `smtp`. Mailpit usa `1025`.                                                                                                                           |
+| `SMTP_USER`             | Servidor       | Opcional. Sem usuário, o cliente SMTP não envia `AUTH`.                                                                                                                                 |
+| `SMTP_PASS`             | Servidor       | Opcional. Segredo. Não use o prefixo `NEXT_PUBLIC_`.                                                                                                                                    |
+| `SMTP_SECURE`           | Servidor       | Opcional. `true`, `false`, `1` ou `0`. Padrão `false` (Mailpit em 1025). `true` abre TLS direto, como na porta 465.                                                                     |
+| `SMTP_ALLOW_PRODUCTION` | Servidor       | Tem de ser `true` para usar `smtp` em produção. Preview da Vercel não usa este opt-in, mas só alcança SMTP público.                                                                     |
 | `DATABASE_URL_UNPOOLED` | GitHub Actions | Secret do environment `production`. Host direct da branch Neon `main`. Não entra no app.                                                                                                |
 
 Na Vercel, Preview usa a branch `dev` do projeto `app-de-treino` e Production usa a branch `main` do mesmo projeto. As funções rodam em `fra1` (`vercel.json`). Crie `CONSENT_PSEUDONYM_KEY` em Preview e Production, e `CRON_SECRET` em Production, antes do runtime. Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
@@ -147,4 +166,4 @@ A CDN da Vercel acrescenta `Access-Control-Allow-Origin: *` em HTML prerenderiza
 
 ## CI
 
-O workflow `.github/workflows/ci.yml` sobe um Postgres 16, aplica `pnpm db:migrate` nele e roda, em todo pull request: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest, build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions.
+O workflow `.github/workflows/ci.yml` sobe um Postgres 16 e um Mailpit `v1.31.5` (digest pinado), aplica `pnpm db:migrate` no Postgres e roda, em todo pull request: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest (com um teste de integração SMTP contra o Mailpit), build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions.

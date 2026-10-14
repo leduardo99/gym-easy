@@ -27,6 +27,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mailpit:
+        image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gym_easy
       DATABASE_DRIVER: pg
@@ -74,7 +79,23 @@ jobs:
       - name: Migrate local database
         run: pnpm db:migrate
 
+      - name: Wait for Mailpit
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8025/readyz >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mailpit did not become ready" >&2
+          exit 1
+
       - name: Unit tests
+        env:
+          MAILPIT_SMTP_HOST: 127.0.0.1
+          MAILPIT_SMTP_PORT: "1025"
+          MAILPIT_API_URL: http://127.0.0.1:8025
         run: pnpm test
 
       - name: Resolve Playwright version
