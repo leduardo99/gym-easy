@@ -33,6 +33,19 @@ describe("proxy design catalog", () => {
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
 
+  it.each(["/Design", "/design/", "/%64esign"])(
+    "returns 404 for %s in production",
+    (pathname) => {
+      process.env.VERCEL_ENV = "production";
+
+      const response = proxy(
+        new NextRequest(`https://gym-easy.vercel.app${pathname}`),
+      );
+
+      expect(response.status).toBe(404);
+    },
+  );
+
   it("keeps /design available outside production", () => {
     delete process.env.VERCEL_ENV;
 

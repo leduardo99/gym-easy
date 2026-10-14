@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isDesignCatalogEnabled,
+  normalizePathname,
   shouldBlockDesignCatalog,
 } from "./design-catalog";
 
@@ -17,12 +18,27 @@ describe("isDesignCatalogEnabled", () => {
   });
 });
 
+describe("normalizePathname", () => {
+  it("decodes, lowercases, and drops the trailing slash", () => {
+    expect(normalizePathname("/Design")).toBe("/design");
+    expect(normalizePathname("/design/")).toBe("/design");
+    expect(normalizePathname("/%64esign")).toBe("/design");
+  });
+
+  it("keeps a malformed escape instead of throwing", () => {
+    expect(normalizePathname("/%")).toBe("/%");
+  });
+});
+
 describe("shouldBlockDesignCatalog", () => {
   it("blocks the catalog path only in production", () => {
     expect(shouldBlockDesignCatalog("/design", "production")).toBe(true);
+    expect(shouldBlockDesignCatalog("/Design", "production")).toBe(true);
     expect(shouldBlockDesignCatalog("/design/", "production")).toBe(true);
+    expect(shouldBlockDesignCatalog("/%64esign", "production")).toBe(true);
     expect(shouldBlockDesignCatalog("/design", "preview")).toBe(false);
-    expect(shouldBlockDesignCatalog("/design", undefined)).toBe(false);
+    expect(shouldBlockDesignCatalog("/Design", "preview")).toBe(false);
+    expect(shouldBlockDesignCatalog("/%64esign", undefined)).toBe(false);
   });
 
   it("leaves other paths alone", () => {

@@ -4,13 +4,26 @@ export function isDesignCatalogEnabled(
   return vercelEnv !== "production";
 }
 
-export function isDesignCatalogPath(pathname: string): boolean {
-  const normalized =
-    pathname.length > 1 && pathname.endsWith("/")
-      ? pathname.slice(0, -1)
-      : pathname;
+function decodePathname(pathname: string): string {
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return pathname;
+  }
+}
 
-  return normalized === "/design";
+export function normalizePathname(pathname: string): string {
+  const decoded = decodePathname(pathname).toLowerCase();
+  if (decoded.length <= 1) {
+    return decoded;
+  }
+
+  const withoutTrailingSlash = decoded.replace(/\/+$/, "");
+  return withoutTrailingSlash === "" ? "/" : withoutTrailingSlash;
+}
+
+export function isDesignCatalogPath(pathname: string): boolean {
+  return normalizePathname(pathname) === "/design";
 }
 
 export function shouldBlockDesignCatalog(
