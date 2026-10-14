@@ -18,7 +18,10 @@ describe("confirm email cookie", () => {
 
   it("rejects a tampered cookie", () => {
     const sealed = sealConfirmEmail("ana@example.com", secret, now);
-    const [version, packed, signature] = sealed.split(".");
+    const parts = sealed.split(".");
+    const version = parts[0] ?? "";
+    const packed = parts[1] ?? "";
+    const signature = parts[2] ?? "";
     const flipped = `${packed.slice(0, -1)}${packed.endsWith("a") ? "b" : "a"}`;
 
     expect(
