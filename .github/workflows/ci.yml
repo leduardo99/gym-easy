@@ -11,6 +11,23 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gym_easy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gym_easy
+      DATABASE_DRIVER: pg
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -48,6 +65,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Migrate local database
+        run: pnpm db:migrate
 
       - name: Unit tests
         run: pnpm test

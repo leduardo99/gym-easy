@@ -1,0 +1,114 @@
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { isLocalDatabaseUrl } from "@/db/driver";
+import * as schema from "@/db/schema";
+import { users } from "@/db/schema";
+import type { AppDatabase } from "@/db";
+
+import { createDrizzleRateLimiter } from "./drizzle-rate-limiter";
+import { createDrizzleUserStore } from "./drizzle-user-store";
+import { hashPassword, verifyPassword } from "./password";
+import { getOwnAccount } from "./resolve-session";
+import { sha256 } from "./tokens";
+
+const databaseUrl = process.env.DATABASE_URL ?? "";
+const runIntegration =
+  databaseUrl.length > 0 &&
+  isLocalDatabaseUrl(databaseUrl) &&
+  process.env.DATABASE_DRIVER !== "neon";
+
+describe.skipIf(!runIntegration)("auth database", () => {
+  const pool = new Pool({ connectionString: databaseUrl, max: 1 });
+  const db = drizzle({ client: pool, schema });
+  const store = createDrizzleUserStore(db as unknown as AppDatabase);
+  const limiter = createDrizzleRateLimiter(db as unknown as AppDatabase);
+
+  beforeAll(async () => {
+    await migrate(db, { migrationsFolder: "src/db/migrations" });
+  });
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("stores an argon2 hash and only returns the requested user", async () => {
+    const password = "senha de integração";
+    const passwordHash = await hashPassword(password);
+    const suffix = crypto.randomUUID();
+    const emailA = `a-${suffix}@example.com`;
+    const emailB = `b-${suffix}@example.com`;
+
+    expect(
+      await store.insertUser({
+        id: crypto.randomUUID(),
+        name: "Ana",
+        email: emailA,
+        passwordHash,
+      }),
+    ).toBe("inserted");
+    const userA = await store.findUserByEmail(emailA);
+    expect(userA?.passwordHash).not.toBe(password);
+    expect(userA?.passwordHash.startsWith("$argon2id$")).toBe(true);
+    expect(await verifyPassword(userA?.passwordHash ?? "", password)).toBe(
+      true,
+    );
+
+    const idB = crypto.randomUUID();
+    await store.insertUser({
+      id: idB,
+      name: "Bia",
+      email: emailB,
+      passwordHash,
+    });
+    expect(
+      await store.insertUser({
+        id: crypto.randomUUID(),
+        name: "Ana de novo",
+        email: emailA,
+        passwordHash: "plaintext",
+      }),
+    ).toBe("exists");
+
+    const own = await getOwnAccount(store, userA?.id ?? "");
+    expect(own?.email).toBe(emailA);
+    expect(own).not.toHaveProperty("passwordHash");
+    const rows = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userA?.id ?? ""));
+    expect(rows.map((row) => row.email)).toEqual([emailA]);
+    expect((await store.findUserById(idB))?.email).toBe(emailB);
+  });
+
+  it("stores the confirmation token as a hash and rate limits in postgres", async () => {
+    const userId = crypto.randomUUID();
+    const email = `rate-${userId}@example.com`;
+    await store.insertUser({
+      id: userId,
+      name: "Rate",
+      email,
+      passwordHash: "hash",
+    });
+    const raw = `raw-confirmation-token-${userId}`;
+    await store.saveVerificationToken({
+      tokenHash: sha256(raw),
+      userId,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const saved = await store.findVerificationToken(sha256(raw));
+    expect(saved?.tokenHash).toBe(sha256(raw));
+    expect(saved?.tokenHash).not.toBe(raw);
+
+    const bucket = `test:${userId}`;
+    for (let hit = 0; hit < 5; hit += 1) {
+      expect((await limiter.hit(bucket, 5, 60_000)).allowed).toBe(true);
+    }
+    const blocked = await limiter.hit(bucket, 5, 60_000);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
+  });
+});
