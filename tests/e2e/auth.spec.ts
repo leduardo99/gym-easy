@@ -109,7 +109,13 @@ test("login com senha errada usa a mensagem genérica", async ({ page }) => {
 });
 
 test("rotas internas e a API exigem sessão", async ({ page, request }) => {
-  for (const path of ["/inicio", "/treinos", "/historico", "/perfil"]) {
+  for (const path of [
+    "/inicio",
+    "/treinos",
+    "/historico",
+    "/perfil",
+    "/consentimento",
+  ]) {
     await page.goto(path);
     await expect(page).toHaveURL(
       new RegExp(

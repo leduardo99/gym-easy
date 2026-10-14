@@ -23,6 +23,7 @@ import {
 import { CATALOG_EXERCISES } from "@/db/catalog";
 import { applyExerciseSeed } from "@/db/seed/apply-exercise-seed";
 import { createConsentRepository } from "@/features/consent/repository";
+import { submitReconsent } from "@/features/consent/reconsent";
 import {
   CONSENT_KEY_VERSION,
   consentSubjectPseudonym,
@@ -536,6 +537,77 @@ describe.skipIf(!runIntegration)("training data access", () => {
           .where(eq(bodyMeasurements.userId, userId)),
       ).toEqual([]);
     }
+  });
+
+  it("unlocks body data writes after a stale grant is replaced by reconsent", async () => {
+    const userId = await insertUser("Reconsent corpo");
+    await db.insert(consentLog).values({
+      userId,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "onboarding",
+    });
+    const profileInput = { birthYear: 1990, heightCm: 170 };
+    const weightInput = {
+      recordedOn: "2026-10-14",
+      weight: "70",
+      unit: "kg" as const,
+    };
+
+    expect(await repository.saveProfile(userId, profileInput)).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    expect(await repository.recordWeight(userId, weightInput)).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+
+    const before = await db
+      .select({ id: consentLog.id })
+      .from(consentLog)
+      .where(eq(consentLog.userId, userId));
+    const refused = await submitReconsent(
+      db as unknown as AppDatabase,
+      userId,
+      {
+        scope: "body_data",
+        intent: "refuse",
+        accepted: true,
+      },
+    );
+    expect(refused.status).toBe("refused");
+    expect(
+      await db
+        .select({ id: consentLog.id })
+        .from(consentLog)
+        .where(eq(consentLog.userId, userId)),
+    ).toHaveLength(before.length);
+    expect(await repository.saveProfile(userId, profileInput)).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+
+    const granted = await submitReconsent(
+      db as unknown as AppDatabase,
+      userId,
+      {
+        scope: "body_data",
+        intent: "grant",
+        accepted: true,
+      },
+    );
+    expect(granted.status).toBe("granted");
+    if (granted.status !== "granted") return;
+    expect(granted.event.source).toBe("reconsent");
+    expect(granted.event.action).toBe("granted");
+    expect(granted.event.version).toBe(CONSENT_TEXTS.body_data.version);
+    expect(granted.event.textSha256).toBe(consentTextSha256("body_data"));
+
+    expect((await repository.saveProfile(userId, profileInput)).ok).toBe(true);
+    expect((await repository.recordWeight(userId, weightInput)).ok).toBe(true);
   });
 
   it("does not let another user's body_data consent authorize profile or weight writes", async () => {
