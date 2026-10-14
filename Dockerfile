@@ -15,6 +15,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN node scripts/bundle-deploy.mjs
 RUN pnpm build
 
 FROM base AS runner
@@ -27,8 +28,8 @@ RUN groupadd --system --gid 1001 nodejs \
   && useradd --system --uid 1001 --gid nodejs --no-create-home nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/migrate-on-deploy.mjs ./migrate-on-deploy.mjs
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/purge-consent.mjs ./scripts/purge-consent.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/deploy-bundles/migrate-on-deploy.mjs ./migrate-on-deploy.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/deploy-bundles/purge-consent.mjs ./scripts/purge-consent.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/migrations ./migrations
 COPY --from=builder --chown=nextjs:nodejs /app/docker/entrypoint.sh ./entrypoint.sh
 RUN chmod 755 ./entrypoint.sh

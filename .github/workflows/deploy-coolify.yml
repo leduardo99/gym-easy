@@ -1,6 +1,6 @@
 # Deploy Gym Easy to Coolify after CI succeeds on main.
 # Secrets: TS_OAUTH_CLIENT_ID, TS_OAUTH_SECRET, COOLIFY_TOKEN.
-# COOLIFY_APP_UUID: variable or secret on the production environment.
+# COOLIFY_APP_UUID is the public Coolify application id, not a secret.
 name: Deploy Coolify
 
 on:
@@ -27,6 +27,7 @@ jobs:
     environment: production
     env:
       COOLIFY_URL: https://coolify.gaffer.pt
+      COOLIFY_APP_UUID: tysqam2g4dbjfivyyhmggchb
     steps:
       - name: Join tailnet (ephemeral, tag:ci)
         uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
@@ -39,11 +40,10 @@ jobs:
         id: deploy
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_APP_UUID: ${{ vars.COOLIFY_APP_UUID || secrets.COOLIFY_APP_UUID }}
         run: |
           set -euo pipefail
           if [ -z "${COOLIFY_TOKEN}" ] || [ -z "${COOLIFY_APP_UUID}" ]; then
-            echo "Defina COOLIFY_TOKEN e COOLIFY_APP_UUID no environment production."
+            echo "Defina COOLIFY_TOKEN no environment production."
             exit 1
           fi
           body="$(mktemp)"

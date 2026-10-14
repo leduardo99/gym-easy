@@ -2,6 +2,7 @@
 .github
 .next
 node_modules
+deploy-bundles
 .data
 coverage
 playwright-report

@@ -24,6 +24,7 @@
 
 # production
 /build
+/deploy-bundles
 
 # misc
 .DS_Store

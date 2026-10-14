@@ -1,8 +1,8 @@
-# Coolify production uses this file without the dev profile.
-# Local Mailpit: docker compose --profile dev up --build
+# Coolify production can use this file without the dev profile.
+# The app publishes no host ports. Local loopback is docker-compose.dev.yml.
 # Mailpit SMTP 1025 and UI 8025 stay on the docker network, with no host ports.
-# The app is reachable on 127.0.0.1:3000 for local dev. Coolify proxies
-# production at https://app.gaffer.pt.
+# Production is proxied at https://app.gaffer.pt.
+# Local Mailpit: docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up --build
 
 services:
   mailpit:
@@ -41,15 +41,23 @@ services:
       CRON_SECRET: ${CRON_SECRET:-}
       TRUST_PROXY: ${TRUST_PROXY:-true}
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-/etc/coolify-ca/coolify-ca.crt}
     mem_limit: 768m
-    ports:
-      - "127.0.0.1:3000:3000"
+    volumes:
+      - type: bind
+        source: ${COOLIFY_CA_HOST_PATH:-/etc/coolify-ca/coolify-ca.crt}
+        target: ${NODE_EXTRA_CA_CERTS:-/etc/coolify-ca/coolify-ca.crt}
+        read_only: true
     depends_on:
       mailpit:
         condition: service_healthy
         required: false
     networks:
       - gym-easy
+      - infra-db
 
 networks:
   gym-easy:
+  infra-db:
+    external: true
+    name: infra-db
