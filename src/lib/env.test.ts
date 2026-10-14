@@ -47,4 +47,13 @@ describe("readServerEnv", () => {
       }).DATABASE_URL,
     ).toBe(BUILD_DATABASE_URL);
   });
+
+  it("does not treat the npm build lifecycle as a next production build", () => {
+    expect(() =>
+      readServerEnv({
+        NODE_ENV: "production",
+        npm_lifecycle_event: "build",
+      }),
+    ).toThrow(/DATABASE_URL/);
+  });
 });

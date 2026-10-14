@@ -21,7 +21,7 @@ Preencha `DATABASE_URL` em `.env.local` com a connection string do Neon. Use o h
 pnpm dev
 ```
 
-O app abre em `http://127.0.0.1:3000`. `GET /api/health` responde `{ "status": "ok" }`. O catálogo visual fica em `/design` e responde 404 quando `VERCEL_ENV=production`.
+O app abre em `http://127.0.0.1:3000`. `GET /api/health` executa `select 1` e responde `{ "status": "ok", "db": "ok" }`. Se o banco falhar, responde 503 `{ "status": "error", "db": "unavailable" }` sem detalhes do erro. O catálogo visual fica em `/design` e responde 404 quando `VERCEL_ENV=production`.
 
 `pnpm build` não precisa de um Postgres real. Durante o build, se `DATABASE_URL` estiver ausente, `src/lib/env.ts` usa um placeholder que não abre conexão. Em `pnpm dev` e `pnpm start` a variável continua obrigatória para qualquer código que chame `getDb()`.
 
@@ -50,12 +50,12 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 
 ## Variáveis de ambiente
 
-| Variável       | Onde     | Notas                                                                                       |
-| -------------- | -------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL` | Servidor | Postgres do Neon. Obrigatória em runtime quando o banco é usado. Ausente no build é aceito. |
+| Variável       | Onde     | Notas                                                                                                                         |
+| -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL` | Servidor | Postgres do Neon. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão. |
 
-A ligação do projeto na Vercel fica fora deste repositório. Quando existir, defina `DATABASE_URL` em Development, Preview e Production. Não crie `NEXT_PUBLIC_DATABASE_URL`.
+Na Vercel, Preview usa a branch `dev` do Neon e Production usa a branch `main`. Não crie `NEXT_PUBLIC_DATABASE_URL`.
 
 ## CI
 
-O workflow `.github/workflows/ci.yml` roda, em todo pull request: gitleaks, lint, Prettier, typecheck, Vitest, build, Playwright e `pnpm audit --audit-level high --ignore-unfixable`. O `--ignore-unfixable` só ignora advisory sem versão corrigida. Hoje isso cobre o `braces` transitivo do ESLint (`CVE-2026-93687`); quando sair patch, a CI volta a falhar até a atualização. Dependabot abre atualizações semanais de npm e GitHub Actions.
+O workflow `.github/workflows/ci.yml` roda, em todo pull request: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest, build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions.

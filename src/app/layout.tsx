@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
+import { connection } from "next/server";
+import { headers } from "next/headers";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -11,11 +13,17 @@ export const metadata: Metadata = {
   description: "Registre treinos com rapidez.",
 };
 
-export default function RootLayout({
+// Nonce CSP reads the request, so this layout cannot be prerendered.
+export const instant = false;
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await connection();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="pt-BR"
@@ -28,6 +36,7 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
+          nonce={nonce}
         >
           {children}
           <Toaster />

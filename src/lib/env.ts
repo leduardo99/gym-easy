@@ -1,3 +1,5 @@
+import "server-only";
+
 import { z } from "zod";
 
 const postgresUrl = z
@@ -38,10 +40,7 @@ export const BUILD_DATABASE_URL =
   "postgresql://build:build@127.0.0.1:5432/build";
 
 export function isProductionBuild(source: NodeJS.ProcessEnv): boolean {
-  return (
-    source.NEXT_PHASE === "phase-production-build" ||
-    source.npm_lifecycle_event === "build"
-  );
+  return source.NEXT_PHASE === "phase-production-build";
 }
 
 export function readServerEnv(

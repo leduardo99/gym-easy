@@ -1,9 +1,15 @@
 auditConfig:
+  # CVE-2026-93687: braces <=3.0.3 can exhaust the stack on deeply nested
+  # patterns. It arrives only through eslint-config-next > fast-glob >
+  # micromatch, and there is no patched release. Not used in production.
+  # Owner: leduardo99
+  # Expires: 2026-11-13 — remove this exception or replace the dependency.
   ignoreCves:
     - CVE-2026-93687
 
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
 onlyBuiltDependencies:
   - esbuild
