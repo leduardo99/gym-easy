@@ -56,6 +56,10 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 
 Na Vercel, Preview usa a branch `dev` do Neon e Production usa a branch `main`. Não crie `NEXT_PUBLIC_DATABASE_URL`.
 
+## CORS
+
+A CDN da Vercel acrescenta `Access-Control-Allow-Origin: *` em HTML prerenderizado e arquivos estáticos, depois do proxy. O proxy apaga o header, mas a plataforma o recoloca nesses recursos. `vercel.json` substitui o `*` por `https://gym-easy.vercel.app`. Rotas `/api` não recebem o `*` da plataforma e ficam fora dessa regra.
+
 ## CI
 
 O workflow `.github/workflows/ci.yml` roda, em todo pull request: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest, build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions.
