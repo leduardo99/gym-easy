@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import { PRIVACY_POLICY } from "@/features/consent/privacy-policy";
+import {
+  PRIVACY_POLICY,
+  processorText,
+} from "@/features/consent/privacy-policy";
 
 export const instant = false;
 
@@ -44,9 +47,7 @@ export default function PrivacyPage() {
         </h2>
         <ul className="list-disc pl-5 text-sm leading-6 text-muted-foreground">
           {PRIVACY_POLICY.processors.map((processor) => (
-            <li key={processor.name}>
-              {processor.name}: {processor.role}. Região {processor.region}.
-            </li>
+            <li key={processor.name}>{processorText(processor)}</li>
           ))}
         </ul>
       </section>

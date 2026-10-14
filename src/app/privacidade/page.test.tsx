@@ -23,6 +23,21 @@ describe("PrivacyPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/eu-madrid-1/)).toBeInTheDocument();
     expect(screen.getByText(/cópias de segurança/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tailscale: Rede privada da infraestrutura/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/sem dados dos usuários/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/OpenRouter: Inteligência artificial do Coach/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/não há garantia de retenção zero/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Resend: Email transacional, opcional, só em produção/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/90 dias/)).toBeInTheDocument();
+    expect(screen.getByText(/Apagar histórico/)).toBeInTheDocument();
 
     const text = document.body.textContent ?? "";
     expect(text).not.toMatch(/vercel/i);

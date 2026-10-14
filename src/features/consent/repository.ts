@@ -7,6 +7,21 @@ import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
 
 import { consentInputSchema } from "./schemas";
 
+/** Vigente só com granted na versão e no hash do texto publicado. */
+export function isCurrentConsent(event: {
+  purpose: ConsentPurpose;
+  action: ConsentAction;
+  version: string;
+  textSha256: string;
+}): boolean {
+  const published = CONSENT_TEXTS[event.purpose];
+  return (
+    event.action === "granted" &&
+    event.version === published.version &&
+    event.textSha256 === consentTextSha256(event.purpose)
+  );
+}
+
 export type ConsentEvent = {
   id: string;
   userId: string;
@@ -84,8 +99,11 @@ export function createConsentRepository(db: AppDatabase) {
     ): Promise<Partial<Record<ConsentPurpose, ConsentEvent>>> {
       const events = await api.listConsents(userId);
       const current: Partial<Record<ConsentPurpose, ConsentEvent>> = {};
+      const seen = new Set<ConsentPurpose>();
       for (const event of events) {
-        if (!current[event.purpose]) current[event.purpose] = event;
+        if (seen.has(event.purpose)) continue;
+        seen.add(event.purpose);
+        if (isCurrentConsent(event)) current[event.purpose] = event;
       }
       return current;
     },

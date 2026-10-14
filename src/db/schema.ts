@@ -180,7 +180,9 @@ export const userProfiles = pgTable(
  * Append-only. A aplicação só insere. UPDATE e DELETE direto são recusados.
  * Apagar a conta não apaga a prova: `delete_account` grava o pseudônimo HMAC,
  * preenche `key_version` e `deleted_account_at`, e só então zera `user_id`.
- * Estado vigente = última linha por (user_id, purpose).
+ * Estado vigente = última linha por (user_id, purpose) com action granted
+ * e version e text_sha256 iguais ao texto publicado. Versão antiga, hash
+ * diferente ou revogação não contam como consentimento.
  */
 export const consentLog = pgTable(
   "consent_log",

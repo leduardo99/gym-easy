@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { CONSENT_TEXTS } from "@/consent/texts";
+import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
 import type { AppDatabase } from "@/db";
 import { isLocalDatabaseUrl } from "@/db/driver";
 import * as schema from "@/db/schema";
@@ -577,7 +577,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
     });
     expect(revoked.ok).toBe(true);
     const current = await consents.currentConsent(ownerId);
-    expect(current.body_data?.action).toBe("revoked");
+    expect(current.body_data).toBeUndefined();
     expect(await consents.listConsents(intruderId)).toEqual([]);
     expect(await consents.listConsents(ownerId)).toHaveLength(2);
 
@@ -630,24 +630,55 @@ describe.skipIf(!runIntegration)("training data access", () => {
     );
   });
 
-  it("keeps a grant recorded under an older text version", async () => {
-    const ownerId = await insertUser("Versao antiga");
-    const previousVersion = "body_data-2026-10-14";
-    await db.insert(consentLog).values({
-      userId: ownerId,
+  it("counts only a grant of the current text version and hash", async () => {
+    const currentUser = await insertUser("Versao atual");
+    const saved = await consents.recordConsent(currentUser, {
       purpose: "body_data",
       action: "granted",
-      version: previousVersion,
+      source: "onboarding",
+    });
+    expect(saved.ok).toBe(true);
+    const active = await consents.currentConsent(currentUser);
+    expect(active.body_data?.action).toBe("granted");
+    expect(active.body_data?.version).toBe(CONSENT_TEXTS.body_data.version);
+    expect(active.body_data?.textSha256).toBe(consentTextSha256("body_data"));
+
+    const staleUser = await insertUser("Versao antiga");
+    await db.insert(consentLog).values({
+      userId: staleUser,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "onboarding",
+    });
+    expect(
+      (await consents.currentConsent(staleUser)).body_data,
+    ).toBeUndefined();
+
+    const hashUser = await insertUser("Hash diferente");
+    await db.insert(consentLog).values({
+      userId: hashUser,
+      purpose: "body_data",
+      action: "granted",
+      version: CONSENT_TEXTS.body_data.version,
       textSha256: "ab".repeat(32),
       source: "onboarding",
     });
+    expect((await consents.currentConsent(hashUser)).body_data).toBeUndefined();
 
-    const current = await consents.currentConsent(ownerId);
-    expect(current.body_data?.action).toBe("granted");
-    expect(current.body_data?.version).toBe(previousVersion);
-    expect(current.body_data?.version).not.toBe(
-      CONSENT_TEXTS.body_data.version,
-    );
+    await db.insert(consentLog).values({
+      userId: currentUser,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "reconsent",
+      createdAt: new Date("2026-10-15T00:00:00.000Z"),
+    });
+    expect(
+      (await consents.currentConsent(currentUser)).body_data,
+    ).toBeUndefined();
   });
 
   it("removes a custom exercise and the history that references it when the account is deleted", async () => {

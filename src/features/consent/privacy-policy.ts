@@ -7,6 +7,7 @@ export const PRIVACY_POLICY = {
     "O Gym Easy registra quando você autoriza ou retira o uso dos seus dados. A prova guarda a finalidade, a ação, a versão do texto e a origem. Ela não guarda email, endereço IP, identificador do navegador nem dados de saúde.",
     "Ao apagar a conta, o vínculo com o seu usuário sai do registro. No lugar fica um pseudônimo HMAC, que não reconstrói a conta. Essa prova fica retida por 3 anos depois da exclusão, somente para defesa legal de coimas e reclamações, e não entra em análise de uso.",
     "Passados esses 3 anos, um processo diário apaga esses registros.",
+    'Guardamos cada conversa por 90 dias para dar contexto ao Coach; depois ela é apagada. Você pode apagar o histórico a qualquer momento em "Apagar histórico".',
   ],
   rights: {
     id: "direitos-do-titular",
@@ -28,8 +29,35 @@ export const PRIVACY_POLICY = {
       role: "Hospedagem da aplicação e cópias de segurança (backups), na mesma região",
       region: "eu-madrid-1",
     },
+    {
+      name: "Tailscale",
+      role: "Rede privada da infraestrutura, usado só para acesso administrativo ao servidor, sem dados dos usuários",
+      region: null,
+    },
+    {
+      name: "OpenRouter",
+      role: "Inteligência artificial do Coach (modelos gratuitos; sem garantia de região, os dados podem ser processados fora da UE), sem base adequada de transferência para fora da UE (sem decisão de adequação, Data Privacy Framework nem cláusulas contratuais-padrão). O OpenRouter e os fornecedores dos modelos gratuitos podem guardar esses dados e usá-los para treinar modelos; não há garantia de retenção zero",
+      region: null,
+    },
+    {
+      name: "Resend",
+      role: "Email transacional, opcional, só em produção",
+      region: null,
+    },
   ],
 } as const;
+
+export function processorText(processor: {
+  name: string;
+  role: string;
+  region: string | null;
+}): string {
+  const role = processor.role.endsWith(".")
+    ? processor.role
+    : `${processor.role}.`;
+  if (!processor.region) return `${processor.name}: ${role}`;
+  return `${processor.name}: ${role} Região ${processor.region}.`;
+}
 
 export function privacyPolicyText(): string {
   return [
@@ -37,9 +65,6 @@ export function privacyPolicyText(): string {
     PRIVACY_POLICY.rights.heading,
     ...PRIVACY_POLICY.rights.paragraphs,
     PRIVACY_POLICY.processorsHeading,
-    ...PRIVACY_POLICY.processors.map(
-      (processor) =>
-        `${processor.name}: ${processor.role}. Região ${processor.region}.`,
-    ),
+    ...PRIVACY_POLICY.processors.map((processor) => processorText(processor)),
   ].join("\n");
 }
