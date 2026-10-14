@@ -22,17 +22,14 @@ describe("confirm email cookie", () => {
     const version = parts[0] ?? "";
     const packed = parts[1] ?? "";
     const signature = parts[2] ?? "";
-    const flipped = `${packed.slice(0, -1)}${packed.endsWith("a") ? "b" : "a"}`;
+    const flip = (value: string) =>
+      `${value.startsWith("A") ? "B" : "A"}${value.slice(1)}`;
 
     expect(
-      openConfirmEmail(`${version}.${flipped}.${signature}`, secret, now),
-    ).toBe(null);
+      openConfirmEmail(`${version}.${flip(packed)}.${signature}`, secret, now),
+    ).toBeNull();
     expect(
-      openConfirmEmail(
-        `${version}.${packed}.${signature.slice(0, -1)}x`,
-        secret,
-        now,
-      ),
+      openConfirmEmail(`${version}.${packed}.${flip(signature)}`, secret, now),
     ).toBeNull();
     expect(openConfirmEmail(sealed, otherSecret, now)).toBeNull();
     expect(openConfirmEmail("ana@example.com", secret, now)).toBeNull();
