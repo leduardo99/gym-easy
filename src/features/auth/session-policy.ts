@@ -2,7 +2,7 @@ export const ABSOLUTE_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 export const IDLE_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 export const SESSION_TOUCH_MS = 5 * 60 * 1000;
 export const CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
-/** Absorbs a duplicate submit without keeping the link alive. */
+/** A used confirmation link must not open another session inside this window. */
 export const CONFIRMATION_GRACE_MS = 2 * 60 * 1000;
 
 export function sessionStatus(

@@ -45,7 +45,7 @@ export function ConfirmPending({
     setPending(true);
     setMessage(null);
     try {
-      const result = await withAuthTimeout(resendConfirmationAction({ email }));
+      const result = await withAuthTimeout(resendConfirmationAction());
       if (result.ok) {
         toast(copy.resendToast);
         setSecondsLeft(60);

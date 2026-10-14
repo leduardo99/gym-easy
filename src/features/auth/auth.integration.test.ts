@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
@@ -10,6 +10,7 @@ import { users } from "@/db/schema";
 import type { AppDatabase } from "@/db";
 
 import { createDrizzleRateLimiter } from "./drizzle-rate-limiter";
+import { RATE_LIMIT_RETENTION_MS } from "./rate-limit";
 import { createDrizzleUserStore } from "./drizzle-user-store";
 import { hashPassword, verifyPassword } from "./password";
 import { getOwnAccount } from "./resolve-session";
@@ -110,5 +111,33 @@ describe.skipIf(!runIntegration)("auth database", () => {
     const blocked = await limiter.hit(bucket, 5, 60_000);
     expect(blocked.allowed).toBe(false);
     expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("deletes rate-limit rows older than the longest window", async () => {
+    const stale = `stale:${crypto.randomUUID()}`;
+    const fresh = `fresh:${crypto.randomUUID()}`;
+    const now = new Date();
+    await db.insert(schema.authRateLimits).values([
+      {
+        bucket: stale,
+        hits: 4,
+        windowStartedAt: new Date(
+          now.getTime() - RATE_LIMIT_RETENTION_MS - 1000,
+        ),
+      },
+      {
+        bucket: fresh,
+        hits: 1,
+        windowStartedAt: now,
+      },
+    ]);
+
+    await limiter.hit(`probe:${crypto.randomUUID()}`, 5, 60_000);
+
+    const rows = await db
+      .select({ bucket: schema.authRateLimits.bucket })
+      .from(schema.authRateLimits)
+      .where(inArray(schema.authRateLimits.bucket, [stale, fresh]));
+    expect(rows.map((row) => row.bucket)).toEqual([fresh]);
   });
 });

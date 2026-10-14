@@ -20,8 +20,10 @@ import { argon2Hasher, getDummyPasswordHash } from "./password";
 import { registerAccount } from "./register-account";
 import { resendConfirmation } from "./resend-confirmation";
 import {
+  CONFIRM_EMAIL_COOKIE_NAME,
   SESSION_COOKIE_NAME,
   clientIp,
+  confirmEmailCookieOptions,
   isSameOrigin,
   requestOrigin,
   sessionCookieOptions,
@@ -131,9 +133,15 @@ export async function signupAction(input: unknown): Promise<AuthActionResult> {
     );
 
     if (result.status === "pending") {
+      const jar = await cookies();
+      jar.set(
+        CONFIRM_EMAIL_COOKIE_NAME,
+        result.email,
+        confirmEmailCookieOptions(context.secure),
+      );
       return {
         ok: true,
-        redirectTo: `/cadastro/confirme?email=${encodeURIComponent(result.email)}&fresh=1`,
+        redirectTo: "/cadastro/confirme?fresh=1",
       };
     }
     if (result.status === "invalid") {
@@ -248,16 +256,16 @@ export async function confirmEmailAction(
   }
 }
 
-export async function resendConfirmationAction(
-  input: unknown,
-): Promise<ResendActionResult> {
+export async function resendConfirmationAction(): Promise<ResendActionResult> {
   const context = await mutationContext();
   if (!context) return { ok: false, formError: serverError() };
+  const jar = await cookies();
+  const email = jar.get(CONFIRM_EMAIL_COOKIE_NAME)?.value ?? "";
 
   try {
     const result = await resendConfirmation(
       {
-        email: readString(input, "email"),
+        email,
         origin: context.origin,
         now: new Date(),
       },
@@ -317,6 +325,8 @@ export async function logoutAction(): Promise<void> {
 }
 
 export async function skipOnboardingAction(): Promise<void> {
+  const context = await mutationContext();
+  if (!context) redirect("/onboarding");
   const session = await lookupSession();
   if (session.status !== "ok") redirect("/login?next=%2Fonboarding");
   await createDrizzleUserStore(getDb()).markOnboardingComplete(

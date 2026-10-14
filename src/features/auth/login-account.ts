@@ -25,7 +25,7 @@ export async function loginAccount(
   input: {
     email: string;
     password: string;
-    ip: string;
+    ip: string | null;
     next: string | null;
     now: Date;
     existingTokenHash: string | null;
@@ -46,18 +46,19 @@ export async function loginAccount(
     return { status: "invalid", fieldErrors: fieldErrorsFromZod(parsed.error) };
   }
 
-  const limit = stricterRetry(
-    await deps.rateLimiter.hit(
-      loginAccountBucket(parsed.data.email),
-      LOGIN_ACCOUNT_LIMIT,
-      LOGIN_ACCOUNT_WINDOW_MS,
-    ),
-    await deps.rateLimiter.hit(
-      loginIpBucket(input.ip),
-      LOGIN_IP_LIMIT,
-      LOGIN_IP_WINDOW_MS,
-    ),
+  const accountLimit = await deps.rateLimiter.hit(
+    loginAccountBucket(parsed.data.email),
+    LOGIN_ACCOUNT_LIMIT,
+    LOGIN_ACCOUNT_WINDOW_MS,
   );
+  const ipLimit = input.ip
+    ? await deps.rateLimiter.hit(
+        loginIpBucket(input.ip),
+        LOGIN_IP_LIMIT,
+        LOGIN_IP_WINDOW_MS,
+      )
+    : { allowed: true, retryAfterSeconds: 0 };
+  const limit = stricterRetry(accountLimit, ipLimit);
   if (!limit.allowed) {
     return {
       status: "rate_limited",

@@ -11,8 +11,20 @@ const postgresUrl = z
     "DATABASE_URL must be a postgres connection string",
   );
 
-/** Resend's shared onboarding sender. Used when EMAIL_FROM is unset. */
-export const DEFAULT_EMAIL_FROM = "onboarding@resend.dev";
+/** Display name plus Resend's shared onboarding address. Used when EMAIL_FROM is unset. */
+export const DEFAULT_EMAIL_FROM = "Gym Easy <onboarding@resend.dev>";
+
+const emailAddress = z.email();
+
+export function isEmailFrom(value: string): boolean {
+  const trimmed = value.trim();
+  const named = trimmed.match(/^([^<>]+)<([^<>\s]+)>$/);
+  const name = named?.[1];
+  const address = named?.[2] ?? trimmed;
+  if (!emailAddress.safeParse(address).success) return false;
+  if (name !== undefined && name.trim().length === 0) return false;
+  return true;
+}
 
 export const serverEnvSchema = z
   .object({
@@ -21,7 +33,10 @@ export const serverEnvSchema = z
       .enum(["development", "test", "production"])
       .default("development"),
     RESEND_API_KEY: z.string().min(1).optional(),
-    EMAIL_FROM: z.email().optional(),
+    EMAIL_FROM: z
+      .string()
+      .refine(isEmailFrom, "EMAIL_FROM must be an email or Name <email>")
+      .optional(),
     EMAIL_CAPTURE_PATH: z.string().min(1).optional(),
     VERCEL_ENV: z.string().optional(),
     NEXT_PUBLIC_DATABASE_URL: z.string().optional(),

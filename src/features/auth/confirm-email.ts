@@ -1,4 +1,4 @@
-import { CONFIRMATION_GRACE_MS, ABSOLUTE_SESSION_MS } from "./session-policy";
+import { ABSOLUTE_SESSION_MS } from "./session-policy";
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
@@ -17,20 +17,10 @@ export async function confirmEmail(
     tokenHash,
     input.now,
   );
-  let userId = taken?.userId ?? null;
+  if (!taken) return { status: "invalid" };
 
-  if (!userId) {
-    const existing = await deps.users.findVerificationToken(tokenHash);
-    const recentlyUsed =
-      existing?.usedAt &&
-      input.now.getTime() - existing.usedAt.getTime() <=
-        CONFIRMATION_GRACE_MS &&
-      existing.expiresAt.getTime() > input.now.getTime();
-    if (!recentlyUsed || !existing) return { status: "invalid" };
-    userId = existing.userId;
-  } else {
-    await deps.users.markEmailVerified(userId, input.now);
-  }
+  const userId = taken.userId;
+  await deps.users.markEmailVerified(userId, input.now);
 
   if (input.existingTokenHash) {
     await deps.users.deleteSession(input.existingTokenHash);

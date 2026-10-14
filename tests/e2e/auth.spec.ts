@@ -29,6 +29,14 @@ async function signup(page: Page, email: string, name = "Ana Souza") {
   await expect(
     page.getByText("Se o email for válido, enviamos um link para continuar."),
   ).toBeVisible();
+  await expect(page).toHaveURL(/\/cadastro\/confirme/);
+  expect(new URL(page.url()).searchParams.has("email")).toBe(false);
+  const confirmEmail = (await page.context().cookies()).find(
+    (cookie) => cookie.name === "ge_confirm_email",
+  );
+  expect(confirmEmail?.httpOnly).toBe(true);
+  expect(confirmEmail?.sameSite).toBe("Lax");
+  expect(decodeURIComponent(confirmEmail?.value ?? "")).toBe(email);
 }
 
 test("cadastro, confirmação, logout e login", async ({ page }) => {

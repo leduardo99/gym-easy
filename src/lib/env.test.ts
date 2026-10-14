@@ -6,6 +6,7 @@ const validUrl = "postgresql://user:password@localhost:5432/gym_easy";
 
 describe("readServerEnv", () => {
   it("accepts a postgres connection string and defaults the email sender", () => {
+    expect(DEFAULT_EMAIL_FROM).toBe("Gym Easy <onboarding@resend.dev>");
     expect(readServerEnv({ DATABASE_URL: validUrl, NODE_ENV: "test" })).toEqual(
       {
         DATABASE_URL: validUrl,
@@ -23,14 +24,31 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         RESEND_API_KEY: "test-resend-key",
-        EMAIL_FROM: "treino@example.com",
+        EMAIL_FROM: "Gym Easy <treino@example.com>",
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
       }),
     ).toMatchObject({
       RESEND_API_KEY: "test-resend-key",
-      EMAIL_FROM: "treino@example.com",
+      EMAIL_FROM: "Gym Easy <treino@example.com>",
       EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
     });
+  });
+
+  it("accepts a bare email sender and rejects a name without an address", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        EMAIL_FROM: "treino@example.com",
+      }).EMAIL_FROM,
+    ).toBe("treino@example.com");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        EMAIL_FROM: "Gym Easy",
+      }),
+    ).toThrow(/EMAIL_FROM/);
   });
 
   it("ignores the email capture path in production", () => {

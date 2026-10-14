@@ -28,7 +28,7 @@ export async function registerAccount(
     name: string;
     email: string;
     password: string;
-    ip: string;
+    ip: string | null;
     origin: string;
     now: Date;
   },
@@ -54,16 +54,18 @@ export async function registerAccount(
     };
   }
 
-  const limit = await deps.rateLimiter.hit(
-    signupIpBucket(input.ip),
-    SIGNUP_IP_LIMIT,
-    SIGNUP_IP_WINDOW_MS,
-  );
-  if (!limit.allowed) {
-    return {
-      status: "rate_limited",
-      retryAfterSeconds: limit.retryAfterSeconds,
-    };
+  if (input.ip) {
+    const limit = await deps.rateLimiter.hit(
+      signupIpBucket(input.ip),
+      SIGNUP_IP_LIMIT,
+      SIGNUP_IP_WINDOW_MS,
+    );
+    if (!limit.allowed) {
+      return {
+        status: "rate_limited",
+        retryAfterSeconds: limit.retryAfterSeconds,
+      };
+    }
   }
 
   if (await deps.breaches.isBreached(parsed.data.password)) {

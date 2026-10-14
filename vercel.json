@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+<<<<<<< HEAD
   "headers": [
     {
       "source": "/",
@@ -20,4 +21,7 @@
       ]
     }
   ]
+=======
+  "regions": ["fra1"]
+>>>>>>> 46f064a (fix: aplicar a revisão de segurança da LED-6)
 }

@@ -1,9 +1,9 @@
-import { sql } from "drizzle-orm";
+import { lt, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "@/db";
 import { authRateLimits } from "@/db/schema";
 
-import type { RateLimiter } from "./rate-limit";
+import { RATE_LIMIT_RETENTION_MS, type RateLimiter } from "./rate-limit";
 
 /**
  * Atomic windowed counter. A window older than `windowMs` resets to one hit,
@@ -13,6 +13,14 @@ export function createDrizzleRateLimiter(db: AppDatabase): RateLimiter {
   return {
     async hit(bucket, limit, windowMs) {
       const now = new Date();
+      await db
+        .delete(authRateLimits)
+        .where(
+          lt(
+            authRateLimits.windowStartedAt,
+            new Date(now.getTime() - RATE_LIMIT_RETENTION_MS),
+          ),
+        );
       const cutoff = new Date(now.getTime() - windowMs);
       const rows = await db
         .insert(authRateLimits)

@@ -1,6 +1,6 @@
 # Gym Easy
 
-App de treino (V1). Next.js (App Router) + TypeScript estrito + Tailwind CSS v4 + Drizzle no Neon.
+Gym Easy (V1). Next.js (App Router) + TypeScript estrito + Tailwind CSS v4 + Drizzle no Neon.
 
 ## Requisitos
 
@@ -17,7 +17,7 @@ cp .env.example .env.local
 
 Preencha `DATABASE_URL` em `.env.local` com a connection string do Neon. Use o host **pooled** para o app e o host **direct** para migrações. A variável é só de servidor: não use o prefixo `NEXT_PUBLIC_`.
 
-`RESEND_API_KEY` e `EMAIL_FROM` também são só de servidor e opcionais. Sem a chave, o app usa o adapter de log (sem email, link ou corpo da mensagem). O remetente padrão é `onboarding@resend.dev`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e local e é ignorado quando `VERCEL_ENV=production`.
+`RESEND_API_KEY` e `EMAIL_FROM` também são só de servidor e opcionais. Sem a chave, o app usa o adapter de log (sem email, link ou corpo da mensagem). O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e local e é ignorado quando `VERCEL_ENV=production`.
 
 ```bash
 pnpm dev
@@ -66,10 +66,10 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 | ----------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `DATABASE_URL`          | Servidor       | Postgres do Neon, host pooled. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão. |
 | `RESEND_API_KEY`        | Servidor       | Opcional. Sem ela, os emails de auth vão para o log, sem dados sensíveis.                                                                  |
-| `EMAIL_FROM`            | Servidor       | Opcional. Padrão `onboarding@resend.dev`.                                                                                                  |
+| `EMAIL_FROM`            | Servidor       | Opcional. Padrão `Gym Easy <onboarding@resend.dev>`.                                                                                       |
 | `DATABASE_URL_UNPOOLED` | GitHub Actions | Secret do environment `production`. Host direct da branch Neon `main`. Não entra no app.                                                   |
 
-Na Vercel, Preview usa a branch `dev` do Neon e Production usa a branch `main`. Não crie `NEXT_PUBLIC_DATABASE_URL`.
+Na Vercel, Preview usa a branch `dev` do Neon e Production usa a branch `main`. As funções rodam em `fra1` (`vercel.json`). Não crie `NEXT_PUBLIC_DATABASE_URL`.
 
 ## CORS
 

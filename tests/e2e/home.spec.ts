@@ -10,9 +10,7 @@ test("home page introduces the app", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(
-    page.getByRole("heading", { name: "App de Treino" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Gym Easy" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Criar conta" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
   await expect(

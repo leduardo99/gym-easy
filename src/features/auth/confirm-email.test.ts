@@ -42,7 +42,7 @@ describe("confirmEmail", () => {
     ).toEqual(now);
   });
 
-  it("allows a duplicate submit inside the grace window and rejects it afterwards", async () => {
+  it("does not open another session when a used link is submitted again", async () => {
     const users = await prepare();
     const deps = { users, createToken: () => "session-a" };
     await confirmEmail("raw-token", { now, existingTokenHash: null }, deps);
@@ -53,17 +53,24 @@ describe("confirmEmail", () => {
       { now: new Date(now.getTime() + 10_000), existingTokenHash: null },
       deps,
     );
-    expect(again.status).toBe("confirmed");
+    expect(again).toEqual({ status: "invalid" });
+    expect(await users.findSession(sha256("session-a"))).toMatchObject({
+      userId: "user-1",
+    });
+    expect(await users.findSession(sha256("session-b"))).toBeNull();
 
     const later = await confirmEmail(
       "raw-token",
       {
         now: new Date(now.getTime() + CONFIRMATION_GRACE_MS + 1),
-        existingTokenHash: null,
+        existingTokenHash: sha256("session-a"),
       },
       deps,
     );
     expect(later).toEqual({ status: "invalid" });
+    expect(await users.findSession(sha256("session-a"))).toMatchObject({
+      userId: "user-1",
+    });
   });
 
   it("rejects an expired or unknown token", async () => {

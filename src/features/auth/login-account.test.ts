@@ -162,4 +162,56 @@ describe("loginAccount", () => {
     );
     expect(blocked.status).toBe("rate_limited");
   });
+
+  it("limits only the account when the request has no client ip", async () => {
+    const users = createMemoryUserStore();
+    const deps = {
+      users,
+      hasher: hasher([]),
+      rateLimiter: createMemoryRateLimiter(),
+      dummyHash: "hash:dummy",
+      createToken: () => "new-session",
+    };
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      expect(
+        (
+          await loginAccount(
+            {
+              ...input,
+              ip: null,
+              email: "ausente@example.com",
+              password: "errada",
+              existingTokenHash: null,
+            },
+            deps,
+          )
+        ).status,
+      ).toBe("invalid_credentials");
+    }
+
+    const sameAccount = await loginAccount(
+      {
+        ...input,
+        ip: null,
+        email: "ausente@example.com",
+        password: "errada",
+        existingTokenHash: null,
+      },
+      deps,
+    );
+    const otherAccount = await loginAccount(
+      {
+        ...input,
+        ip: null,
+        email: "outra@example.com",
+        password: "errada",
+        existingTokenHash: null,
+      },
+      deps,
+    );
+
+    expect(sameAccount.status).toBe("rate_limited");
+    expect(otherAccount.status).toBe("invalid_credentials");
+  });
 });

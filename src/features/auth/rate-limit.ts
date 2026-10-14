@@ -11,6 +11,15 @@ export const RESEND_COOLDOWN_WINDOW_MS = 60_000;
 export const RESEND_HOUR_LIMIT = 5;
 export const RESEND_HOUR_WINDOW_MS = 60 * 60_000;
 
+/** Rows older than every auth window can be deleted. */
+export const RATE_LIMIT_RETENTION_MS = Math.max(
+  LOGIN_ACCOUNT_WINDOW_MS,
+  LOGIN_IP_WINDOW_MS,
+  SIGNUP_IP_WINDOW_MS,
+  RESEND_COOLDOWN_WINDOW_MS,
+  RESEND_HOUR_WINDOW_MS,
+);
+
 export type RateLimitState = {
   hits: number;
   windowStartedAt: number;

@@ -20,7 +20,7 @@ export default async function HomePage() {
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-8 px-4 py-10 md:max-w-2xl">
       <div className="flex flex-col items-center gap-3 text-center">
         <Dumbbell aria-hidden="true" className="size-10 text-primary" />
-        <h1 className="text-title-1 font-semibold">App de Treino</h1>
+        <h1 className="text-title-1 font-semibold">Gym Easy</h1>
         <p className="max-w-xs text-sm text-muted-foreground">
           Registre seus treinos e veja sua evolução.
         </p>

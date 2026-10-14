@@ -158,6 +158,29 @@ describe("registerAccount", () => {
     }
   });
 
+  it("does not share a signup bucket when the request has no client ip", async () => {
+    const limiter = createMemoryRateLimiter();
+    const users = createMemoryUserStore();
+    const deps = {
+      users,
+      emails: emails([]),
+      hasher: hasher([]),
+      breaches: { isBreached: async () => false },
+      rateLimiter: limiter,
+      createId: () => "user-1",
+      createToken: () => "raw-token",
+    };
+
+    for (let attempt = 0; attempt < 11; attempt += 1) {
+      deps.createId = () => `user-${attempt}`;
+      const result = await registerAccount(
+        { ...base, ip: null, email: `sem-ip-${attempt}@example.com` },
+        deps,
+      );
+      expect(result.status).toBe("pending");
+    }
+  });
+
   it("rejects a short password on the server", async () => {
     const result = await registerAccount(
       { ...base, password: "curta" },
