@@ -12,6 +12,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 10],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -29,6 +30,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "supino_inclinado_com_halteres",
@@ -46,6 +48,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 10],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -63,6 +66,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -80,6 +84,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -97,6 +102,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -114,6 +120,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -131,6 +138,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -148,6 +156,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "crucifixo_na_maquina_peck_deck",
@@ -165,6 +174,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "crucifixo_na_maquina_peck_deck",
@@ -182,6 +192,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "crossover_no_cabo",
@@ -199,6 +210,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "crucifixo_na_maquina_peck_deck",
@@ -216,6 +228,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "crucifixo_na_maquina_peck_deck",
@@ -233,6 +246,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder", "wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 20],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -250,6 +264,7 @@
       "level": "beginner",
       "contraindicated_regions": ["wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 20],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -267,6 +282,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 15],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -284,6 +300,7 @@
       "level": "advanced",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 12],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -301,6 +318,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "crucifixo_na_maquina_peck_deck",
@@ -318,6 +336,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -335,6 +354,7 @@
       "level": "beginner",
       "contraindicated_regions": ["wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 20],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -352,6 +372,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 10],
       "substitutions": [
         "barra_fixa_assistida_maquina",
@@ -369,6 +390,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 10],
       "substitutions": [
         "barra_fixa_assistida_maquina",
@@ -386,6 +408,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "puxada_na_frente_pegada_aberta",
@@ -403,6 +426,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "barra_fixa_assistida_maquina",
@@ -420,6 +444,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "barra_fixa_assistida_maquina",
@@ -437,6 +462,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "barra_fixa_assistida_maquina",
@@ -454,6 +480,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "barra_fixa_assistida_maquina",
@@ -471,6 +498,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 10],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -488,6 +516,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 10],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -505,6 +534,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "remada_sentada_no_cabo",
@@ -522,6 +552,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -539,6 +570,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -556,6 +588,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -573,6 +606,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 10],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -590,6 +624,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -607,6 +642,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 15],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -624,6 +660,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["pullover_com_halter"]
     },
@@ -637,6 +674,7 @@
       "level": "advanced",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 8],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -654,6 +692,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -671,6 +710,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -688,6 +728,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "barra_fixa_assistida_maquina",
@@ -705,6 +746,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 8],
       "substitutions": [
         "landmine_press_unilateral",
@@ -722,6 +764,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "landmine_press_unilateral",
@@ -739,6 +782,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "landmine_press_unilateral",
@@ -756,6 +800,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "landmine_press_unilateral",
@@ -773,6 +818,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "landmine_press_unilateral",
@@ -790,6 +836,7 @@
       "level": "intermediate",
       "contraindicated_regions": [],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "desenvolvimento_com_halteres_sentado",
@@ -807,6 +854,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "elevacao_lateral_no_cabo",
@@ -823,6 +871,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "elevacao_lateral_com_halteres",
@@ -839,6 +888,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "elevacao_lateral_com_halteres",
@@ -855,6 +905,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": []
     },
@@ -868,6 +919,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": ["crucifixo_invertido_na_maquina"]
     },
@@ -881,6 +933,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": ["crucifixo_invertido_com_halteres"]
     },
@@ -894,6 +947,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "remada_unilateral_com_halter_serrote",
@@ -911,6 +965,7 @@
       "level": "beginner",
       "contraindicated_regions": ["neck"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["encolhimento_com_barra"]
     },
@@ -924,6 +979,7 @@
       "level": "beginner",
       "contraindicated_regions": ["neck"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["encolhimento_com_halteres"]
     },
@@ -937,6 +993,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": []
     },
@@ -950,6 +1007,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": []
     },
@@ -963,6 +1021,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 12],
       "substitutions": [
         "landmine_press_unilateral",
@@ -980,6 +1039,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "landmine_press_unilateral",
@@ -997,6 +1057,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow", "wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "rosca_com_elastico",
@@ -1014,6 +1075,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "rosca_com_elastico",
@@ -1031,6 +1093,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "rosca_com_elastico",
@@ -1048,6 +1111,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "rosca_com_elastico",
@@ -1065,6 +1129,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "rosca_com_elastico",
@@ -1082,6 +1147,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "rosca_com_elastico",
@@ -1099,6 +1165,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "rosca_com_elastico",
@@ -1116,6 +1183,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "rosca_com_elastico",
@@ -1133,6 +1201,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "rosca_direta_com_barra_w",
@@ -1150,6 +1219,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "triceps_na_polia_com_corda",
@@ -1167,6 +1237,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "triceps_na_polia_com_barra",
@@ -1184,6 +1255,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "triceps_na_polia_com_barra",
@@ -1201,6 +1273,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow", "shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "triceps_na_polia_com_barra",
@@ -1218,6 +1291,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow", "shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "triceps_na_polia_com_barra",
@@ -1235,6 +1309,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "triceps_na_polia_com_barra",
@@ -1252,6 +1327,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["wrist", "shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 10],
       "substitutions": [
         "supino_reto_com_halteres",
@@ -1269,6 +1345,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder", "wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 15],
       "substitutions": [
         "supino_com_halteres_pegada_neutra",
@@ -1286,6 +1363,7 @@
       "level": "advanced",
       "contraindicated_regions": ["shoulder", "elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 12],
       "substitutions": [
         "supino_com_halteres_pegada_neutra",
@@ -1303,6 +1381,7 @@
       "level": "beginner",
       "contraindicated_regions": ["elbow"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "triceps_na_polia_com_barra",
@@ -1320,6 +1399,7 @@
       "level": "beginner",
       "contraindicated_regions": ["wrist"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": ["rosca_martelo"]
     },
@@ -1333,6 +1413,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["knee", "lower_back", "hip"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 8],
       "substitutions": [
         "agachamento_goblet",
@@ -1350,6 +1431,7 @@
       "level": "advanced",
       "contraindicated_regions": ["knee", "wrist", "lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 8],
       "substitutions": [
         "agachamento_goblet",
@@ -1367,6 +1449,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "agachamento_no_smith",
@@ -1384,6 +1467,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "agachamento_goblet",
@@ -1401,6 +1485,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "agachamento_goblet",
@@ -1418,6 +1503,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee", "lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "agachamento_goblet",
@@ -1435,6 +1521,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "agachamento_goblet",
@@ -1452,6 +1539,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["knee", "lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 8],
       "substitutions": [
         "agachamento_goblet",
@@ -1469,6 +1557,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["knee"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "avanco_afundo_com_halteres",
@@ -1486,6 +1575,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "agachamento_bulgaro",
@@ -1503,6 +1593,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "agachamento_bulgaro",
@@ -1520,6 +1611,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["knee"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 16],
       "substitutions": [
         "agachamento_bulgaro",
@@ -1537,6 +1629,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "agachamento_bulgaro",
@@ -1554,6 +1647,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": []
     },
@@ -1567,6 +1661,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "mesa_flexora",
@@ -1584,6 +1679,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "cadeira_flexora",
@@ -1601,6 +1697,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["cadeira_flexora", "mesa_flexora", "nordic_curl"]
     },
@@ -1614,6 +1711,7 @@
       "level": "advanced",
       "contraindicated_regions": ["lower_back", "hip"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [3, 6],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1631,6 +1729,7 @@
       "level": "advanced",
       "contraindicated_regions": ["lower_back", "hip"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [3, 6],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1648,6 +1747,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 10],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1665,6 +1765,7 @@
       "level": "beginner",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1682,6 +1783,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1699,6 +1801,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [5, 8],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1716,6 +1819,7 @@
       "level": "advanced",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "levantamento_terra_romeno_com_barra",
@@ -1733,6 +1837,7 @@
       "level": "beginner",
       "contraindicated_regions": ["hip"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1750,6 +1855,7 @@
       "level": "beginner",
       "contraindicated_regions": ["hip"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1767,6 +1873,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "ponte_de_gluteo_unilateral",
@@ -1784,6 +1891,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1801,6 +1909,7 @@
       "level": "beginner",
       "contraindicated_regions": ["hip"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [12, 15],
       "substitutions": []
     },
@@ -1814,6 +1923,7 @@
       "level": "beginner",
       "contraindicated_regions": ["hip"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": []
     },
@@ -1827,6 +1937,7 @@
       "level": "beginner",
       "contraindicated_regions": ["hip"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": []
     },
@@ -1840,6 +1951,7 @@
       "level": "beginner",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1857,6 +1969,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "ponte_de_gluteo",
@@ -1874,6 +1987,7 @@
       "level": "beginner",
       "contraindicated_regions": ["ankle"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 20],
       "substitutions": [
         "panturrilha_no_leg_press",
@@ -1890,6 +2004,7 @@
       "level": "beginner",
       "contraindicated_regions": ["ankle"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": []
     },
@@ -1903,6 +2018,7 @@
       "level": "beginner",
       "contraindicated_regions": ["ankle"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 20],
       "substitutions": [
         "panturrilha_em_pe_na_maquina",
@@ -1919,6 +2035,7 @@
       "level": "beginner",
       "contraindicated_regions": ["ankle"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 20],
       "substitutions": [
         "panturrilha_em_pe_na_maquina",
@@ -1935,6 +2052,7 @@
       "level": "advanced",
       "contraindicated_regions": ["knee", "ankle", "lower_back"],
       "unilateral": false,
+      "is_plyometric": true,
       "default_rep_range": [5, 10],
       "substitutions": [
         "agachamento_goblet",
@@ -1952,6 +2070,7 @@
       "level": "beginner",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": [
         "agachamento_goblet",
@@ -1969,6 +2088,7 @@
       "level": "advanced",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [3, 6],
       "substitutions": [
         "cadeira_flexora",
@@ -1986,6 +2106,7 @@
       "level": "advanced",
       "contraindicated_regions": ["knee"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": [
         "agachamento_goblet",
@@ -2003,6 +2124,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [20, 60],
       "substitutions": ["dead_bug", "bird_dog", "abdominal_crunch"]
     },
@@ -2016,6 +2138,7 @@
       "level": "beginner",
       "contraindicated_regions": ["shoulder"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [20, 45],
       "substitutions": ["pallof_press", "rotacao_no_cabo_lenhador"]
     },
@@ -2029,6 +2152,7 @@
       "level": "beginner",
       "contraindicated_regions": ["neck"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [12, 20],
       "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
     },
@@ -2042,6 +2166,7 @@
       "level": "beginner",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
     },
@@ -2055,6 +2180,7 @@
       "level": "advanced",
       "contraindicated_regions": ["shoulder", "lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 15],
       "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
     },
@@ -2068,6 +2194,7 @@
       "level": "beginner",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
     },
@@ -2081,6 +2208,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": ["bird_dog", "prancha_frontal", "abdominal_crunch"]
     },
@@ -2094,6 +2222,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [8, 12],
       "substitutions": ["dead_bug", "prancha_frontal", "abdominal_crunch"]
     },
@@ -2107,6 +2236,7 @@
       "level": "beginner",
       "contraindicated_regions": [],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["prancha_lateral", "rotacao_no_cabo_lenhador"]
     },
@@ -2120,6 +2250,7 @@
       "level": "advanced",
       "contraindicated_regions": ["lower_back", "shoulder"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [6, 12],
       "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
     },
@@ -2133,6 +2264,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["pallof_press", "prancha_lateral"]
     },
@@ -2146,6 +2278,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [15, 40],
       "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
     },
@@ -2159,6 +2292,7 @@
       "level": "beginner",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [10, 15],
       "substitutions": ["dead_bug", "bird_dog", "prancha_frontal"]
     },
@@ -2172,6 +2306,7 @@
       "level": "beginner",
       "contraindicated_regions": ["lower_back"],
       "unilateral": false,
+      "is_plyometric": false,
       "default_rep_range": [20, 40],
       "substitutions": ["caminhada_da_mala_unilateral"]
     },
@@ -2185,6 +2320,7 @@
       "level": "intermediate",
       "contraindicated_regions": ["lower_back"],
       "unilateral": true,
+      "is_plyometric": false,
       "default_rep_range": [20, 40],
       "substitutions": ["caminhada_do_fazendeiro"]
     }

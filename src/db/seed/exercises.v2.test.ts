@@ -26,6 +26,31 @@ describe("LED-32 exercise seed v2", () => {
     expect(bench?.primary_muscles).toEqual(["chest"]);
   });
 
+  it("marks plyometrics exactly as the v2 reference", () => {
+    const parsed = exerciseSeedSchema.parse(seed);
+    const plyometric = parsed.exercises.filter((item) => item.is_plyometric);
+    expect(
+      parsed.exercises.every(
+        (item) => item.is_plyometric === true || item.is_plyometric === false,
+      ),
+    ).toBe(true);
+    expect(plyometric.map((item) => item.id)).toEqual([
+      "agachamento_com_salto",
+    ]);
+  });
+
+  it("keeps mergulho_no_banco substitutions in the published v2 order", () => {
+    const parsed = exerciseSeedSchema.parse(seed);
+    const dip = parsed.exercises.find(
+      (item) => item.id === "mergulho_no_banco",
+    );
+    expect(dip?.substitutions).toEqual([
+      "supino_com_halteres_pegada_neutra",
+      "supino_fechado",
+      "paralelas_mergulho_para_peito",
+    ]);
+  });
+
   it("rejects a substitution that does not point at an id", () => {
     const broken = structuredClone(seed) as {
       exercises: { id: string; substitutions: string[] }[];

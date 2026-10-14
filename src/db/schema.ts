@@ -282,6 +282,7 @@ export const exercises = pgTable(
       .notNull()
       .default([]),
     unilateral: boolean("unilateral").notNull().default(false),
+    isPlyometric: boolean("is_plyometric").notNull().default(false),
     defaultRepsMin: smallint("default_reps_min"),
     defaultRepsMax: smallint("default_reps_max"),
     substitutionSlugs: text("substitution_slugs").array().notNull().default([]),
