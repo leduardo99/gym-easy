@@ -4,6 +4,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { CONSENT_TEXTS } from "@/consent/texts";
 import type { AppDatabase } from "@/db";
 import { isLocalDatabaseUrl } from "@/db/driver";
 import * as schema from "@/db/schema";
@@ -626,6 +627,26 @@ describe.skipIf(!runIntegration)("training data access", () => {
       db.delete(consentLog).where(eq(consentLog.subjectPseudonym, pseudonym)),
     ).rejects.toSatisfy((error: unknown) =>
       errorText(error).includes("append-only"),
+    );
+  });
+
+  it("keeps a grant recorded under an older text version", async () => {
+    const ownerId = await insertUser("Versao antiga");
+    const previousVersion = "body_data-2026-10-14";
+    await db.insert(consentLog).values({
+      userId: ownerId,
+      purpose: "body_data",
+      action: "granted",
+      version: previousVersion,
+      textSha256: "ab".repeat(32),
+      source: "onboarding",
+    });
+
+    const current = await consents.currentConsent(ownerId);
+    expect(current.body_data?.action).toBe("granted");
+    expect(current.body_data?.version).toBe(previousVersion);
+    expect(current.body_data?.version).not.toBe(
+      CONSENT_TEXTS.body_data.version,
     );
   });
 

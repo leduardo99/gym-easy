@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`textos publicados > fixa o sha256 de cada versão 2026-10-14c 1`] = `
+{
+  "analytics-pt-BR-2026-10-14c": "7814ee715ca88f2f039268afabc24191d783be0585b1996376e01ee4ce82adfe",
+  "body_data-pt-BR-2026-10-14c": "88b3c2e7c9a0023480f98418007025b5c66176deadc1ccd2a55ebb6e53c3238a",
+  "coach_chat-pt-BR-2026-10-14c": "512ef10a3ea3f8efc2444884553763c6c195fb8dd4e20bfccf23f7ebac140400",
+  "coach_health-pt-BR-2026-10-14c": "90a418b7c07c81f21e7966aa0a09b71b4cdad1a14198c1951399847c52e95b87",
+}
+`;
