@@ -14,6 +14,8 @@ export const PRIVACY_POLICY = {
     heading: "Direitos do titular",
     paragraphs: [
       `Para exercer os direitos de acesso, retificação, apagamento, limitação do tratamento, oposição e portabilidade, escreva para ${CONTACT_EMAIL}. Esse endereço é o contato do responsável pelo tratamento e do encarregado de proteção de dados.`,
+      `Você pode retirar o consentimento a qualquer momento, nas definições da app ou por ${CONTACT_EMAIL}. A retirada não afeta a licitude do tratamento anterior (RGPD art. 7.º/3).`,
+      "Você pode apresentar reclamação à autoridade de controlo, a CNPD (www.cnpd.pt), conforme o art. 77.º.",
     ],
   },
   processorsHeading: "Subprocessadores",
