@@ -26,3 +26,9 @@ await build({
   entryPoints: ["scripts/purge-consent.mjs"],
   outfile: `${outdir}/purge-consent.mjs`,
 });
+
+await build({
+  ...shared,
+  entryPoints: ["scripts/purge-coach-messages.mjs"],
+  outfile: `${outdir}/purge-coach-messages.mjs`,
+});

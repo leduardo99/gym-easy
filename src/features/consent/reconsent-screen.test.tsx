@@ -50,4 +50,21 @@ describe("ReconsentScreen", () => {
 
     expect(screen.getByText(RECONSENT_COPY.refused)).toBeInTheDocument();
   });
+
+  it("shows the transfer checkbox for the coach chat text", () => {
+    render(
+      <ReconsentScreen
+        copy={CONSENT_TEXTS.coach_chat}
+        scope="coach_chat"
+        nextPath="/perfil"
+        notice={null}
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", {
+        name: CONSENT_TEXTS.coach_chat.transferCheckbox,
+      }),
+    ).toBeInTheDocument();
+  });
 });

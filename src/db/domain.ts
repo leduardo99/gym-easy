@@ -17,6 +17,7 @@ export const CONSENT_PURPOSES = [
   "body_data",
   "coach_health",
   "analytics",
+  "coach_chat",
 ] as const;
 export const CONSENT_ACTIONS = ["granted", "revoked"] as const;
 export const CONSENT_SOURCES = ["onboarding", "profile", "reconsent"] as const;

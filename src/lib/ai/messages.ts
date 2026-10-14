@@ -77,6 +77,15 @@ export function createDrizzleProposalStore(db: AppDatabase): ProposalStore {
   };
 }
 
+/** Bandeira vermelha nunca fica gravada: o texto da pessoa não entra na tabela. */
+export function userMessageToStore(
+  risk: "none" | "caution" | "red_flag" | null,
+  content: string,
+): string | null {
+  if (risk === "red_flag") return null;
+  return content;
+}
+
 export async function insertCoachMessage(
   db: AppDatabase,
   input: {
@@ -132,5 +141,17 @@ export async function purgeExpiredCoachMessages(
     .delete(coachMessages)
     .where(lt(coachMessages.createdAt, coachChatRetentionCutoff(now)))
     .returning({ id: coachMessages.id });
+  return rows.length;
+}
+
+/** Logs operacionais seguem a mesma janela de 90 dias e não têm texto de saúde. */
+export async function purgeExpiredAiGenerationLogs(
+  db: AppDatabase,
+  now: Date = new Date(),
+): Promise<number> {
+  const rows = await db
+    .delete(aiGenerationLogs)
+    .where(lt(aiGenerationLogs.createdAt, coachChatRetentionCutoff(now)))
+    .returning({ id: aiGenerationLogs.id });
   return rows.length;
 }

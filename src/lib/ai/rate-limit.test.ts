@@ -4,8 +4,10 @@ import { createMemoryRateLimiter } from "@/features/auth/rate-limit";
 
 import {
   CHAT_MESSAGES_PER_DAY,
+  OPENROUTER_REQUESTS_PER_DAY,
   PLAN_GENERATIONS_PER_DAY,
   consumeDailyBudget,
+  consumeGlobalOpenRouterBudget,
 } from "./rate-limit";
 
 describe("coach daily rate limits", () => {
@@ -87,5 +89,18 @@ describe("coach daily rate limits", () => {
     );
     expect(seen[0]).not.toContain("plain-user-id");
     expect(seen[0]).toContain("2026-10-14");
+  });
+
+  it("stops the whole app after 50 OpenRouter requests in a UTC day", async () => {
+    const now = new Date("2026-10-14T12:00:00.000Z");
+    const limiter = createMemoryRateLimiter(() => now.getTime());
+    for (let i = 0; i < OPENROUTER_REQUESTS_PER_DAY; i += 1) {
+      expect((await consumeGlobalOpenRouterBudget(limiter, now)).allowed).toBe(
+        true,
+      );
+    }
+    expect((await consumeGlobalOpenRouterBudget(limiter, now)).allowed).toBe(
+      false,
+    );
   });
 });

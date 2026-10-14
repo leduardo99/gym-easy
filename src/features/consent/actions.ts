@@ -52,6 +52,7 @@ export async function acceptReconsentAction(formData: FormData) {
     scope: scopeValue,
     intent: "grant",
     accepted: formData.get("accepted") === "sim",
+    transferAccepted: formData.get("transferAccepted") === "sim",
   });
   if (result.status === "granted") redirect(nextPath);
   if (result.status === "needs_checkbox" && scope) {

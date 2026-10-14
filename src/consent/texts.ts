@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 
 /**
- * Textos publicados da LED-45, versão final 2026-10-14c (pt-BR).
+ * Textos publicados da LED-45 (pt-BR).
+ * `body_data` e `analytics` ficam em 2026-10-14c.
+ * `coach_health` e `coach_chat` estão em 2026-10-15a, com o segundo
+ * checkbox da transferência para fora da UE (RGPD art. 49(1)(a)).
  * Uma vírgula nova exige outro id de versão: o hash é da forma canónica.
  */
 export const CONSENT_TEXT_PURPOSES = [
@@ -24,6 +27,7 @@ export type ConsentCopy = {
   title: string;
   body: string;
   checkbox: string;
+  transferCheckbox?: string;
 };
 
 function copy(
@@ -31,14 +35,18 @@ function copy(
   title: string,
   paragraphs: readonly string[],
   checkbox: string,
+  options?: { version?: string; transferCheckbox?: string },
 ): ConsentCopy {
   return {
     purpose,
     locale: CONSENT_LOCALE,
-    version: `${purpose}-${CONSENT_LOCALE}-2026-10-14c`,
+    version: options?.version ?? `${purpose}-${CONSENT_LOCALE}-2026-10-14c`,
     title,
     body: paragraphs.join("\n"),
     checkbox,
+    ...(options?.transferCheckbox
+      ? { transferCheckbox: options.transferCheckbox }
+      : {}),
   };
 }
 
@@ -61,20 +69,30 @@ export const CONSENT_TEXTS_BY_LOCALE = {
         "O Coach usa suas respostas do questionário de saúde (PAR-Q+), as lesões ou dores que você informar e seus treinos para criar e ajustar seu plano. Os cálculos e as regras de segurança rodam nos nossos servidores.",
         "O que vai para a inteligência artificial: para gerar o plano, enviamos ao OpenRouter (modelos gratuitos; sem garantia de região, os dados podem ser processados fora da UE) só categorias e faixas: faixa etária, faixa de altura e de peso, objetivo, experiência, dias por semana, tempo por treino, equipamento, regiões e intensidade das lesões e o resultado do questionário (sim/não por categoria). Nunca enviamos seu nome, email, ano de nascimento, valores exatos nem texto livre. Atenção: o OpenRouter e os fornecedores dos modelos gratuitos podem guardar esses dados e usá-los para treinar modelos; não há garantia de retenção zero. O plano funciona sem o chat; o chat tem autorização própria.",
         "O Coach é uma ferramenta de apoio ao treino. Não substitui aconselhamento médico e não faz diagnóstico.",
-        "Quem trata: o Gym Easy é o responsável (contato: contacto@gaffer.pt); subcontratantes: Neon (banco de dados), em Frankfurt, União Europeia; hospedagem na Oracle Cloud Infrastructure (servidor gerido pelo responsável), região eu-madrid-1 (Madrid, Espanha, UE), onde ficam também as cópias de segurança (backups), num bucket privado da Oracle Cloud Infrastructure; Tailscale só para acesso administrativo, sem dados dos usuários; e OpenRouter (inteligência artificial; sem garantia de região, os dados podem ser processados fora da UE), sem base adequada de transferência para fora da UE (sem decisão de adequação, Data Privacy Framework nem cláusulas contratuais-padrão); isso é aceito porque o Gym Easy é usado apenas pelo próprio dono, para uso pessoal.",
+        "Quem trata: o Gym Easy é o responsável (contato: contacto@gaffer.pt); subcontratantes: Neon (banco de dados), em Frankfurt, União Europeia; hospedagem na Oracle Cloud Infrastructure (servidor gerido pelo responsável), região eu-madrid-1 (Madrid, Espanha, UE), onde ficam também as cópias de segurança (backups), num bucket privado da Oracle Cloud Infrastructure; Tailscale só para acesso administrativo, sem dados dos usuários; e OpenRouter (inteligência artificial; sem garantia de região, os dados podem ser processados fora da UE). O OpenRouter e os fornecedores dos modelos gratuitos podem estar fora da União Europeia (por exemplo, nos EUA) e não sabemos de antemão qual será usado. Tentamos primeiro modelos que não guardam os dados (retenção zero); se nenhum estiver disponível, as categorias e faixas do seu perfil podem ir para outro modelo gratuito, que pode guardá-las e registrá-las. Para essa transferência para fora da UE não existe decisão de adequação nem cláusulas contratuais-padrão com esses fornecedores. Por isso, ela só acontece com o seu consentimento explícito, e você deve conhecer os riscos: seus dados podem ficar sujeitos a leis de outros países, inclusive ao acesso por autoridades públicas, com proteção menor que a da UE, e pode ser difícil exercer seus direitos (acesso, correção, apagamento) junto a esses fornecedores. Você pode retirar este consentimento a qualquer momento em Perfil > Privacidade > Coach de IA: o Coach deixa de receber os dados do seu perfil e nada mais é enviado ao OpenRouter, mas não conseguimos apagar o que os fornecedores já tenham guardado.",
         "Por quanto tempo: enquanto sua conta existir ou até você retirar a autorização em Perfil > Privacidade > Coach de IA. Triagens substituídas e lesões resolvidas são apagadas após 12 meses. Ao retirar, apagamos suas respostas de saúde e lesões e o Coach é desativado. Guardamos a prova desta autorização, pseudonimizada, por 3 anos após a exclusão da conta.",
       ],
       "Autorizo o Gym Easy a usar minhas respostas de saúde, lesões e treinos para criar e ajustar meu plano no Coach.",
+      {
+        version: "coach_health-pt-BR-2026-10-15a",
+        transferCheckbox:
+          "Entendo os riscos e autorizo que as categorias e faixas do meu perfil sejam transferidas para o OpenRouter e fornecedores de modelos fora da União Europeia, sem garantias adequadas de proteção.",
+      },
     ),
     coach_chat: copy(
       "coach_chat",
       "Chat com o Coach",
       [
-        "No chat, as mensagens que você escreve são enviadas como texto livre ao OpenRouter (modelos gratuitos; sem garantia de região, os dados podem ser processados fora da UE), junto com o contexto do seu plano, para que o Coach responda. Não há base adequada de transferência para fora da UE (sem decisão de adequação, Data Privacy Framework nem cláusulas contratuais-padrão); isso é aceito porque o Gym Easy é usado apenas pelo próprio dono, para uso pessoal. Não compartilhe dados de saúde além do necessário para a sua dúvida sobre o treino, nem dados de outras pessoas. Atenção: o OpenRouter e os fornecedores dos modelos gratuitos podem guardar suas mensagens e usá-las para treinar modelos; não há garantia de retenção zero. Suas conversas nunca entram em logs nem em estatísticas.",
+        "No chat, as mensagens que você escreve são enviadas como texto livre ao OpenRouter (modelos gratuitos; sem garantia de região, os dados podem ser processados fora da UE), junto com o contexto do seu plano, para que o Coach responda. O OpenRouter e os fornecedores dos modelos gratuitos podem estar fora da União Europeia (por exemplo, nos EUA) e não sabemos de antemão qual será usado. Tentamos primeiro modelos que não guardam os dados (retenção zero); se nenhum estiver disponível, a mensagem pode ir para outro modelo gratuito, que pode guardá-la e registrá-la. Para essa transferência para fora da UE não existe decisão de adequação nem cláusulas contratuais-padrão com esses fornecedores. Por isso, ela só acontece com o seu consentimento explícito, e você deve conhecer os riscos: seus dados podem ficar sujeitos a leis de outros países, inclusive ao acesso por autoridades públicas, com proteção menor que a da UE, e pode ser difícil exercer seus direitos (acesso, correção, apagamento) junto a esses fornecedores. Você pode retirar este consentimento a qualquer momento em Perfil > Privacidade: o chat é desligado e nada mais é enviado ao OpenRouter, mas não conseguimos apagar o que os fornecedores já tenham guardado. Não compartilhe dados de saúde além do necessário para a sua dúvida sobre o treino, nem dados de outras pessoas. Atenção: o OpenRouter e os fornecedores dos modelos gratuitos podem guardar suas mensagens e usá-las para treinar modelos; não há garantia de retenção zero. Suas conversas nunca entram em logs nem em estatísticas.",
         "Quem trata: o Gym Easy é o responsável (contato: contacto@gaffer.pt); subcontratantes: Neon (banco de dados), em Frankfurt, União Europeia; hospedagem na Oracle Cloud Infrastructure (servidor gerido pelo responsável), região eu-madrid-1 (Madrid, Espanha, UE), onde ficam também as cópias de segurança (backups), num bucket privado da Oracle Cloud Infrastructure; Tailscale só para acesso administrativo, sem dados dos usuários; e OpenRouter (inteligência artificial; sem garantia de região, os dados podem ser processados fora da UE).",
         'Por quanto tempo: guardamos cada conversa por 90 dias para dar contexto ao Coach; depois ela é apagada. Você pode apagar o histórico a qualquer momento em "Apagar histórico". Ao retirar esta autorização em Perfil > Privacidade, o chat é desligado e todo o histórico é apagado; seu plano continua funcionando. Guardamos a prova desta autorização, pseudonimizada, por 3 anos após a exclusão da conta.',
       ],
       "Autorizo o Gym Easy a enviar as mensagens que eu escrever no chat ao OpenRouter para o Coach responder.",
+      {
+        version: "coach_chat-pt-BR-2026-10-15a",
+        transferCheckbox:
+          "Entendo os riscos e autorizo que minhas mensagens sejam transferidas para o OpenRouter e fornecedores de modelos fora da União Europeia, sem garantias adequadas de proteção.",
+      },
     ),
     analytics: copy(
       "analytics",
@@ -95,13 +113,22 @@ export const CONSENT_TEXTS_BY_LOCALE = {
 /** Textos do locale publicado. `recordConsent` grava `version` desta tabela. */
 export const CONSENT_TEXTS = CONSENT_TEXTS_BY_LOCALE[CONSENT_LOCALE];
 
-/** Título, linha em branco, corpo, linha em branco, checkbox. NFC e sem espaço no fim da linha. */
+/**
+ * Título, linha em branco, corpo, linha em branco, checkbox.
+ * Com dois checkboxes: mais uma linha em branco e o checkbox da transferência.
+ * NFC e sem espaço no fim da linha.
+ */
 export function canonicalConsentText(copy: {
   title: string;
   body: string;
   checkbox: string;
+  transferCheckbox?: string;
 }): string {
-  return `${copy.title}\n\n${copy.body}\n\n${copy.checkbox}`
+  const base = `${copy.title}\n\n${copy.body}\n\n${copy.checkbox}`;
+  const canonical = copy.transferCheckbox
+    ? `${base}\n\n${copy.transferCheckbox}`
+    : base;
+  return canonical
     .normalize("NFC")
     .split("\n")
     .map((line) => line.trimEnd())

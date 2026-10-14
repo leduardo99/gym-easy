@@ -70,6 +70,23 @@ export function ReconsentScreen({
             {copy.checkbox}
           </FieldLabel>
         </Field>
+        {copy.transferCheckbox ? (
+          <Field orientation="horizontal" className="items-start">
+            <input
+              id="reconsent-transfer"
+              name="transferAccepted"
+              type="checkbox"
+              value="sim"
+              className="mt-0.5 size-5 shrink-0 accent-primary"
+            />
+            <FieldLabel
+              htmlFor="reconsent-transfer"
+              className="text-sm leading-5 font-normal"
+            >
+              {copy.transferCheckbox}
+            </FieldLabel>
+          </Field>
+        ) : null}
         <Button type="submit" size="lg" className="w-full">
           {RECONSENT_COPY.accept}
         </Button>

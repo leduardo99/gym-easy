@@ -11,7 +11,7 @@ export function createGymOpenRouter(apiKey: string): OpenRouterProvider {
     apiKey,
     compatibility: "strict",
     appName: "Gym Easy",
-    appUrl: "https://gym-easy.vercel.app",
+    appUrl: "https://app.gaffer.pt",
   });
 }
 

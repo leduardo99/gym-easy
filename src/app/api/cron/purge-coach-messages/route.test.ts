@@ -10,36 +10,61 @@ vi.mock("@/db", () => ({
 
 vi.mock("@/lib/ai/messages", () => ({
   purgeExpiredCoachMessages: vi.fn(),
+  purgeExpiredAiGenerationLogs: vi.fn(),
 }));
 
-import { purgeExpiredCoachMessages } from "@/lib/ai/messages";
+import {
+  purgeExpiredAiGenerationLogs,
+  purgeExpiredCoachMessages,
+} from "@/lib/ai/messages";
 
-import { GET } from "./route";
+import { GET, POST } from "./route";
 
-describe("GET /api/cron/purge-coach-messages", () => {
+const cronSecret = "cron-secret-value-32-characters-ok";
+
+describe("POST /api/cron/purge-coach-messages", () => {
   beforeEach(() => {
     vi.mocked(purgeExpiredCoachMessages).mockReset();
+    vi.mocked(purgeExpiredAiGenerationLogs).mockReset();
     delete process.env.CRON_SECRET;
   });
 
-  it("rejects a call without the cron secret", async () => {
-    const response = await GET(
-      new Request("http://localhost/api/cron/purge-coach-messages"),
+  it("rejects GET and a missing secret", async () => {
+    expect((await GET()).status).toBe(405);
+    const response = await POST(
+      new Request("http://localhost/api/cron/purge-coach-messages", {
+        method: "POST",
+      }),
     );
     expect(response.status).toBe(401);
     expect(purgeExpiredCoachMessages).not.toHaveBeenCalled();
   });
 
-  it("purges messages older than the retention window when the secret matches", async () => {
-    process.env.CRON_SECRET = "cron-secret";
-    vi.mocked(purgeExpiredCoachMessages).mockResolvedValue(4);
-    const response = await GET(
+  it("rejects a wrong bearer of the same length", async () => {
+    process.env.CRON_SECRET = cronSecret;
+    const wrong = "x".repeat(cronSecret.length);
+    const response = await POST(
       new Request("http://localhost/api/cron/purge-coach-messages", {
-        headers: { authorization: "Bearer cron-secret" },
+        method: "POST",
+        headers: { authorization: `Bearer ${wrong}` },
+      }),
+    );
+    expect(response.status).toBe(401);
+    expect(wrong.length).toBe(cronSecret.length);
+    expect(purgeExpiredCoachMessages).not.toHaveBeenCalled();
+  });
+
+  it("purges chat and generation logs when the bearer matches", async () => {
+    process.env.CRON_SECRET = cronSecret;
+    vi.mocked(purgeExpiredCoachMessages).mockResolvedValue(4);
+    vi.mocked(purgeExpiredAiGenerationLogs).mockResolvedValue(2);
+    const response = await POST(
+      new Request("http://localhost/api/cron/purge-coach-messages", {
+        method: "POST",
+        headers: { authorization: `Bearer ${cronSecret}` },
       }),
     );
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ removed: 4 });
-    expect(purgeExpiredCoachMessages).toHaveBeenCalledTimes(1);
+    await expect(response.json()).resolves.toEqual({ removed: 4, logs: 2 });
   });
 });

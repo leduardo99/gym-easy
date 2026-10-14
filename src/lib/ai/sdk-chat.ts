@@ -1,17 +1,16 @@
 import { isStepCount, streamText, tool, type LanguageModel } from "ai";
 
 import { CHAT_TOTAL_TIMEOUT_MS, FIRST_TOKEN_TIMEOUT_MS } from "./fallback";
-import { historyToolInputSchema, planChangeInputSchema } from "./schemas";
+import { historyToolInputSchema } from "./schemas";
 import {
   executeGetHistory,
-  executeProposePlanChange,
   type HistoryReader,
   type ProposalResult,
 } from "./tools";
-import type { ProposalStore } from "./proposals";
 
-const MAX_HISTORY_CALLS = 3;
-const MAX_PROPOSALS = 1;
+/** Três chamadas de ferramenta por mensagem. A resposta final cabe no passo seguinte. */
+export const MAX_COACH_TOOL_CALLS = 3;
+export const MAX_COACH_OUTPUT_TOKENS = 800;
 
 export type CoachStreamPart =
   | { type: "delta"; text: string }
@@ -25,15 +24,16 @@ export type CoachStreamPart =
 
 type StreamIterator = AsyncIterator<{ type: string } & Record<string, unknown>>;
 
+/**
+ * `propose_plan_change` fica de fora até existir `evaluateSafety` (LED-35).
+ * Sem essa avaliação a proposta não é gravada.
+ */
 export function createCoachTools(deps: {
   userId: string;
   now: Date;
-  planChangesAllowed: boolean;
   readHistory: HistoryReader;
-  proposals: ProposalStore;
 }) {
   let historyCalls = 0;
-  let proposals = 0;
   return {
     get_history: tool({
       description:
@@ -41,29 +41,13 @@ export function createCoachTools(deps: {
       inputSchema: historyToolInputSchema,
       execute: async (input) => {
         historyCalls += 1;
-        if (historyCalls > MAX_HISTORY_CALLS) {
+        if (historyCalls > MAX_COACH_TOOL_CALLS) {
           throw new Error("invalid tool input");
         }
         return executeGetHistory(input, {
           userId: deps.userId,
           read: deps.readHistory,
           now: deps.now,
-        });
-      },
-    }),
-    propose_plan_change: tool({
-      description:
-        "Cria uma proposta de mudança no plano. Não aplica a mudança; o usuário confirma depois.",
-      inputSchema: planChangeInputSchema,
-      execute: async (input) => {
-        proposals += 1;
-        if (proposals > MAX_PROPOSALS) {
-          throw new Error("invalid tool input");
-        }
-        return executeProposePlanChange(input, {
-          userId: deps.userId,
-          planChangesAllowed: deps.planChangesAllowed,
-          proposals: deps.proposals,
         });
       },
     }),
@@ -129,7 +113,20 @@ export async function beginCoachStream(input: {
     system: input.system,
     prompt: input.prompt,
     tools: input.tools,
-    stopWhen: isStepCount(8),
+    maxOutputTokens: MAX_COACH_OUTPUT_TOKENS,
+    stopWhen: [
+      ({ steps }) => {
+        const calls = steps.reduce(
+          (total, step) => total + step.toolCalls.length,
+          0,
+        );
+        const last = steps.at(-1);
+        return (
+          calls >= MAX_COACH_TOOL_CALLS && (last?.toolCalls.length ?? 0) === 0
+        );
+      },
+      isStepCount(MAX_COACH_TOOL_CALLS + 1),
+    ],
     maxRetries: 0,
     abortSignal: input.signal,
     timeout: {

@@ -2,13 +2,16 @@ import type { AppDatabase } from "@/db";
 import type { ConsentPurpose } from "@/db/domain";
 import { isAllowedNext } from "@/features/auth/destination";
 
+import { CONSENT_TEXTS } from "@/consent/texts";
+
 import type { ConsentEvent } from "./repository";
 import { createConsentRepository } from "./repository";
 
-/** Finalidades que a página pode gravar. `coach_chat` fica de fora até o enum. */
+/** Finalidades que a página pode gravar, incluindo o chat. */
 export const RECONSENT_SCOPES = [
   "body_data",
   "coach_health",
+  "coach_chat",
   "analytics",
 ] as const satisfies readonly ConsentPurpose[];
 
@@ -64,6 +67,7 @@ export type ReconsentSubmission = {
   scope: string;
   intent: "grant" | "refuse";
   accepted: boolean;
+  transferAccepted?: boolean;
 };
 
 export type ReconsentSubmissionResult =
@@ -82,6 +86,9 @@ export async function submitReconsent(
   if (!scope) return { status: "invalid_scope" };
   if (input.intent === "refuse") return { status: "refused" };
   if (!input.accepted) return { status: "needs_checkbox" };
+  if (CONSENT_TEXTS[scope].transferCheckbox && !input.transferAccepted) {
+    return { status: "needs_checkbox" };
+  }
 
   const saved = await createConsentRepository(db).recordConsent(userId, {
     purpose: scope,

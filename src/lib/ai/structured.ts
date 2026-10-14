@@ -2,6 +2,7 @@ import { generateText, Output, streamText, type LanguageModel } from "ai";
 import type { z } from "zod";
 
 import { CHAT_TOTAL_TIMEOUT_MS } from "./fallback";
+import { MAX_COACH_OUTPUT_TOKENS } from "./sdk-chat";
 
 /**
  * Saída estruturada no AI SDK 7: `generateText` / `streamText` com
@@ -19,6 +20,7 @@ export async function generateStructured<T>(input: {
     system: input.system,
     prompt: input.prompt,
     output: Output.object({ schema: input.schema }),
+    maxOutputTokens: MAX_COACH_OUTPUT_TOKENS,
     maxRetries: 0,
     abortSignal: input.abortSignal,
     timeout: { totalMs: CHAT_TOTAL_TIMEOUT_MS },
@@ -42,6 +44,7 @@ export function streamStructured<T>(input: {
     system: input.system,
     prompt: input.prompt,
     output: Output.object({ schema: input.schema }),
+    maxOutputTokens: MAX_COACH_OUTPUT_TOKENS,
     maxRetries: 0,
     abortSignal: input.abortSignal,
     timeout: {

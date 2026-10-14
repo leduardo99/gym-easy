@@ -3,20 +3,28 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bodyMeasurements } from "@/db/schema";
 import { createDrizzleRateLimiter } from "@/features/auth/drizzle-rate-limiter";
-import { createConsentRepository } from "@/features/consent/repository";
+import {
+  createConsentRepository,
+  isCurrentConsent,
+} from "@/features/consent/repository";
+import type { ConsentPurpose } from "@/db/domain";
 import { createTrainingRepository } from "@/features/training/repository";
 import { getServerEnv } from "@/lib/env";
 
 import { UNAVAILABLE_RESPONSE } from "./copy";
-import type { CoachProfileSource } from "./context";
-import { classifyProviderFailure, runModelFallback } from "./fallback";
+import type { CoachProfileSource, ConsentFreshness } from "./context";
+import {
+  classifyProviderFailure,
+  linkAbortSignals,
+  runModelFallback,
+} from "./fallback";
 import { readExerciseHistory } from "./history";
 import { hashUserId, toAiLogRecord, writeAiLog } from "./log";
 import {
-  createDrizzleProposalStore,
   createDrizzleRedFlagLockStore,
   insertAiGenerationLog,
   insertCoachMessage,
+  userMessageToStore,
 } from "./messages";
 import { sanitizeCoachOutput, FILTERED_OUTPUT } from "./output";
 import { COACH_PROMPT_VERSION, renderCoachPrompt } from "./prompts";
@@ -92,17 +100,36 @@ function record(input: {
   return log;
 }
 
+function consentFreshness(
+  event:
+    | {
+        purpose: ConsentPurpose;
+        action: "granted" | "revoked";
+        version: string;
+        textSha256: string;
+      }
+    | undefined,
+): ConsentFreshness {
+  if (!event || event.action !== "granted") return "missing";
+  return isCurrentConsent(event) ? "current" : "stale";
+}
+
 export async function createCoachHttpResponse(input: {
   userId: string;
   body: unknown;
   now: Date;
+  signal?: AbortSignal;
 }): Promise<Response> {
   const db = getDb();
   const env = getServerEnv();
   const startedAt = input.now.getTime();
   const requestId = crypto.randomUUID();
-  const [current, profileRow, weightRows] = await Promise.all([
-    createConsentRepository(db).currentConsent(input.userId),
+  const consentEvents = await createConsentRepository(db).listConsents(
+    input.userId,
+  );
+  const latestConsent = (purpose: ConsentPurpose) =>
+    consentEvents.find((event) => event.purpose === purpose);
+  const [profileRow, weightRows] = await Promise.all([
     createTrainingRepository(db).getProfile(input.userId),
     db
       .select({ weightKg: bodyMeasurements.weightKg })
@@ -132,8 +159,9 @@ export async function createCoachHttpResponse(input: {
     message: input.body,
     now: input.now,
     consents: {
-      bodyData: current.body_data !== undefined,
-      coachHealth: current.coach_health !== undefined,
+      bodyData: consentFreshness(latestConsent("body_data")),
+      coachHealth: consentFreshness(latestConsent("coach_health")),
+      coachChat: consentFreshness(latestConsent("coach_chat")),
     },
     profile,
     weightKg: weightKg !== null && Number.isFinite(weightKg) ? weightKg : null,
@@ -167,16 +195,25 @@ export async function createCoachHttpResponse(input: {
         typeof input.body.message === "string"
           ? input.body.message
           : null;
-      if (message && assessed.result.status !== "validation_rejected") {
+      const storedUser = message
+        ? userMessageToStore(assessed.result.risk, message)
+        : null;
+      const blocked =
+        assessed.result.status === "validation_rejected" ||
+        assessed.result.status === "consent_missing" ||
+        assessed.result.status === "reconsent_required";
+      if (!blocked && assessed.result.risk !== "red_flag" && storedUser) {
         await insertCoachMessage(db, {
           userId: input.userId,
           role: "user",
-          content: message,
+          content: storedUser,
           risk: assessed.result.risk,
           model: null,
           dataPolicy: null,
           promptVersion: null,
         });
+      }
+      if (!blocked) {
         await insertCoachMessage(db, {
           userId: input.userId,
           role: "assistant",
@@ -249,10 +286,8 @@ export async function createCoachHttpResponse(input: {
   const tools = createCoachTools({
     userId: input.userId,
     now: input.now,
-    planChangesAllowed: assessed.planChangesAllowed,
     readHistory: (userId, exerciseId, days, now) =>
       readExerciseHistory(db, userId, exerciseId, days, now),
-    proposals: createDrizzleProposalStore(db),
   });
 
   const encoder = new TextEncoder();
@@ -266,12 +301,13 @@ export async function createCoachHttpResponse(input: {
       const generated = await runModelFallback({
         models: env.COACH_MODELS,
         sleep: turnInput.sleep,
+        stopSignal: input.signal,
         call: async (attempt) => {
           const opened = await beginCoachStream({
             model: openRouterChatModel(provider, attempt.model, attempt.policy),
             system: rendered.system,
             prompt: rendered.prompt,
-            signal: attempt.signal,
+            signal: linkAbortSignals(attempt.signal, input.signal),
             tools,
           });
           attempt.markFirstToken();

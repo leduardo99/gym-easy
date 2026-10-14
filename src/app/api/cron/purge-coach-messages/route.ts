@@ -1,19 +1,25 @@
 import { connection } from "next/server";
 
 import { getDb } from "@/db";
-import { purgeExpiredCoachMessages } from "@/lib/ai/messages";
+import {
+  purgeExpiredAiGenerationLogs,
+  purgeExpiredCoachMessages,
+} from "@/lib/ai/messages";
+import { unauthorizedCron } from "@/lib/cron-auth";
 
 export const instant = false;
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   await connection();
+  const denied = unauthorizedCron(request);
+  if (denied) return denied;
 
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization");
-  if (!secret || authorization !== `Bearer ${secret}`) {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const db = getDb();
+  const removed = await purgeExpiredCoachMessages(db);
+  const logs = await purgeExpiredAiGenerationLogs(db);
+  return Response.json({ removed, logs });
+}
 
-  const removed = await purgeExpiredCoachMessages(getDb());
-  return Response.json({ removed });
+export async function GET() {
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
 }

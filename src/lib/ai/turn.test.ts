@@ -32,7 +32,11 @@ function harness() {
         userId: "user-1",
         message,
         now,
-        consents: { bodyData: true, coachHealth: true },
+        consents: {
+          bodyData: "current",
+          coachHealth: "current",
+          coachChat: "current",
+        },
         profile,
         weightKg: 64,
         limiter: createMemoryRateLimiter(() => now.getTime()),
@@ -92,7 +96,11 @@ describe("coach risk gate", () => {
       userId: "user-1",
       message: "qual treino eu faço?",
       now: new Date("2026-10-14T12:00:00.000Z"),
-      consents: { bodyData: true, coachHealth: false },
+      consents: {
+        bodyData: "current",
+        coachHealth: "current",
+        coachChat: "missing",
+      },
       profile,
       weightKg: 64,
       limiter: createMemoryRateLimiter(),
@@ -104,6 +112,33 @@ describe("coach risk gate", () => {
     });
 
     expect(result.status).toBe("consent_missing");
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("blocks the model when coach consent is still the previous version", async () => {
+    const callModel = vi.fn(async () => ({ text: "não" }));
+    const result = await handleCoachTurn({
+      userId: "user-1",
+      message: "qual treino eu faço?",
+      now: new Date("2026-10-14T12:00:00.000Z"),
+      consents: {
+        bodyData: "current",
+        coachHealth: "stale",
+        coachChat: "stale",
+      },
+      profile,
+      weightKg: 64,
+      limiter: createMemoryRateLimiter(),
+      locks: createMemoryRedFlagLockStore(),
+      callModel,
+      log: () => undefined,
+      sleep: async () => undefined,
+      models: ["alpha/example:free"],
+    });
+
+    expect(result.status).toBe("reconsent_required");
+    expect(result.httpStatus).toBe(403);
+    expect(result.text).toMatch(/versão atual/);
     expect(callModel).not.toHaveBeenCalled();
   });
 });

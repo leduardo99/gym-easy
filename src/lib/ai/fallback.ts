@@ -202,6 +202,7 @@ async function runPhase<T>(input: {
   maxAttempts: number;
   attempts: FallbackAttempt[];
   waitedMs: { value: number };
+  stopSignal?: AbortSignal;
 }): Promise<
   | { ok: true; value: T; model: string }
   | { ok: false; sawLiveEndpoint: boolean }
@@ -210,6 +211,15 @@ async function runPhase<T>(input: {
 
   for (const model of input.models) {
     for (let attempt = 0; attempt < input.maxAttempts; attempt += 1) {
+      if (input.stopSignal?.aborted) {
+        input.attempts.push({
+          model,
+          policy: input.policy,
+          outcome: "timeout",
+          attempt,
+        });
+        return { ok: false, sawLiveEndpoint: true };
+      }
       const controller = createAttemptController({
         firstTokenMs: FIRST_TOKEN_TIMEOUT_MS,
         totalMs: CHAT_TOTAL_TIMEOUT_MS,
@@ -230,6 +240,15 @@ async function runPhase<T>(input: {
         });
         return { ok: true, value, model };
       } catch (error) {
+        if (input.stopSignal?.aborted) {
+          input.attempts.push({
+            model,
+            policy: input.policy,
+            outcome: "timeout",
+            attempt,
+          });
+          return { ok: false, sawLiveEndpoint: true };
+        }
         const failure = classifyProviderFailure(error);
         input.attempts.push({
           model,
@@ -264,11 +283,28 @@ async function runPhase<T>(input: {
  * Prefere endpoint sem retenção e sem treino. Só desce para qualquer modelo
  * `:free` quando nenhum endpoint ZDR existe. Exceção de uso pessoal.
  */
+export function linkAbortSignals(
+  left: AbortSignal,
+  right: AbortSignal | undefined,
+): AbortSignal {
+  if (!right) return left;
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (left.aborted || right.aborted) {
+    controller.abort();
+    return controller.signal;
+  }
+  left.addEventListener("abort", abort, { once: true });
+  right.addEventListener("abort", abort, { once: true });
+  return controller.signal;
+}
+
 export async function runModelFallback<T>(options: {
   models: string[];
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
   maxAttempts?: number;
+  stopSignal?: AbortSignal;
 }): Promise<FallbackResult<T>> {
   const attempts: FallbackAttempt[] = [];
   const waitedMs = { value: 0 };
@@ -286,6 +322,7 @@ export async function runModelFallback<T>(options: {
     maxAttempts,
     attempts,
     waitedMs,
+    stopSignal: options.stopSignal,
   });
   if (preferred.ok) {
     return {
@@ -309,6 +346,7 @@ export async function runModelFallback<T>(options: {
       maxAttempts,
       attempts,
       waitedMs,
+      stopSignal: options.stopSignal,
     });
     if (open.ok) {
       return {

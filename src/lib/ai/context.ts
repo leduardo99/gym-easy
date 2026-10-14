@@ -14,14 +14,23 @@ export type CoachProfileSource = {
   trainingPlace: TrainingPlace | null;
 };
 
-/**
- * Consentimentos já gravados em `consent_log`.
- * `coach_chat` entra aqui quando a LED-53 adicionar o valor ao enum.
- */
+/** `current` é a versão publicada. `stale` é um grant antigo, como a -14c. */
+export type ConsentFreshness = "current" | "stale" | "missing";
+
 export type CoachConsents = {
-  bodyData: boolean;
-  coachHealth: boolean;
+  bodyData: ConsentFreshness;
+  coachHealth: ConsentFreshness;
+  coachChat: ConsentFreshness;
 };
+
+export function coachConsentStatus(
+  consents: CoachConsents,
+): "ok" | "reconsent_required" | "consent_missing" {
+  const values = [consents.bodyData, consents.coachHealth, consents.coachChat];
+  if (values.includes("stale")) return "reconsent_required";
+  if (values.some((value) => value !== "current")) return "consent_missing";
+  return "ok";
+}
 
 export type CoachContextResult =
   | { ok: true; context: CoachContext }
@@ -36,7 +45,7 @@ export function buildCoachContext(input: {
   consents: CoachConsents;
   now: Date;
 }): CoachContextResult {
-  if (!input.consents.bodyData || !input.consents.coachHealth) {
+  if (coachConsentStatus(input.consents) !== "ok") {
     return { ok: false, reason: "consent_missing" };
   }
   if (input.profile.birthYear === null) {

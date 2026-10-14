@@ -6,6 +6,7 @@ import {
   INJECTION_RESPONSE,
   PROFILE_RESPONSE,
   RATE_LIMIT_RESPONSE,
+  RECONSENT_RESPONSE,
   RED_FLAG_RESPONSE,
   SELF_HARM_RESPONSE,
   UNAVAILABLE_RESPONSE,
@@ -14,6 +15,7 @@ import {
 } from "./copy";
 import {
   buildCoachContext,
+  coachConsentStatus,
   type CoachConsents,
   type CoachProfileSource,
 } from "./context";
@@ -28,7 +30,10 @@ import type {
   DataPolicy,
 } from "./schemas";
 import { coachChatInputSchema } from "./schemas";
-import { consumeDailyBudget } from "./rate-limit";
+import {
+  consumeDailyBudget,
+  consumeGlobalOpenRouterBudget,
+} from "./rate-limit";
 
 export type CoachModelRequest = ModelAttempt & {
   planChangesAllowed: boolean;
@@ -43,6 +48,7 @@ export type TurnStatus =
   | "rate_limited"
   | "validation_rejected"
   | "consent_missing"
+  | "reconsent_required"
   | "unavailable"
   | "profile_incomplete";
 
@@ -146,7 +152,16 @@ export async function assessCoachTurn(
     });
   }
 
-  if (!input.consents.bodyData || !input.consents.coachHealth) {
+  const consent = coachConsentStatus(input.consents);
+  if (consent === "reconsent_required") {
+    return shell(
+      "reconsent_required",
+      403,
+      RECONSENT_RESPONSE,
+      "validation_rejected",
+    );
+  }
+  if (consent === "consent_missing") {
     return shell(
       "consent_missing",
       403,
@@ -171,6 +186,17 @@ export async function assessCoachTurn(
     return shell("rate_limited", 429, RATE_LIMIT_RESPONSE, "rate_limited", {
       risk: risk.risk,
       retryAfterSeconds: budget.retryAfterSeconds,
+    });
+  }
+
+  const globalBudget = await consumeGlobalOpenRouterBudget(
+    input.limiter,
+    input.now,
+  );
+  if (!globalBudget.allowed) {
+    return shell("rate_limited", 429, RATE_LIMIT_RESPONSE, "rate_limited", {
+      risk: risk.risk,
+      retryAfterSeconds: globalBudget.retryAfterSeconds,
     });
   }
 
