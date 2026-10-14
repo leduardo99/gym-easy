@@ -38,6 +38,44 @@ describe("createResendEmailSender", () => {
     expect(body.text).toBe(copy.accountExistsNotice);
   });
 
+  it("logs the error name, status, and message without the key, address, or body", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            statusCode: 422,
+            name: "validation_error",
+            message:
+              "Invalid `to` field. ana@example.com was rejected by test-resend-key",
+            body: "raw-body-should-not-be-logged",
+          }),
+          { status: 422 },
+        ),
+    );
+    const sender = createResendEmailSender({
+      apiKey: "test-resend-key",
+      from: DEFAULT_EMAIL_FROM,
+      fetchImpl,
+    });
+
+    await expect(
+      sender.sendAccountExistsNotice({ to: "ana@example.com" }),
+    ).rejects.toThrow("email_send_failed");
+    expect(error).toHaveBeenCalledWith(
+      "email.resend_response",
+      422,
+      "validation_error",
+      "Invalid `to` field. [redacted] was rejected by [redacted]",
+    );
+    const logged = error.mock.calls.flat().join(" ");
+    expect(logged).toContain("`to`");
+    expect(logged).not.toContain("test-resend-key");
+    expect(logged).not.toContain("ana@example.com");
+    expect(logged).not.toContain("raw-body-should-not-be-logged");
+    error.mockRestore();
+  });
+
   it("does not create a Resend account or domain", async () => {
     const fetchImpl = vi.fn<typeof fetch>(
       async () => new Response("{}", { status: 200 }),

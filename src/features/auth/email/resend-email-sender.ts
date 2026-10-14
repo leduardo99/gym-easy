@@ -3,6 +3,55 @@ import type { EmailSender } from "./types";
 
 export const RESEND_EMAILS_URL = "https://api.resend.com/emails";
 
+function safeResendMessage(value: unknown, apiKey: string): string {
+  if (typeof value !== "string") return "unknown";
+  const emailAddress =
+    /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/gi;
+  let message = value.replace(emailAddress, "[redacted]");
+  if (apiKey.length > 0) message = message.split(apiKey).join("[redacted]");
+  message = message.replace(/\s+/g, " ").trim();
+  if (message.length === 0) return "unknown";
+  return message.slice(0, 200);
+}
+
+function resendFailure(
+  httpStatus: number,
+  body: string,
+  apiKey: string,
+): { statusCode: number; name: string; message: string } {
+  let statusCode = httpStatus;
+  let name = "unknown";
+  let message = "unknown";
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === "object") {
+      const record = parsed as {
+        statusCode?: unknown;
+        name?: unknown;
+        message?: unknown;
+      };
+      if (
+        typeof record.statusCode === "number" &&
+        Number.isInteger(record.statusCode) &&
+        record.statusCode >= 100 &&
+        record.statusCode <= 599
+      ) {
+        statusCode = record.statusCode;
+      }
+      if (
+        typeof record.name === "string" &&
+        /^[a-z0-9_]{1,64}$/i.test(record.name)
+      ) {
+        name = record.name;
+      }
+      message = safeResendMessage(record.message, apiKey);
+    }
+  } catch {
+    // Keep the HTTP status when the body is not JSON.
+  }
+  return { statusCode, name, message };
+}
+
 export function createResendEmailSender(options: {
   apiKey: string;
   from: string;
@@ -29,6 +78,17 @@ export function createResendEmailSender(options: {
       }),
     });
     if (!response.ok) {
+      const failure = resendFailure(
+        response.status,
+        await response.text(),
+        options.apiKey,
+      );
+      console.error(
+        "email.resend_response",
+        failure.statusCode,
+        failure.name,
+        failure.message,
+      );
       throw new Error("email_send_failed");
     }
   }

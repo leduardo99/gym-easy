@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BUILD_CONFIRM_EMAIL_SECRET,
   BUILD_CONSENT_PSEUDONYM_KEY,
   BUILD_DATABASE_URL,
   DEFAULT_EMAIL_FROM,
@@ -8,6 +9,7 @@ import {
 } from "./env";
 
 const validUrl = "postgresql://user:password@localhost:5432/gym_easy";
+const confirmSecret = "confirm-email-secret-for-unit-tests-00";
 const validConsentKey = "consent-pseudonym-test-key-32b!!";
 
 describe("readServerEnv", () => {
@@ -17,6 +19,7 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
       }),
     ).toEqual({
@@ -25,6 +28,7 @@ describe("readServerEnv", () => {
       RESEND_API_KEY: null,
       EMAIL_FROM: DEFAULT_EMAIL_FROM,
       EMAIL_CAPTURE_PATH: null,
+      CONFIRM_EMAIL_SECRET: confirmSecret,
       CONSENT_PSEUDONYM_KEY: validConsentKey,
     });
   });
@@ -37,12 +41,14 @@ describe("readServerEnv", () => {
         RESEND_API_KEY: "test-resend-key",
         EMAIL_FROM: "Gym Easy <treino@example.com>",
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
       }),
     ).toMatchObject({
       RESEND_API_KEY: "test-resend-key",
       EMAIL_FROM: "Gym Easy <treino@example.com>",
       EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+      CONFIRM_EMAIL_SECRET: confirmSecret,
     });
   });
 
@@ -52,6 +58,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         EMAIL_FROM: "treino@example.com",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
       }).EMAIL_FROM,
     ).toBe("treino@example.com");
@@ -60,6 +67,8 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
         EMAIL_FROM: "Gym Easy",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
       }),
     ).toThrow(/EMAIL_FROM/);
   });
@@ -71,6 +80,7 @@ describe("readServerEnv", () => {
         NODE_ENV: "production",
         VERCEL_ENV: "production",
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
       }).EMAIL_CAPTURE_PATH,
     ).toBeNull();
@@ -97,7 +107,28 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NEXT_PUBLIC_DATABASE_URL: validUrl,
         NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("requires a long confirm-email secret and keeps it server-only", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: "too-short",
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+      }),
+    ).toThrow(/CONFIRM_EMAIL_SECRET/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        NEXT_PUBLIC_CONFIRM_EMAIL_SECRET: confirmSecret,
       }),
     ).toThrow(/NEXT_PUBLIC_/);
   });
@@ -108,6 +139,7 @@ describe("readServerEnv", () => {
         DATABASE_URL: validUrl,
         NEXT_PUBLIC_RESEND_API_KEY: "test-resend-key",
         NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
       }),
     ).toThrow(/NEXT_PUBLIC_/);
@@ -118,8 +150,12 @@ describe("readServerEnv", () => {
       readServerEnv({
         NODE_ENV: "production",
         NEXT_PHASE: "phase-production-build",
-      }).DATABASE_URL,
-    ).toBe(BUILD_DATABASE_URL);
+      }),
+    ).toMatchObject({
+      DATABASE_URL: BUILD_DATABASE_URL,
+      CONFIRM_EMAIL_SECRET: BUILD_CONFIRM_EMAIL_SECRET,
+      CONSENT_PSEUDONYM_KEY: BUILD_CONSENT_PSEUDONYM_KEY,
+    });
   });
 
   it("does not treat the npm build lifecycle as a next production build", () => {
@@ -127,6 +163,7 @@ describe("readServerEnv", () => {
       readServerEnv({
         NODE_ENV: "production",
         npm_lifecycle_event: "build",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
       }),
     ).toThrow(/DATABASE_URL/);
@@ -137,16 +174,22 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
       }).CONSENT_PSEUDONYM_KEY,
     ).toBe(validConsentKey);
     expect(() =>
-      readServerEnv({ DATABASE_URL: validUrl, NODE_ENV: "test" }),
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+      }),
     ).toThrow(/CONSENT_PSEUDONYM_KEY/);
     expect(() =>
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: "too-short",
       }),
     ).toThrow(/CONSENT_PSEUDONYM_KEY/);
@@ -154,6 +197,7 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
         NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY: validConsentKey,
       }),

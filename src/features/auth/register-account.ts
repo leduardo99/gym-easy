@@ -16,6 +16,23 @@ import { CONFIRMATION_TTL_MS } from "./session-policy";
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
+function logSignupEmailFailure(error: unknown) {
+  console.error(
+    "auth.signup_email_failed",
+    error instanceof Error ? error.name : "error",
+  );
+}
+
+function deliverQuietly(send: () => Promise<void>): () => Promise<void> {
+  return async () => {
+    try {
+      await send();
+    } catch (error) {
+      logSignupEmailFailure(error);
+    }
+  };
+}
+
 export type RegisterResult =
   | { status: "pending"; email: string; deliver: () => Promise<void> }
   | { status: "invalid"; fieldErrors: FieldErrors }
@@ -83,8 +100,9 @@ export async function registerAccount(
         email: parsed.data.email,
         passwordHash: await deps.hasher.hash(parsed.data.password),
       });
-      deliver = () =>
-        deps.emails.sendAccountExistsNotice({ to: parsed.data.email });
+      deliver = deliverQuietly(() =>
+        deps.emails.sendAccountExistsNotice({ to: parsed.data.email }),
+      );
     } else {
       const id = deps.createId();
       const passwordHash = await deps.hasher.hash(parsed.data.password);
@@ -95,14 +113,15 @@ export async function registerAccount(
         passwordHash,
       });
       if (outcome === "exists") {
-        deliver = () =>
-          deps.emails.sendAccountExistsNotice({ to: parsed.data.email });
+        deliver = deliverQuietly(() =>
+          deps.emails.sendAccountExistsNotice({ to: parsed.data.email }),
+        );
       } else {
         const token = deps.createToken();
         const tokenHash = sha256(token);
         const expiresAt = new Date(input.now.getTime() + CONFIRMATION_TTL_MS);
         const confirmUrl = `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`;
-        deliver = async () => {
+        deliver = deliverQuietly(async () => {
           await deps.users.saveVerificationToken({
             tokenHash,
             userId: id,
@@ -112,7 +131,7 @@ export async function registerAccount(
             to: parsed.data.email,
             confirmUrl,
           });
-        };
+        });
       }
     }
   } catch {

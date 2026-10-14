@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { getServerEnv } from "@/lib/env";
 
 import { confirmEmail } from "./confirm-email";
+import { openConfirmEmail, sealConfirmEmail } from "./confirm-email-cookie";
 import { copy, rateLimitMessage } from "./copy";
 import { postAuthDestination } from "./destination";
 import { createDrizzleRateLimiter } from "./drizzle-rate-limiter";
@@ -143,7 +144,7 @@ export async function signupAction(input: unknown): Promise<AuthActionResult> {
       const jar = await cookies();
       jar.set(
         CONFIRM_EMAIL_COOKIE_NAME,
-        result.email,
+        sealConfirmEmail(result.email, getServerEnv().CONFIRM_EMAIL_SECRET),
         confirmEmailCookieOptions(context.secure),
       );
       return {
@@ -267,7 +268,11 @@ export async function resendConfirmationAction(): Promise<ResendActionResult> {
   const context = await mutationContext();
   if (!context) return { ok: false, formError: serverError() };
   const jar = await cookies();
-  const email = jar.get(CONFIRM_EMAIL_COOKIE_NAME)?.value ?? "";
+  const email =
+    openConfirmEmail(
+      jar.get(CONFIRM_EMAIL_COOKIE_NAME)?.value ?? "",
+      getServerEnv().CONFIRM_EMAIL_SECRET,
+    ) ?? "";
 
   try {
     const result = await resendConfirmation(
@@ -288,7 +293,15 @@ export async function resendConfirmationAction(): Promise<ResendActionResult> {
           }),
       },
     );
-    if (result.status === "sent") return { ok: true };
+    if (result.status === "sent") {
+      const deliver = result.deliver;
+      after(() =>
+        deliver().catch((error: unknown) => {
+          logAuthFailure("auth.resend_email_failed", error);
+        }),
+      );
+      return { ok: true };
+    }
     if (result.status === "cooldown") {
       return {
         ok: false,

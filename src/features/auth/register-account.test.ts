@@ -118,6 +118,44 @@ describe("registerAccount", () => {
     });
   });
 
+  it("stays pending when the email send fails on both branches", async () => {
+    const users = createMemoryUserStore();
+    const failing: EmailSender = {
+      async sendAccountConfirmation() {
+        throw new Error("email_send_failed");
+      },
+      async sendAccountExistsNotice() {
+        throw new Error("email_send_failed");
+      },
+    };
+    const deps = {
+      users,
+      emails: failing,
+      hasher: hasher([]),
+      breaches: { isBreached: async () => false },
+      rateLimiter: createMemoryRateLimiter(),
+      createId: () => "user-1",
+      createToken: () => "raw-token",
+    };
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const created = await registerAccount(base, deps);
+    deps.createId = () => "user-2";
+    const duplicate = await registerAccount(
+      { ...base, password: "outra senha longa" },
+      deps,
+    );
+
+    expect(created).toMatchObject({ status: "pending", email: "ana@x.com" });
+    expect(duplicate).toMatchObject({ status: "pending", email: "ana@x.com" });
+    if (created.status !== "pending" || duplicate.status !== "pending") return;
+    await expect(created.deliver()).resolves.toBeUndefined();
+    await expect(duplicate.deliver()).resolves.toBeUndefined();
+    const logged = error.mock.calls.flat().join(" ");
+    expect(logged).toContain("auth.signup_email_failed");
+    expect(logged).not.toContain("ana@x.com");
+    error.mockRestore();
+  });
+
   it("rejects a breached password before looking up the email", async () => {
     const users = createMemoryUserStore();
     const find = vi.spyOn(users, "findUserByEmail");
