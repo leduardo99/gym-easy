@@ -8,6 +8,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
@@ -17,12 +18,16 @@ import {
 
 import { EQUIPMENT, MUSCLE_GROUPS } from "./catalog";
 import {
+  CONSENT_ACTIONS,
+  CONSENT_PURPOSES,
+  CONSENT_SOURCES,
   GOAL_VALUES,
   LEVEL_VALUES,
   MASS_UNIT_VALUES,
   SESSION_STATUS_VALUES,
   SEX_VALUES,
   THEME_VALUES,
+  TRAINING_PLACE_VALUES,
 } from "./domain";
 
 /**
@@ -92,6 +97,13 @@ export const authRateLimits = pgTable("auth_rate_limits", {
 
 export const sexEnum = pgEnum("sex", SEX_VALUES);
 export const goalEnum = pgEnum("goal", GOAL_VALUES);
+export const trainingPlaceEnum = pgEnum(
+  "training_place",
+  TRAINING_PLACE_VALUES,
+);
+export const consentPurposeEnum = pgEnum("consent_purpose", CONSENT_PURPOSES);
+export const consentActionEnum = pgEnum("consent_action", CONSENT_ACTIONS);
+export const consentSourceEnum = pgEnum("consent_source", CONSENT_SOURCES);
 export const trainingLevelEnum = pgEnum("training_level", LEVEL_VALUES);
 export const massUnitEnum = pgEnum("mass_unit", MASS_UNIT_VALUES);
 export const themeEnum = pgEnum("theme", THEME_VALUES);
@@ -108,11 +120,14 @@ export const userProfiles = pgTable(
     userId: uuid("user_id")
       .primaryKey()
       .references(() => users.id, { onDelete: "cascade" }),
-    birthDate: date("birth_date"),
+    birthYear: smallint("birth_year"),
     sex: sexEnum("sex"),
     heightCm: integer("height_cm"),
     goal: goalEnum("goal"),
     trainingLevel: trainingLevelEnum("training_level"),
+    daysPerWeek: integer("days_per_week"),
+    sessionMinutes: integer("session_minutes"),
+    trainingPlace: trainingPlaceEnum("training_place"),
     massUnit: massUnitEnum("mass_unit").notNull().default("kg"),
     theme: themeEnum("theme").notNull().default("dark"),
     defaultRestSeconds: integer("default_rest_seconds").notNull().default(90),
@@ -125,12 +140,62 @@ export const userProfiles = pgTable(
   },
   (table) => [
     check(
+      "user_profiles_birth_year_range",
+      sql`${table.birthYear} is null or ${table.birthYear} between extract(year from now()) - 100 and extract(year from now())`,
+    ),
+    check(
       "user_profiles_height_cm_range",
       sql`${table.heightCm} is null or ${table.heightCm} between 100 and 250`,
     ),
     check(
+      "user_profiles_days_per_week_range",
+      sql`${table.daysPerWeek} is null or ${table.daysPerWeek} between 2 and 6`,
+    ),
+    check(
+      "user_profiles_session_minutes",
+      sql`${table.sessionMinutes} is null or ${table.sessionMinutes} in (30, 45, 60, 75, 90)`,
+    ),
+    check(
       "user_profiles_rest_range",
       sql`${table.defaultRestSeconds} between 15 and 600`,
+    ),
+  ],
+);
+
+/**
+ * Append-only. A aplicação só insere. UPDATE e DELETE direto são recusados
+ * por trigger; o cascade ao apagar a conta passa porque a exclusão nasce do pai.
+ * Estado vigente = última linha por (user_id, purpose).
+ */
+export const consentLog = pgTable(
+  "consent_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    purpose: consentPurposeEnum("purpose").notNull(),
+    action: consentActionEnum("action").notNull(),
+    version: text("version").notNull(),
+    textSha256: text("text_sha256").notNull(),
+    source: consentSourceEnum("source").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("consent_log_user_purpose_created_idx").on(
+      table.userId,
+      table.purpose,
+      table.createdAt.desc(),
+    ),
+    check(
+      "consent_log_version_length",
+      sql`char_length(${table.version}) between 1 and 80`,
+    ),
+    check(
+      "consent_log_text_sha256_hex",
+      sql`${table.textSha256} ~ '^[a-f0-9]{64}$'`,
     ),
   ],
 );

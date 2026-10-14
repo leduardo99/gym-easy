@@ -7,9 +7,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AppDatabase } from "@/db";
 import { isLocalDatabaseUrl } from "@/db/driver";
 import * as schema from "@/db/schema";
-import { exercises, userProfiles, users } from "@/db/schema";
+import { consentLog, exercises, userProfiles, users } from "@/db/schema";
 import { CATALOG_EXERCISES } from "@/db/catalog";
 import { applyExerciseSeed } from "@/db/seed/apply-exercise-seed";
+import { createConsentRepository } from "@/features/consent/repository";
 
 import { createTrainingRepository } from "./repository";
 
@@ -23,6 +24,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
   const pool = new Pool({ connectionString: databaseUrl, max: 1 });
   const db = drizzle({ client: pool, schema });
   const repository = createTrainingRepository(db as unknown as AppDatabase);
+  const consents = createConsentRepository(db as unknown as AppDatabase);
 
   beforeAll(async () => {
     await migrate(db, { migrationsFolder: "src/db/migrations" });
@@ -31,6 +33,16 @@ describe.skipIf(!runIntegration)("training data access", () => {
   afterAll(async () => {
     await pool.end();
   });
+
+  function errorText(error: unknown): string {
+    const parts: string[] = [];
+    let current = error;
+    while (current instanceof Error) {
+      parts.push(current.message);
+      current = "cause" in current ? current.cause : undefined;
+    }
+    return parts.join("\n");
+  }
 
   async function insertUser(name: string): Promise<string> {
     const id = crypto.randomUUID();
@@ -65,12 +77,25 @@ describe.skipIf(!runIntegration)("training data access", () => {
     ).rejects.toThrow();
   });
 
+  it("stores birth year inside a rolling window and leaves age to the app", async () => {
+    const userId = await insertUser("Ano");
+    await expect(
+      db.insert(userProfiles).values({ userId, birthYear: 1800 }),
+    ).rejects.toThrow();
+    await db.insert(userProfiles).values({ userId, birthYear: 2010 });
+    const blocked = await repository.saveProfile(userId, { birthYear: 2010 });
+    expect(blocked.ok).toBe(false);
+    const allowed = await repository.saveProfile(userId, { birthYear: 2009 });
+    expect(allowed.ok).toBe(true);
+    if (allowed.ok) expect(allowed.value.birthYear).toBe(2009);
+  });
+
   it("keeps every query inside the session user", async () => {
     const ownerId = await insertUser("Dona");
     const intruderId = await insertUser("Intruso");
 
     const profile = await repository.saveProfile(ownerId, {
-      birthDate: "1999-01-02",
+      birthYear: 1992,
       sex: "female",
       heightCm: 168,
       goal: "strength",
@@ -84,15 +109,20 @@ describe.skipIf(!runIntegration)("training data access", () => {
     if (!profile.ok) expect(profile.error).toBe("invalid");
 
     const saved = await repository.saveProfile(ownerId, {
-      birthDate: "1999-01-02",
+      birthYear: 1992,
       heightCm: 168,
       goal: "strength",
       level: "advanced",
+      daysPerWeek: 4,
+      sessionMinutes: 60,
+      trainingPlace: "full_gym",
     });
     expect(saved.ok).toBe(true);
     expect(await repository.getProfile(intruderId)).toBeNull();
     const ownProfile = await repository.getProfile(ownerId);
-    expect(ownProfile?.birthDate).toBe("1999-01-02");
+    expect(ownProfile?.birthYear).toBe(1992);
+    expect(ownProfile?.daysPerWeek).toBe(4);
+    expect(ownProfile?.trainingPlace).toBe("full_gym");
     expect(ownProfile?.level).toBe("advanced");
     expect(ownProfile?.massUnit).toBe("kg");
     expect(ownProfile?.theme).toBe("dark");
@@ -334,5 +364,57 @@ describe.skipIf(!runIntegration)("training data access", () => {
       .where(eq(userProfiles.userId, userId));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.heightCm).toBe(180);
+    expect(rows[0]?.birthYear).toBeNull();
+  });
+
+  it("appends consent and treats revocation as a new event", async () => {
+    const ownerId = await insertUser("Consentimento");
+    const intruderId = await insertUser("Outro");
+    const granted = await consents.recordConsent(ownerId, {
+      purpose: "body_data",
+      action: "granted",
+      source: "onboarding",
+      userId: intruderId,
+    });
+    expect(granted.ok).toBe(false);
+
+    const saved = await consents.recordConsent(ownerId, {
+      purpose: "body_data",
+      action: "granted",
+      source: "onboarding",
+    });
+    expect(saved.ok).toBe(true);
+    const revoked = await consents.recordConsent(ownerId, {
+      purpose: "body_data",
+      action: "revoked",
+      source: "profile",
+    });
+    expect(revoked.ok).toBe(true);
+    const current = await consents.currentConsent(ownerId);
+    expect(current.body_data?.action).toBe("revoked");
+    expect(await consents.listConsents(intruderId)).toEqual([]);
+    expect(await consents.listConsents(ownerId)).toHaveLength(2);
+
+    const rowId = saved.ok ? saved.value.id : "";
+    await expect(
+      db
+        .update(consentLog)
+        .set({ action: "granted" })
+        .where(eq(consentLog.id, rowId)),
+    ).rejects.toSatisfy((error: unknown) =>
+      errorText(error).includes("append-only"),
+    );
+    await expect(
+      db.delete(consentLog).where(eq(consentLog.id, rowId)),
+    ).rejects.toSatisfy((error: unknown) =>
+      errorText(error).includes("append-only"),
+    );
+
+    await db.delete(users).where(eq(users.id, ownerId));
+    const leftover = await db
+      .select({ id: consentLog.id })
+      .from(consentLog)
+      .where(eq(consentLog.userId, ownerId));
+    expect(leftover).toEqual([]);
   });
 });

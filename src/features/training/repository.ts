@@ -19,6 +19,7 @@ import type {
   Sex,
   ThemePreference,
   TrainingLevel,
+  TrainingPlace,
 } from "@/db/domain";
 import {
   bodyMeasurements,
@@ -51,11 +52,14 @@ export type RepoResult<T> =
 
 export type ProfileRecord = {
   userId: string;
-  birthDate: string | null;
+  birthYear: number | null;
   sex: Sex | null;
   heightCm: number | null;
   goal: Goal | null;
   level: TrainingLevel | null;
+  daysPerWeek: number | null;
+  sessionMinutes: number | null;
+  trainingPlace: TrainingPlace | null;
   massUnit: MassUnit;
   theme: ThemePreference;
   defaultRestSeconds: number;
@@ -150,30 +154,36 @@ function asDateString(value: Date | string): string {
   return value.slice(0, 10);
 }
 
-function todayUtc(now = new Date()): string {
-  return now.toISOString().slice(0, 10);
-}
-
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
 function profileColumns(data: ProfileInput) {
   const columns: {
-    birthDate?: string | null;
+    birthYear?: number | null;
     sex?: ProfileInput["sex"];
     heightCm?: number | null;
     goal?: ProfileInput["goal"];
     trainingLevel?: ProfileInput["level"];
+    daysPerWeek?: number | null;
+    sessionMinutes?: number | null;
+    trainingPlace?: ProfileInput["trainingPlace"];
     massUnit?: ProfileInput["massUnit"];
     theme?: ProfileInput["theme"];
     defaultRestSeconds?: number;
   } = {};
-  if (data.birthDate !== undefined) columns.birthDate = data.birthDate;
+  if (data.birthYear !== undefined) columns.birthYear = data.birthYear;
   if (data.sex !== undefined) columns.sex = data.sex;
   if (data.heightCm !== undefined) columns.heightCm = data.heightCm;
   if (data.goal !== undefined) columns.goal = data.goal;
   if (data.level !== undefined) columns.trainingLevel = data.level;
+  if (data.daysPerWeek !== undefined) columns.daysPerWeek = data.daysPerWeek;
+  if (data.sessionMinutes !== undefined) {
+    columns.sessionMinutes = data.sessionMinutes;
+  }
+  if (data.trainingPlace !== undefined) {
+    columns.trainingPlace = data.trainingPlace;
+  }
   if (data.massUnit !== undefined) columns.massUnit = data.massUnit;
   if (data.theme !== undefined) columns.theme = data.theme;
   if (data.defaultRestSeconds !== undefined) {
@@ -218,7 +228,7 @@ export function createTrainingRepository(db: AppDatabase) {
       userId: string,
       input: unknown,
     ): Promise<RepoResult<ProfileRecord>> {
-      const parsed = createProfileInputSchema(todayUtc()).safeParse(input);
+      const parsed = createProfileInputSchema(new Date()).safeParse(input);
       if (!parsed.success) return invalid();
       const data = parsed.data;
       const existing = await db
@@ -252,11 +262,14 @@ export function createTrainingRepository(db: AppDatabase) {
       if (!row) return null;
       return {
         userId: row.userId,
-        birthDate: row.birthDate ? asDateString(row.birthDate) : null,
+        birthYear: row.birthYear,
         sex: row.sex,
         heightCm: row.heightCm,
         goal: row.goal,
         level: row.trainingLevel,
+        daysPerWeek: row.daysPerWeek,
+        sessionMinutes: row.sessionMinutes,
+        trainingPlace: row.trainingPlace,
         massUnit: row.massUnit,
         theme: row.theme,
         defaultRestSeconds: row.defaultRestSeconds,

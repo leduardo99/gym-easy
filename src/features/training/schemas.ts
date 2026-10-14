@@ -5,9 +5,12 @@ import {
   GOAL_VALUES,
   LEVEL_VALUES,
   MASS_UNIT_VALUES,
+  SESSION_MINUTE_VALUES,
   SEX_VALUES,
   THEME_VALUES,
+  TRAINING_PLACE_VALUES,
 } from "@/db/domain";
+import { birthYearBounds, isUnderMinimumAge } from "@/features/profile/age";
 
 import {
   formatTenths,
@@ -21,6 +24,7 @@ export type {
   Sex,
   ThemePreference,
   TrainingLevel,
+  TrainingPlace,
 } from "@/db/domain";
 export {
   GOAL_VALUES,
@@ -28,40 +32,29 @@ export {
   MASS_UNIT_VALUES,
   SEX_VALUES,
   THEME_VALUES,
+  TRAINING_PLACE_VALUES,
 };
 
-export function ageInYears(birthDate: string, today: string): number {
-  const birth = birthDate.split("-").map(Number);
-  const now = today.split("-").map(Number);
-  const birthYear = birth[0];
-  const birthMonth = birth[1];
-  const birthDay = birth[2];
-  const year = now[0];
-  const month = now[1];
-  const day = now[2];
-  if (
-    birthYear === undefined ||
-    birthMonth === undefined ||
-    birthDay === undefined ||
-    year === undefined ||
-    month === undefined ||
-    day === undefined
-  ) {
-    return -1;
-  }
-  let age = year - birthYear;
-  if (month < birthMonth || (month === birthMonth && day < birthDay)) age -= 1;
-  return age;
-}
-
-export function createProfileInputSchema(today: string) {
+export function createProfileInputSchema(now: Date) {
+  const bounds = birthYearBounds(now);
+  const yearMessage = `Digite um ano com 4 dígitos, entre ${bounds.min} e ${bounds.max}.`;
   return z
     .object({
-      birthDate: z.iso.date().nullable().optional(),
+      birthYear: z.number().int().nullable().optional(),
       sex: z.enum(SEX_VALUES).nullable().optional(),
       heightCm: z.number().int().min(100).max(250).nullable().optional(),
       goal: z.enum(GOAL_VALUES).nullable().optional(),
       level: z.enum(LEVEL_VALUES).nullable().optional(),
+      daysPerWeek: z.number().int().min(2).max(6).nullable().optional(),
+      sessionMinutes: z
+        .number()
+        .int()
+        .refine((value) =>
+          (SESSION_MINUTE_VALUES as readonly number[]).includes(value),
+        )
+        .nullable()
+        .optional(),
+      trainingPlace: z.enum(TRAINING_PLACE_VALUES).nullable().optional(),
       massUnit: z.enum(MASS_UNIT_VALUES).optional(),
       theme: z.enum(THEME_VALUES).optional(),
       defaultRestSeconds: z
@@ -74,13 +67,20 @@ export function createProfileInputSchema(today: string) {
     })
     .strict()
     .superRefine((value, context) => {
-      if (!value.birthDate) return;
-      const age = ageInYears(value.birthDate, today);
-      if (age < 13 || age > 100) {
+      if (value.birthYear === undefined || value.birthYear === null) return;
+      if (value.birthYear < bounds.min || value.birthYear > bounds.max) {
         context.addIssue({
           code: "custom",
-          path: ["birthDate"],
-          message: "A idade precisa estar entre 13 e 100 anos.",
+          path: ["birthYear"],
+          message: yearMessage,
+        });
+        return;
+      }
+      if (isUnderMinimumAge(value.birthYear, now)) {
+        context.addIssue({
+          code: "custom",
+          path: ["birthYear"],
+          message: "O Gym Easy é para maiores de 16 anos.",
         });
       }
     });

@@ -51,6 +51,7 @@ A V1 guarda credenciais, perfil, catálogo de exercícios, modelos de treino e o
 ```mermaid
 erDiagram
   users ||--o| user_profiles : perfil
+  users ||--o{ consent_log : consentimento
   users ||--o{ body_measurements : peso
   users ||--o{ exercises : personalizados
   users ||--o{ workouts : modelos
@@ -63,16 +64,19 @@ erDiagram
   session_exercises ||--|{ exercise_sets : series
 ```
 
-| Tabela                                                               | Papel                                                                                                                     |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `users`, `sessions`, `email_verification_tokens`, `auth_rate_limits` | Conta e sessão (LED-6).                                                                                                   |
-| `user_profiles`                                                      | Um perfil por usuário: nascimento, sexo, altura, objetivo, nível, unidade, tema e descanso padrão.                        |
-| `body_measurements`                                                  | Histórico de peso. No máximo um registro por usuário e dia; o do mesmo dia substitui o anterior.                          |
-| `exercises`                                                          | Catálogo compartilhado (`owner_user_id` nulo) e exercícios criados pelo usuário.                                          |
-| `workouts`, `workout_exercises`                                      | Modelo de treino e a ordem dos exercícios, com metas de séries, repetições, carga e descanso.                             |
-| `workout_sessions`, `session_exercises`, `exercise_sets`             | Treino realizado. A sessão copia o nome do modelo. Cada série guarda carga, repetições e o instante em que foi concluída. |
+| Tabela                                                               | Papel                                                                                                                                                                 |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`, `sessions`, `email_verification_tokens`, `auth_rate_limits` | Conta e sessão (LED-6).                                                                                                                                               |
+| `user_profiles`                                                      | Única tabela de perfil. Ano de nascimento, sexo, altura, objetivo, nível, dias, minutos, local, unidade, tema e descanso. Não existe `user_profile` nem coluna `age`. |
+| `consent_log`                                                        | Consentimento append-only (`body_data`, `coach_health`, `analytics`). Revogação é uma linha nova.                                                                     |
+| `body_measurements`                                                  | Histórico de peso. No máximo um registro por usuário e dia; o do mesmo dia substitui o anterior.                                                                      |
+| `exercises`                                                          | Catálogo compartilhado (`owner_user_id` nulo) e exercícios criados pelo usuário.                                                                                      |
+| `workouts`, `workout_exercises`                                      | Modelo de treino e a ordem dos exercícios, com metas de séries, repetições, carga e descanso.                                                                         |
+| `workout_sessions`, `session_exercises`, `exercise_sets`             | Treino realizado. A sessão copia o nome do modelo. Cada série guarda carga, repetições e o instante em que foi concluída.                                             |
 
-Idade não é coluna: ela é calculada a partir de `birth_date` (13–100 anos). Altura fica em centímetros (100–250). Massa fica sempre em quilogramas, com uma casa (`numeric`): peso corporal em `weight_kg`, carga em `load_kg` e `target_load_kg`. Libra só existe na borda da validação (1 kg = 2,20462 lb, faixas 30–300 kg e 66–660 lb). O check do banco em `weight_kg` é 29,0–301,0 para absorver o arredondamento dessa conversão.
+O perfil da V1 e o do coach (IA e Saúde) são a mesma linha em `user_profiles`. Idade não é coluna: o banco guarda `birth_year` (`smallint`, check `ano_atual − 100` até `ano_atual`) e a aplicação deriva a idade aproximada (`ano_atual − birth_year`) e a faixa `age_band` (`16–17`, `18–29`, `30–39`, `40–49`, `50–59`, `60–69`, `70+`). A idade mínima de 16 anos também fica só na aplicação: `isUnderMinimumAge` bloqueia quando `ano_atual − birth_year ≤ 16` (LED-46). Peso continua só em `body_measurements`. PAR-Q+, lesões e planos do coach ficam para tabelas próprias futuras e não copiam estes campos. `coach_consents` e `analytics_consent` não existem: o estado é a última linha de `consent_log` por finalidade.
+
+Altura fica em centímetros (100–250). Massa fica sempre em quilogramas, com uma casa (`numeric`): peso corporal em `weight_kg`, carga em `load_kg` e `target_load_kg`. Libra só existe na borda da validação (1 kg = 2,20462 lb, faixas 30–300 kg e 66–660 lb). O check do banco em `weight_kg` é 29,0–301,0 para absorver o arredondamento dessa conversão.
 
 Exercícios padrão não têm dono e não podem ser arquivados. O nome é único no catálogo e, para os personalizados, único por usuário depois de ignorar maiúsculas e acentos (`normalized_name`). Um personalizado com histórico ou presente num modelo é arquivado (`archived_at`); sem uso, é apagado. O seed idempotente está em `0002_seed_exercises.sql` (84 exercícios, `ON CONFLICT DO NOTHING`).
 
@@ -85,7 +89,11 @@ Valores estáveis:
 | Campo                    | Valores                                                                                                                                     | Rótulos                                                                                                                        |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `sex`                    | `male`, `female`, `undisclosed`                                                                                                             | Masculino, Feminino, Prefiro não dizer                                                                                         |
-| `goal`                   | `hypertrophy`, `strength`, `fat_loss`, `conditioning`                                                                                       | Hipertrofia, Força, Emagrecimento, Condicionamento                                                                             |
+| `goal`                   | `hypertrophy`, `strength`, `fat_loss`, `conditioning`, `health`                                                                             | Hipertrofia, Força, Emagrecimento, Condicionamento, Saúde                                                                      |
+| `training_place`         | `full_gym`, `dumbbells`, `home`, `bodyweight`                                                                                               | Academia completa, Halteres em casa, Casa sem equipamento, Peso corporal                                                       |
+| `consent_purpose`        | `body_data`, `coach_health`, `analytics`                                                                                                    | Dados do corpo, Saúde do coach, Uso anônimo                                                                                    |
+| `consent_action`         | `granted`, `revoked`                                                                                                                        | Concedido, Revogado                                                                                                            |
+| `consent_source`         | `onboarding`, `profile`, `reconsent`                                                                                                        | Onboarding, Perfil, Novo consentimento                                                                                         |
 | `training_level`         | `beginner`, `intermediate`, `advanced`                                                                                                      | Iniciante, Intermediário, Avançado                                                                                             |
 | `mass_unit`              | `kg`, `lb`                                                                                                                                  | kg, lb. O banco continua em kg.                                                                                                |
 | `theme`                  | `dark`, `light`, `system`                                                                                                                   | Escuro, Claro, Sistema. Padrão `dark`.                                                                                         |
@@ -93,7 +101,9 @@ Valores estáveis:
 | `equipment`              | `barbell`, `dumbbell`, `machine`, `cable`, `bodyweight`, `kettlebell`, `band`, `other`                                                      | Barra, Halteres, Máquina, Cabo, Peso corporal, Kettlebell, Elástico, Outro                                                     |
 | `workout_session_status` | `in_progress`, `completed`                                                                                                                  | Em andamento, Concluída                                                                                                        |
 
-Migrações desta etapa: `0001_training_model` (tabelas) e `0002_seed_exercises` (catálogo). Elas sobem na branch Neon `dev` e no Postgres da CI. A branch Neon `main` continua só com o que já foi aplicado em produção; o workflow de produção roda no push da `main`.
+Migrações desta etapa: `0001_training_model` (tabelas), `0002_seed_exercises` (catálogo) e `0003_birth_year_consent` (ano de nascimento, rotina do coach no mesmo perfil e `consent_log`). `0003` copia `extract(year from birth_date)` antes de apagar a data completa. Elas sobem na branch Neon `dev` e no Postgres da CI. A branch Neon `main` continua só com o que já foi aplicado em produção; o workflow de produção roda no push da `main`.
+
+`consent_log` não tem UPDATE nem DELETE na aplicação. Um trigger recusa os dois. O `ON DELETE CASCADE` da conta continua a funcionar, porque a exclusão nasce da linha de `users`. `REVOKE UPDATE, DELETE` em `PUBLIC` cobre papéis que não são donos da tabela.
 
 ## Autenticação
 
