@@ -18,6 +18,11 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      ...process.env,
+      EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
+      DATABASE_DRIVER: process.env.DATABASE_DRIVER ?? "pg",
+    },
   },
   projects: [
     {

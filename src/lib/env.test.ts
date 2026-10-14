@@ -1,17 +1,65 @@
 import { describe, expect, it } from "vitest";
 
-import { BUILD_DATABASE_URL, readServerEnv } from "./env";
+import { BUILD_DATABASE_URL, DEFAULT_EMAIL_FROM, readServerEnv } from "./env";
 
 const validUrl = "postgresql://user:password@localhost:5432/gym_easy";
 
 describe("readServerEnv", () => {
-  it("accepts a postgres connection string", () => {
+  it("accepts a postgres connection string and defaults the email sender", () => {
+    expect(DEFAULT_EMAIL_FROM).toBe("Gym Easy <onboarding@resend.dev>");
     expect(readServerEnv({ DATABASE_URL: validUrl, NODE_ENV: "test" })).toEqual(
       {
         DATABASE_URL: validUrl,
         NODE_ENV: "test",
+        RESEND_API_KEY: null,
+        EMAIL_FROM: DEFAULT_EMAIL_FROM,
+        EMAIL_CAPTURE_PATH: null,
       },
     );
+  });
+
+  it("keeps Resend settings server-only and optional", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        RESEND_API_KEY: "test-resend-key",
+        EMAIL_FROM: "Gym Easy <treino@example.com>",
+        EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+      }),
+    ).toMatchObject({
+      RESEND_API_KEY: "test-resend-key",
+      EMAIL_FROM: "Gym Easy <treino@example.com>",
+      EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+    });
+  });
+
+  it("accepts a bare email sender and rejects a name without an address", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        EMAIL_FROM: "treino@example.com",
+      }).EMAIL_FROM,
+    ).toBe("treino@example.com");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        EMAIL_FROM: "Gym Easy",
+      }),
+    ).toThrow(/EMAIL_FROM/);
+  });
+
+  it("ignores the email capture path in production", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "production",
+        VERCEL_ENV: "production",
+        EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
+      }).EMAIL_CAPTURE_PATH,
+    ).toBeNull();
   });
 
   it("rejects a missing database url outside of the production build", () => {
@@ -34,6 +82,16 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NEXT_PUBLIC_DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("rejects a resend key exposed with the public prefix", () => {
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NEXT_PUBLIC_RESEND_API_KEY: "test-resend-key",
         NODE_ENV: "test",
       }),
     ).toThrow(/NEXT_PUBLIC_/);
