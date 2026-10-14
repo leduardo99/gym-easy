@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "headers": [
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://gym-easy.vercel.app"
+        }
+      ]
+    },
+    {
+      "source": "/:path((?!api(?:/|$)).*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://gym-easy.vercel.app"
+        }
+      ]
+    }
+  ]
+}
