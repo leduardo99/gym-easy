@@ -1,0 +1,11 @@
+title = "gym-easy"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders and generated lockfile"
+paths = [
+  '''\.env\.example''',
+  '''pnpm-lock\.yaml''',
+]
