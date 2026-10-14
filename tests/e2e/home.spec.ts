@@ -17,7 +17,12 @@ test("home page introduces the app", async ({ page }) => {
   expect(consoleErrors).toEqual([]);
 });
 
-test("design catalog is available outside production", async ({ page }) => {
+test("design catalog is available outside production", async ({
+  page,
+  request,
+}) => {
+  expect((await request.get("/design")).status()).toBe(200);
+
   await page.goto("/design");
 
   await expect(
