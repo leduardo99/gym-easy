@@ -13,23 +13,32 @@ test("home page introduces the app", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Gym Easy" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Criar conta" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Catálogo de design" }),
-  ).toBeVisible();
+  if (process.env.CI) {
+    await expect(
+      page.getByRole("link", { name: "Catálogo de design" }),
+    ).toHaveCount(0);
+  } else {
+    await expect(
+      page.getByRole("link", { name: "Catálogo de design" }),
+    ).toBeVisible();
+  }
   expect(consoleErrors).toEqual([]);
 });
 
-test("design catalog is available outside production", async ({
+test("design catalog is hidden on the production server", async ({
   page,
   request,
 }) => {
-  expect((await request.get("/design")).status()).toBe(200);
+  if (!process.env.CI) {
+    expect((await request.get("/design")).status()).toBe(200);
+    await page.goto("/design");
+    await expect(
+      page.getByRole("heading", { name: "Design System" }),
+    ).toBeVisible();
+    return;
+  }
 
-  await page.goto("/design");
-
-  await expect(
-    page.getByRole("heading", { name: "Design System" }),
-  ).toBeVisible();
+  expect((await request.get("/design")).status()).toBe(404);
 });
 
 test("health endpoint reports the database without leaking errors", async ({
@@ -63,7 +72,11 @@ test("responses include security headers", async ({ request }) => {
       "frame-ancestors 'none'",
     );
     expect(headers["content-security-policy"]).toContain("'nonce-");
-    expect(headers["strict-transport-security"]).toBeUndefined();
+    if (process.env.CI) {
+      expect(headers["strict-transport-security"]).toContain("max-age=");
+    } else {
+      expect(headers["strict-transport-security"]).toBeUndefined();
+    }
   }
 });
 

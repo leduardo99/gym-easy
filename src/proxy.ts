@@ -11,13 +11,12 @@ function applySecurityHeaders(
     response.headers.set(name, value);
   }
 
-  response.headers.delete("Access-Control-Allow-Origin");
   return response;
 }
 
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const isProduction = process.env.VERCEL_ENV === "production";
+  const isProduction = process.env.NODE_ENV === "production";
   const headers = buildSecurityHeaders({
     nonce,
     isProduction,

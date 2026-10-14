@@ -36,6 +36,7 @@ describe("readServerEnv", () => {
       SMTP_USER: null,
       SMTP_PASS: null,
       SMTP_SECURE: false,
+      CRON_SECRET: null,
     });
   });
 
@@ -80,16 +81,16 @@ describe("readServerEnv", () => {
     ).toThrow(/EMAIL_FROM/);
   });
 
-  it("ignores the email capture path in production", () => {
+  it("ignores the email capture path on the Coolify runtime", () => {
     expect(
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
-        VERCEL_ENV: "production",
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
-        RESEND_API_KEY: "test-resend-key",
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
       }).EMAIL_CAPTURE_PATH,
     ).toBeNull();
   });
@@ -122,24 +123,28 @@ describe("readServerEnv", () => {
     ).toThrow(/SMTP_HOST/);
   });
 
-  it("defaults production to resend and requires the api key", () => {
+  it("defaults production to smtp and does not require a resend key", () => {
     expect(
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
-        VERCEL_ENV: "production",
         CONFIRM_EMAIL_SECRET: confirmSecret,
-        RESEND_API_KEY: "test-resend-key",
-      }).EMAIL_TRANSPORT,
-    ).toBe("resend");
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
+      }),
+    ).toMatchObject({
+      EMAIL_TRANSPORT: "smtp",
+      RESEND_API_KEY: null,
+      SMTP_HOST: "mailpit",
+      SMTP_PORT: 1025,
+    });
     expect(() =>
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
-        VERCEL_ENV: "production",
         CONFIRM_EMAIL_SECRET: confirmSecret,
       }),
-    ).toThrow(/RESEND_API_KEY/);
+    ).toThrow(/SMTP_HOST/);
   });
 
   it("requires a resend key when the transport is explicitly resend", () => {
@@ -153,58 +158,27 @@ describe("readServerEnv", () => {
     ).toThrow(/RESEND_API_KEY/);
   });
 
-  it("refuses smtp in production unless SMTP_ALLOW_PRODUCTION=true", () => {
-    const base = {
-      DATABASE_URL: validUrl,
-      NODE_ENV: "production" as const,
-      CONFIRM_EMAIL_SECRET: confirmSecret,
-      EMAIL_TRANSPORT: "smtp",
-      SMTP_HOST: "smtp.example.com",
-      SMTP_PORT: "587",
-      SMTP_USER: "mailer",
-      SMTP_PASS: "smtp-pass",
-    };
-    expect(() => readServerEnv(base)).toThrow(/SMTP_ALLOW_PRODUCTION/);
-    expect(() => readServerEnv({ ...base, VERCEL_ENV: "production" })).toThrow(
-      /SMTP_ALLOW_PRODUCTION/,
-    );
-    try {
-      readServerEnv(base);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      expect(message).not.toContain("smtp-pass");
-      expect(message).not.toContain("mailer");
-    }
-    expect(
-      readServerEnv({
-        ...base,
-        VERCEL_ENV: "production",
-        SMTP_ALLOW_PRODUCTION: "true",
-        SMTP_SECURE: "true",
-      }),
-    ).toMatchObject({
-      EMAIL_TRANSPORT: "smtp",
-      SMTP_HOST: "smtp.example.com",
-      SMTP_PORT: 587,
-      SMTP_USER: "mailer",
-      SMTP_PASS: "smtp-pass",
-      SMTP_SECURE: true,
-    });
-  });
-
-  it("defaults a vercel preview to log without a resend key", () => {
+  it("accepts smtp in production without a resend key or an opt-in", () => {
     expect(
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
-        VERCEL_ENV: "preview",
         CONFIRM_EMAIL_SECRET: confirmSecret,
+        EMAIL_TRANSPORT: "smtp",
+        SMTP_HOST: "mailpit",
+        SMTP_PORT: "1025",
+        SMTP_USER: "mailer",
+        SMTP_PASS: "smtp-pass",
+        SMTP_SECURE: "true",
       }),
     ).toMatchObject({
-      EMAIL_TRANSPORT: "log",
+      EMAIL_TRANSPORT: "smtp",
       RESEND_API_KEY: null,
-      SMTP_HOST: null,
-      SMTP_PORT: null,
+      SMTP_HOST: "mailpit",
+      SMTP_PORT: 1025,
+      SMTP_USER: "mailer",
+      SMTP_PASS: "smtp-pass",
+      SMTP_SECURE: true,
     });
   });
 
@@ -213,34 +187,17 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
-        VERCEL_ENV: "production",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         EMAIL_TRANSPORT: "log",
-      }).EMAIL_TRANSPORT,
-    ).toBe("log");
-  });
-
-  it("allows smtp on a vercel preview without the production opt-in", () => {
-    expect(
-      readServerEnv({
-        DATABASE_URL: validUrl,
-        NODE_ENV: "production",
-        VERCEL_ENV: "preview",
-        CONFIRM_EMAIL_SECRET: confirmSecret,
-        EMAIL_TRANSPORT: "smtp",
-        SMTP_HOST: "smtp.public.example",
-        SMTP_PORT: "587",
-        SMTP_SECURE: "false",
       }),
     ).toMatchObject({
-      EMAIL_TRANSPORT: "smtp",
-      SMTP_HOST: "smtp.public.example",
-      SMTP_PORT: 587,
-      SMTP_SECURE: false,
+      EMAIL_TRANSPORT: "log",
+      RESEND_API_KEY: null,
+      SMTP_HOST: null,
     });
   });
 
-  it("rejects an unknown transport, a bad port, and a vague opt-in", () => {
+  it("rejects an unknown transport and a bad port", () => {
     expect(() =>
       readServerEnv({
         DATABASE_URL: validUrl,
@@ -258,15 +215,6 @@ describe("readServerEnv", () => {
         SMTP_PORT: "70000",
       }),
     ).toThrow(/SMTP_PORT/);
-    expect(() =>
-      readServerEnv({
-        DATABASE_URL: validUrl,
-        NODE_ENV: "production",
-        CONFIRM_EMAIL_SECRET: confirmSecret,
-        RESEND_API_KEY: "test-resend-key",
-        SMTP_ALLOW_PRODUCTION: "yes",
-      }),
-    ).toThrow(/SMTP_ALLOW_PRODUCTION/);
   });
 
   it("rejects smtp secrets exposed with the public prefix", () => {
@@ -305,13 +253,14 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: validUrl,
         NODE_ENV: "production",
+        CI: "true",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
       }),
     ).toMatchObject({
       EMAIL_CAPTURE_PATH: ".data/e2e-emails.jsonl",
-      EMAIL_TRANSPORT: "resend",
-      RESEND_API_KEY: null,
+      EMAIL_TRANSPORT: "smtp",
+      SMTP_HOST: null,
     });
   });
 
@@ -322,7 +271,7 @@ describe("readServerEnv", () => {
         NEXT_PHASE: "phase-production-build",
       }),
     ).toMatchObject({
-      EMAIL_TRANSPORT: "resend",
+      EMAIL_TRANSPORT: "smtp",
       RESEND_API_KEY: null,
       SMTP_HOST: null,
       SMTP_PORT: null,
@@ -384,6 +333,33 @@ describe("readServerEnv", () => {
         NODE_ENV: "test",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
+      }),
+    ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("keeps the cron secret server-only and optional", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CRON_SECRET: "cron-secret-value",
+      }).CRON_SECRET,
+    ).toBe("cron-secret-value");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CRON_SECRET: "short",
+      }),
+    ).toThrow(/CRON_SECRET/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        NEXT_PUBLIC_CRON_SECRET: "cron-secret-value",
       }),
     ).toThrow(/NEXT_PUBLIC_/);
   });

@@ -11,7 +11,7 @@ import {
 } from "./session-cookie";
 
 describe("session cookies", () => {
-  it("is httpOnly, lax, and secure only on https or Vercel", () => {
+  it("is httpOnly, lax, and secure only on https", () => {
     expect(sessionCookieOptions(true)).toMatchObject({
       httpOnly: true,
       secure: true,
@@ -26,30 +26,10 @@ describe("session cookies", () => {
       maxAge: CONFIRM_EMAIL_MAX_AGE_SECONDS,
     });
     expect(CONFIRM_EMAIL_MAX_AGE_SECONDS).toBeLessThanOrEqual(60 * 60);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: "https",
-        vercelEnv: undefined,
-      }),
-    ).toBe(true);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: "http",
-        vercelEnv: "production",
-      }),
-    ).toBe(false);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: null,
-        vercelEnv: "preview",
-      }),
-    ).toBe(true);
-    expect(
-      shouldUseSecureCookie({
-        forwardedProto: null,
-        vercelEnv: undefined,
-      }),
-    ).toBe(false);
+    expect(shouldUseSecureCookie("https")).toBe(true);
+    expect(shouldUseSecureCookie("https, http")).toBe(true);
+    expect(shouldUseSecureCookie("http")).toBe(false);
+    expect(shouldUseSecureCookie(null)).toBe(false);
   });
 
   it("accepts only a same-host origin", () => {
@@ -72,8 +52,8 @@ describe("session cookies", () => {
       clientIp(new Headers({ "x-real-ip": " 203.0.113.8, 10.0.0.2 " })),
     ).toBe("203.0.113.8");
     expect(
-      clientIp(new Headers({ "x-forwarded-for": "198.51.100.4" })),
-    ).toBeNull();
+      clientIp(new Headers({ "x-forwarded-for": "198.51.100.4, 10.0.0.1" })),
+    ).toBe("198.51.100.4");
     expect(clientIp(new Headers({ "x-real-ip": "unknown" }))).toBeNull();
     expect(clientIp(new Headers())).toBeNull();
     const nextHeaderStore = {

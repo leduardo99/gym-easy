@@ -41,22 +41,19 @@ const smtpSecureValue = z.enum(["true", "false", "1", "0"]);
 function resolveEmailTransport(
   nodeEnv: "development" | "test" | "production",
   configured: z.infer<typeof configuredEmailTransport> | undefined,
-  vercelEnv: string | undefined,
 ): EmailTransportSetting {
   if (configured) return configured;
-  if (vercelEnv === "preview") return "log";
-  if (nodeEnv === "production") return "resend";
-  if (nodeEnv === "development") return "smtp";
-  return "log";
+  if (nodeEnv === "test") return "log";
+  return "smtp";
 }
 
-function smtpNeedsProductionOptIn(
-  nodeEnv: "development" | "test" | "production",
-  vercelEnv: string | undefined,
+function captureIsActive(
+  source: NodeJS.ProcessEnv,
+  capturePath: string | undefined,
 ): boolean {
-  if (vercelEnv === "preview" || vercelEnv === "development") return false;
-  if (vercelEnv === "production") return true;
-  return nodeEnv === "production";
+  if (!capturePath) return false;
+  if (source.NODE_ENV === "production" && source.CI !== "true") return false;
+  return true;
 }
 
 function isSmtpSecure(
@@ -69,12 +66,9 @@ function emailTransportIssues(input: {
   transport: EmailTransportSetting;
   captureActive: boolean;
   productionBuild: boolean;
-  nodeEnv: "development" | "test" | "production";
-  vercelEnv: string | undefined;
   resendApiKey: string | undefined;
   smtpHost: string | undefined;
   smtpPort: string | undefined;
-  smtpAllowProduction: "true" | "false" | undefined;
 }): string[] {
   if (input.productionBuild || input.captureActive) return [];
   const issues: string[] = [];
@@ -89,14 +83,6 @@ function emailTransportIssues(input: {
     }
     if (!input.smtpPort) {
       issues.push("SMTP_PORT: SMTP_PORT is required when EMAIL_TRANSPORT=smtp");
-    }
-    if (
-      smtpNeedsProductionOptIn(input.nodeEnv, input.vercelEnv) &&
-      input.smtpAllowProduction !== "true"
-    ) {
-      issues.push(
-        "SMTP_ALLOW_PRODUCTION: SMTP is refused in production without SMTP_ALLOW_PRODUCTION=true",
-      );
     }
   }
   return issues;
@@ -130,9 +116,11 @@ export const serverEnvSchema = z
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASS: z.string().min(1).optional(),
     SMTP_SECURE: smtpSecureValue.optional(),
-    SMTP_ALLOW_PRODUCTION: z.enum(["true", "false"]).optional(),
-    VERCEL_ENV: z.string().optional(),
     CONFIRM_EMAIL_SECRET: confirmEmailSecret,
+    CRON_SECRET: z
+      .string()
+      .min(16, "CRON_SECRET must be at least 16 characters")
+      .optional(),
     NEXT_PUBLIC_DATABASE_URL: z.string().optional(),
     NEXT_PUBLIC_RESEND_API_KEY: z.string().optional(),
     NEXT_PUBLIC_EMAIL_FROM: z.string().optional(),
@@ -142,6 +130,7 @@ export const serverEnvSchema = z
     NEXT_PUBLIC_SMTP_HOST: z.string().optional(),
     NEXT_PUBLIC_SMTP_USER: z.string().optional(),
     NEXT_PUBLIC_SMTP_PASS: z.string().optional(),
+    NEXT_PUBLIC_CRON_SECRET: z.string().optional(),
   })
   .superRefine((value, context) => {
     const publicSecrets = [
@@ -159,6 +148,7 @@ export const serverEnvSchema = z
       ["NEXT_PUBLIC_SMTP_HOST", value.NEXT_PUBLIC_SMTP_HOST],
       ["NEXT_PUBLIC_SMTP_USER", value.NEXT_PUBLIC_SMTP_USER],
       ["NEXT_PUBLIC_SMTP_PASS", value.NEXT_PUBLIC_SMTP_PASS],
+      ["NEXT_PUBLIC_CRON_SECRET", value.NEXT_PUBLIC_CRON_SECRET],
     ] as const;
 
     for (const [key, keyValue] of publicSecrets) {
@@ -186,6 +176,7 @@ export type ServerEnv = {
   SMTP_USER: string | null;
   SMTP_PASS: string | null;
   SMTP_SECURE: boolean;
+  CRON_SECRET: string | null;
 };
 
 /** Non-connecting stand-in so `next build` can evaluate server modules. */
@@ -225,9 +216,8 @@ export function readServerEnv(
     SMTP_USER: source.SMTP_USER || undefined,
     SMTP_PASS: source.SMTP_PASS || undefined,
     SMTP_SECURE: source.SMTP_SECURE || undefined,
-    SMTP_ALLOW_PRODUCTION: source.SMTP_ALLOW_PRODUCTION || undefined,
     CONFIRM_EMAIL_SECRET: confirmSecret,
-    VERCEL_ENV: source.VERCEL_ENV,
+    CRON_SECRET: source.CRON_SECRET || undefined,
     NEXT_PUBLIC_DATABASE_URL: source.NEXT_PUBLIC_DATABASE_URL,
     NEXT_PUBLIC_RESEND_API_KEY: source.NEXT_PUBLIC_RESEND_API_KEY,
     NEXT_PUBLIC_EMAIL_FROM: source.NEXT_PUBLIC_EMAIL_FROM,
@@ -237,6 +227,7 @@ export function readServerEnv(
     NEXT_PUBLIC_SMTP_HOST: source.NEXT_PUBLIC_SMTP_HOST,
     NEXT_PUBLIC_SMTP_USER: source.NEXT_PUBLIC_SMTP_USER,
     NEXT_PUBLIC_SMTP_PASS: source.NEXT_PUBLIC_SMTP_PASS,
+    NEXT_PUBLIC_CRON_SECRET: source.NEXT_PUBLIC_CRON_SECRET,
   });
 
   if (!parsed.success) {
@@ -249,21 +240,15 @@ export function readServerEnv(
   const transport = resolveEmailTransport(
     parsed.data.NODE_ENV,
     parsed.data.EMAIL_TRANSPORT,
-    parsed.data.VERCEL_ENV,
   );
-  const captureActive =
-    Boolean(parsed.data.EMAIL_CAPTURE_PATH) &&
-    parsed.data.VERCEL_ENV !== "production";
+  const captureActive = captureIsActive(source, parsed.data.EMAIL_CAPTURE_PATH);
   const transportIssues = emailTransportIssues({
     transport,
     captureActive,
     productionBuild: isProductionBuild(source),
-    nodeEnv: parsed.data.NODE_ENV,
-    vercelEnv: parsed.data.VERCEL_ENV,
     resendApiKey: parsed.data.RESEND_API_KEY,
     smtpHost: parsed.data.SMTP_HOST,
     smtpPort: parsed.data.SMTP_PORT,
-    smtpAllowProduction: parsed.data.SMTP_ALLOW_PRODUCTION,
   });
   if (transportIssues.length > 0) {
     throw new Error(
@@ -277,10 +262,9 @@ export function readServerEnv(
     NODE_ENV: parsed.data.NODE_ENV,
     RESEND_API_KEY: parsed.data.RESEND_API_KEY ?? null,
     EMAIL_FROM: parsed.data.EMAIL_FROM ?? DEFAULT_EMAIL_FROM,
-    EMAIL_CAPTURE_PATH:
-      parsed.data.VERCEL_ENV === "production"
-        ? null
-        : (parsed.data.EMAIL_CAPTURE_PATH ?? null),
+    EMAIL_CAPTURE_PATH: captureActive
+      ? (parsed.data.EMAIL_CAPTURE_PATH ?? null)
+      : null,
     CONFIRM_EMAIL_SECRET: parsed.data.CONFIRM_EMAIL_SECRET,
     EMAIL_TRANSPORT: transport,
     SMTP_HOST: parsed.data.SMTP_HOST ?? null,
@@ -288,6 +272,7 @@ export function readServerEnv(
     SMTP_USER: parsed.data.SMTP_USER ?? null,
     SMTP_PASS: parsed.data.SMTP_PASS ?? null,
     SMTP_SECURE: isSmtpSecure(parsed.data.SMTP_SECURE),
+    CRON_SECRET: parsed.data.CRON_SECRET ?? null,
   };
 }
 

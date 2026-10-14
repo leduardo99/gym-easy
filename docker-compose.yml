@@ -1,41 +1,40 @@
-# Dev on Coolify: the app and Mailpit share the gym-easy network.
-# SMTP_HOST=mailpit. No host ports are published.
-# The Mailpit UI has no authentication. Reach it through Coolify's
-# internal network or the tailnet, never through a public domain.
+# Coolify: the app and Mailpit share gym-easy.
+# Only the app is exposed. Coolify proxies that port and owns the domain.
+# Mailpit SMTP 1025 and UI 8025 stay on the docker network.
 
 services:
   mailpit:
     image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
     restart: unless-stopped
-    expose:
-      - "1025"
-      - "8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
     networks:
       - gym-easy
 
   app:
-    image: node:22-bookworm-slim
-    working_dir: /workspace
-    volumes:
-      - .:/workspace
-    command:
-      [
-        "sh",
-        "-c",
-        "corepack enable && corepack prepare pnpm@10.33.4 --activate && pnpm install --frozen-lockfile && pnpm dev --hostname 0.0.0.0 --port 3000",
-      ]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       EMAIL_TRANSPORT: smtp
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_SECURE: "false"
       DATABASE_URL: ${DATABASE_URL}
       CONFIRM_EMAIL_SECRET: ${CONFIRM_EMAIL_SECRET}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
+      CRON_SECRET: ${CRON_SECRET:-}
     expose:
       - "3000"
     depends_on:
-      - mailpit
+      mailpit:
+        condition: service_healthy
     networks:
       - gym-easy
 

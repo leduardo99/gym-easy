@@ -131,10 +131,7 @@ async function mutationContext() {
   return {
     ip: clientIp(headerStore),
     origin,
-    secure: shouldUseSecureCookie({
-      forwardedProto: headerStore.get("x-forwarded-proto"),
-      vercelEnv: process.env.VERCEL_ENV,
-    }),
+    secure: shouldUseSecureCookie(headerStore.get("x-forwarded-proto")),
     existingTokenHash: existing ? sha256(existing) : null,
   };
 }

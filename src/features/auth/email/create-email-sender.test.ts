@@ -31,6 +31,7 @@ function serverEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
     SMTP_USER: null,
     SMTP_PASS: null,
     SMTP_SECURE: false,
+    CRON_SECRET: null,
     ...overrides,
   };
 }

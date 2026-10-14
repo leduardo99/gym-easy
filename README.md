@@ -17,37 +17,37 @@ cp .env.example .env.local
 
 Preencha `DATABASE_URL` em `.env.local` com a connection string do Neon. Use o host **pooled** para o app e o host **direct** para migrações. A variável é só de servidor: não use o prefixo `NEXT_PUBLIC_`.
 
-O email de autenticação sai pelo transporte em `EMAIL_TRANSPORT` (`resend`, `smtp` ou `log`).
+O email de autenticação sai pelo transporte em `EMAIL_TRANSPORT` (`smtp`, `resend` ou `log`). Há um ambiente só, no Coolify. O padrão é `smtp`, com `SMTP_HOST=mailpit` e `SMTP_PORT=1025` na rede Docker. `resend` é opcional e só exige `RESEND_API_KEY` quando está selecionado. `log` registra só o tipo (`email.account_confirmation`, `email.account_exists_notice` ou `email.password_reset`), o destinatário redigido (`a***@[redacted]`) e um id. Não registra corpo, token, link de confirmação nem o endereço completo. O teste (`NODE_ENV=test`) usa `log` quando a variável não está definida.
 
-- Produção (`VERCEL_ENV=production`): o padrão é `resend` e `RESEND_API_KEY` é obrigatória.
-- Preview da Vercel (`VERCEL_ENV=preview`): o padrão é `log`. Não exige chave nem SMTP. O adapter registra só o tipo (`email.account_confirmation`, `email.account_exists_notice` ou `email.password_reset`), o destinatário redigido (`a***@[redacted]`) e um id. Não registra corpo, token, link de confirmação nem o endereço completo.
-- Desenvolvimento no Coolify: `EMAIL_TRANSPORT=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025` e `SMTP_SECURE=false`. O teste (`NODE_ENV=test`) também usa `log` quando a variável não está definida.
+O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e. No runtime do Coolify (`NODE_ENV=production` sem `CI=true`) esse caminho é ignorado. A CI define `CI=true`, então o Playwright continua a ler o capture.
 
-O remetente padrão é `Gym Easy <onboarding@resend.dev>`. O app não cria conta no Resend. `EMAIL_CAPTURE_PATH` existe só para o e2e e é ignorado quando `VERCEL_ENV=production`. Com o capture ativo, as credenciais do transporte não são exigidas.
+Se o envio falhar (SMTP ou Resend), o cadastro continua: a conta fica criada e o app abre `/cadastro/confirme?fresh=1&delivery=failed` com o aviso "Não conseguimos enviar o email agora. Tente de novo em instantes." O reenvio de confirmação e o pedido em `/esqueci-senha` mostram o mesmo aviso, exista a conta ou não. O cooldown de 60 segundos continua valendo; depois dele dá para tentar de novo.
 
-O desenvolvimento corre no Coolify. A app e o Mailpit ficam na mesma rede Docker:
+## Deploy no Coolify
+
+A app e o Mailpit sobem no mesmo compose, na rede `gym-easy`:
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
-`SMTP_HOST=mailpit` resolve nessa rede. O compose expõe SMTP `1025`, a UI `8025` e a app `3000`, e não publica portas no host. A UI do Mailpit não tem autenticação: não crie um domínio público nem mapeie `0.0.0.0`. O acesso fica na rede interna do Coolify ou na tailnet. `DATABASE_URL` e `CONFIRM_EMAIL_SECRET` vêm do ambiente do serviço no Coolify; o compose não lê `.env.local`.
+O serviço `app` usa o `Dockerfile` de produção (`output: 'standalone'`, multi-stage, pnpm, utilizador `nextjs`). Só a porta 3000 da app fica em `expose`. O Coolify faz o proxy e o domínio nesse serviço. O SMTP 1025 e a UI 8025 do Mailpit não são publicados nem recebem domínio. A UI do Mailpit não tem autenticação.
 
-Previews da Vercel não alcançam esse Mailpit. O runtime da Vercel só fala com a internet pública, e o padrão do preview é `log`. Este repositório não configura a Vercel. SMTP em produção (`VERCEL_ENV=production`, ou `NODE_ENV=production` fora de um preview) só liga com `EMAIL_TRANSPORT=smtp` e `SMTP_ALLOW_PRODUCTION=true`. Sem esse opt-in o processo recusa subir, para não enviar email real por engano.
-
-Se o Resend falhar em produção (quota ou erro da API), o cadastro continua: a conta fica criada e o app abre `/cadastro/confirme?fresh=1&delivery=failed` com o aviso "Não conseguimos enviar o email agora. Tente de novo em instantes." O reenvio de confirmação e o pedido em `/esqueci-senha` mostram o mesmo aviso, exista a conta ou não. O cooldown de 60 segundos continua valendo; depois dele dá para tentar de novo.
+No serviço `app` do Coolify, defina `DATABASE_URL` (host pooled do Neon) e `CONFIRM_EMAIL_SECRET`. O compose já fixa `EMAIL_TRANSPORT=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025` e `SMTP_SECURE=false`. O healthcheck do container chama `GET /api/health`.
 
 ```bash
 pnpm dev
 ```
 
-O app abre em `http://127.0.0.1:3000`. `GET /api/health` executa `select 1` e responde `{ "status": "ok", "db": "ok" }`. Se o banco falhar, responde 503 `{ "status": "error", "db": "unavailable" }` sem detalhes do erro. O catálogo visual fica em `/design` e responde 404 quando `VERCEL_ENV=production`.
+Fora do compose, o `pnpm dev` no host não resolve o nome `mailpit`. O caminho de desenvolvimento previsto é o compose no Coolify.
+
+O app abre em `http://127.0.0.1:3000` quando a porta é publicada à parte. `GET /api/health` executa `select 1` e responde `{ "status": "ok", "db": "ok" }`. Se o banco falhar, responde 503 `{ "status": "error", "db": "unavailable" }` sem detalhes do erro. O catálogo visual fica em `/design` e responde 404 quando `NODE_ENV=production`.
 
 `pnpm build` não precisa de um Postgres real. Durante o build, se `DATABASE_URL` estiver ausente, `src/lib/env.ts` usa um placeholder que não abre conexão. Em `pnpm dev` e `pnpm start` a variável continua obrigatória para qualquer código que chame `getDb()`.
 
 ## Banco
 
-O schema Drizzle mora em `src/db/schema.ts`. Na Vercel o cliente usa o driver HTTP serverless do Neon (`@neondatabase/serverless` + `drizzle-orm/neon-http`). Postgres local e a CI usam o protocolo wire (`pg`) quando `DATABASE_DRIVER=pg` ou quando o host é `localhost` / `127.0.0.1`.
+O schema Drizzle mora em `src/db/schema.ts`. O cliente usa o driver HTTP do Neon (`@neondatabase/serverless` + `drizzle-orm/neon-http`) fora de localhost. Postgres local e a CI usam o protocolo wire (`pg`) quando `DATABASE_DRIVER=pg` ou quando o host é `localhost` / `127.0.0.1`.
 
 ```bash
 pnpm db:generate   # gera SQL em src/db/migrations
@@ -58,7 +58,8 @@ pnpm db:migrate    # aplica no DATABASE_URL (host direct)
 
 - No pull request, a CI sobe um Postgres 16 e migra só esse banco.
 - Na branch Neon `dev`, aplique com o host direct dessa branch. A branch `main` do Neon é produção: não migre a partir de uma branch de feature.
-- Em produção, `.github/workflows/migrate.yml` roda em todo push na `main` e executa `pnpm db:migrate`. O valor vem do secret `DATABASE_URL_UNPOOLED` do environment `production` no GitHub (Settings → Environments → production → Environment secrets). Use a connection string direct da branch Neon `main`. O job falha se o secret estiver vazio ou se o host tiver `-pooler`, e não imprime a URL. O deploy da Vercel na `main` pode começar em paralelo; o job é idempotente. Este repositório não aplica a migração de produção sozinho.
+- O caminho em uso é `.github/workflows/migrate.yml`: corre em todo push na `main` e executa `pnpm db:migrate`. O valor vem do secret `DATABASE_URL_UNPOOLED` do environment `production` no GitHub (Settings → Environments → production → Environment secrets). Use a connection string direct da branch Neon `main`. O job falha se o secret estiver vazio ou se o host tiver `-pooler`, e não imprime a URL. O job é idempotente.
+- Há um segundo caminho, desligado: `RUN_MIGRATIONS=true` faz o contentor aplicar o SQL pendente no arranque, via `scripts/migrate-on-deploy.mjs`. O padrão do compose é `false`. Se a Infra ligar esta opção, defina `DATABASE_URL_UNPOOLED` com o host direct; o script recusa um host com `-pooler` e não imprime a URL. Não ligue os dois caminhos ao mesmo tempo sem alinhar com a Infra. A decisão fica com a Infra; este repositório mantém o workflow do GitHub como está.
 
 Não edite uma migração que já tenha sido aplicada.
 
@@ -148,28 +149,40 @@ Commits seguem Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `te
 
 ## Variáveis de ambiente
 
-| Variável                | Onde           | Notas                                                                                                                                                                                   |
-| ----------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`          | Servidor       | Postgres do Neon, host pooled. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão.                                              |
-| `CONSENT_PSEUDONYM_KEY` | Servidor       | Chave do HMAC da prova de consentimento. Mínimo de 32 caracteres. Obrigatória em runtime. No build, se estiver ausente, entra um placeholder que não é segredo. Não use `NEXT_PUBLIC_`. |
-| `CRON_SECRET`           | Servidor       | Segredo do cron diário que apaga provas com mais de 3 anos. A Vercel envia `Authorization: Bearer`. Sem ele, a rota responde 401.                                                       |
-| `EMAIL_TRANSPORT`       | Servidor       | `resend`, `smtp` ou `log`. Padrão: `resend` em produção, `log` no preview da Vercel, `smtp` em development, `log` em test.                                                              |
-| `RESEND_API_KEY`        | Servidor       | Obrigatória em produção, quando o transporte é `resend`. O preview em `log` não usa a chave.                                                                                            |
-| `EMAIL_FROM`            | Servidor       | Opcional. Padrão `Gym Easy <onboarding@resend.dev>`.                                                                                                                                    |
-| `SMTP_HOST`             | Servidor       | Obrigatório quando o transporte é `smtp`. No Coolify, `mailpit` (rede interna, sem porta publicada).                                                                                    |
-| `SMTP_PORT`             | Servidor       | Obrigatório quando o transporte é `smtp`. Mailpit usa `1025`.                                                                                                                           |
-| `SMTP_USER`             | Servidor       | Opcional. Sem usuário, o cliente SMTP não envia `AUTH`.                                                                                                                                 |
-| `SMTP_PASS`             | Servidor       | Opcional. Segredo. Não use o prefixo `NEXT_PUBLIC_`.                                                                                                                                    |
-| `SMTP_SECURE`           | Servidor       | Opcional. `true`, `false`, `1` ou `0`. Padrão `false` (Mailpit em 1025). `true` abre TLS direto, como na porta 465.                                                                     |
-| `SMTP_ALLOW_PRODUCTION` | Servidor       | Tem de ser `true` para usar `smtp` em produção. O preview não usa este opt-in; o padrão dele é `log`.                                                                                   |
-| `DATABASE_URL_UNPOOLED` | GitHub Actions | Secret do environment `production`. Host direct da branch Neon `main`. Não entra no app.                                                                                                |
+| Variável                | Onde      | Notas                                                                                                                                      |
+| ----------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`          | Servidor  | Postgres do Neon, host pooled. Obrigatória em runtime. Ausente no build (`NEXT_PHASE=phase-production-build`) é aceito e não abre conexão. |
+| `CONSENT_PSEUDONYM_KEY` | Servidor  | Chave do HMAC da prova de consentimento. Mínimo de 32 caracteres. Obrigatória em runtime. No build, um placeholder não secreto.            |
+| `EMAIL_TRANSPORT`       | Servidor  | `smtp`, `resend` ou `log`. Padrão: `smtp` no Coolify e em development, `log` em test.                                                      |
+| `RESEND_API_KEY`        | Servidor  | Opcional. Obrigatória só quando `EMAIL_TRANSPORT=resend`.                                                                                  |
+| `EMAIL_FROM`            | Servidor  | Opcional. Padrão `Gym Easy <onboarding@resend.dev>`.                                                                                       |
+| `SMTP_HOST`             | Servidor  | Obrigatório quando o transporte é `smtp`. No Coolify, `mailpit`.                                                                           |
+| `SMTP_PORT`             | Servidor  | Obrigatório quando o transporte é `smtp`. Mailpit usa `1025`.                                                                              |
+| `SMTP_USER`             | Servidor  | Opcional. Sem usuário, o cliente SMTP não envia `AUTH`.                                                                                    |
+| `SMTP_PASS`             | Servidor  | Opcional. Segredo. Não use o prefixo `NEXT_PUBLIC_`.                                                                                       |
+| `SMTP_SECURE`           | Servidor  | Opcional. `true`, `false`, `1` ou `0`. Padrão `false` (Mailpit em 1025). `true` abre TLS direto, como na porta 465.                        |
+| `CRON_SECRET`           | Servidor  | Opcional, mínimo 16 caracteres. Sem ele, `GET /api/cron/purge-consent-proofs` responde 401.                                                |
+| `RUN_MIGRATIONS`        | Contentor | Opcional. `true` aplica migrações no arranque. Padrão `false`. O workflow do GitHub continua a ser o caminho principal.                    |
+| `DATABASE_URL_UNPOOLED` | Migração  | Host direct da branch Neon `main`. Secret do environment `production` no GitHub. Também usado pelo script de arranque, se a Infra o ligar. |
 
-Na Vercel, Preview usa a branch `dev` do projeto `app-de-treino` e Production usa a branch `main` do mesmo projeto. As funções rodam em `fra1` (`vercel.json`). Crie `CONSENT_PSEUDONYM_KEY` em Preview e Production, e `CRON_SECRET` em Production, antes do runtime. Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
+Não crie `NEXT_PUBLIC_DATABASE_URL` nem `NEXT_PUBLIC_CONSENT_PSEUDONYM_KEY`.
 
-## CORS
+## Tarefa agendada
 
-A CDN da Vercel acrescenta `Access-Control-Allow-Origin: *` em HTML prerenderizado e arquivos estáticos, depois do proxy. O proxy apaga o header, mas a plataforma o recoloca nesses recursos. `vercel.json` substitui o `*` por `https://gym-easy.vercel.app`. Rotas `/api` não recebem o `*` da plataforma e ficam fora dessa regra.
+Não há cron da Vercel. `POST` ou `GET /api/cron` com `Authorization: Bearer $CRON_SECRET` apaga sessões expiradas, tokens de confirmação expirados e janelas antigas de rate limit. Sem `CRON_SECRET`, a rota responde 404. O segredo não vai na query string.
+
+No Coolify, uma Scheduled Task dentro do contentor da app (a imagem tem Node, não curl):
+
+```bash
+node -e "fetch('http://127.0.0.1:3000/api/cron',{method:'POST',headers:{authorization:'Bearer '+process.env.CRON_SECRET}}).then(async (response)=>{if(!response.ok){console.error(response.status);process.exit(1)}})"
+```
+
+No Trigger.dev, um schedule faz o mesmo `POST` para o domínio público do Coolify, com o mesmo header. O segredo fica na env do Trigger.dev, não no repositório.
+
+## Headers
+
+`next.config.ts` envia `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` e, em produção, `Strict-Transport-Security`. A CSP com nonce continua no proxy, porque o valor muda a cada pedido. A app não depende de headers injectados por uma CDN.
 
 ## CI
 
-O workflow `.github/workflows/ci.yml` sobe um Postgres 16 e um Mailpit `v1.31.5` (digest pinado), aplica `pnpm db:migrate` no Postgres e roda, em todo pull request: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest (com um teste de integração SMTP contra o Mailpit), build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions.
+O workflow `.github/workflows/ci.yml` sobe um Postgres 16 e um Mailpit `v1.31.5` (digest pinado), aplica `pnpm db:migrate` no Postgres e roda, em todo pull request: gitleaks (histórico completo e checksum do binário), lint, Prettier, typecheck, Vitest (com um teste de integração SMTP contra o Mailpit), build, Playwright, `pnpm audit --audit-level high` e `pnpm audit --prod`. Um job à parte faz `docker build` da imagem de produção e confirma que ela arranca como `nextjs`, com healthcheck em `/api/health`. A única exceção de audit é `CVE-2026-93687` (`braces`, dependência de desenvolvimento do ESLint, sem patch), registrada em `pnpm-workspace.yaml` com dono `leduardo99` e expiração em 2026-11-13. Dependabot abre atualizações semanais de npm e GitHub Actions.

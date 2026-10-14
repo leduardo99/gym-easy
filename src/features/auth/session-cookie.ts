@@ -1,5 +1,3 @@
-import { ipAddress } from "@vercel/functions";
-
 export const SESSION_COOKIE_NAME = "ge_session";
 export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 export const CONFIRM_EMAIL_COOKIE_NAME = "ge_confirm_email";
@@ -25,14 +23,9 @@ export function confirmEmailCookieOptions(secure: boolean) {
   };
 }
 
-export function shouldUseSecureCookie(input: {
-  forwardedProto: string | null;
-  vercelEnv: string | undefined;
-}): boolean {
-  const proto = input.forwardedProto?.split(",")[0]?.trim();
-  if (proto === "https") return true;
-  if (proto === "http") return false;
-  return input.vercelEnv === "preview" || input.vercelEnv === "production";
+export function shouldUseSecureCookie(forwardedProto: string | null): boolean {
+  const proto = forwardedProto?.split(",")[0]?.trim();
+  return proto === "https";
 }
 
 export function isSameOrigin(
@@ -61,14 +54,11 @@ function normalizeClientIp(value: string | null | undefined): string | null {
   return ip;
 }
 
-export function clientIp(headerStore: Headers): string | null {
-  const realIp = headerStore.get("x-real-ip");
-  // Next's header store has a `headers` field, which makes ipAddress() treat
-  // it as a Request and call `.get` on a plain object. Copy the platform
-  // header into a real Headers instance first.
-  const platformHeaders = new Headers();
-  if (realIp) platformHeaders.set("x-real-ip", realIp);
+export function clientIp(headerStore: {
+  get(name: string): string | null;
+}): string | null {
   return (
-    normalizeClientIp(ipAddress(platformHeaders)) ?? normalizeClientIp(realIp)
+    normalizeClientIp(headerStore.get("x-real-ip")) ??
+    normalizeClientIp(headerStore.get("x-forwarded-for"))
   );
 }

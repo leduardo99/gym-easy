@@ -11,9 +11,9 @@ describe("isDesignCatalogEnabled", () => {
     expect(isDesignCatalogEnabled("production")).toBe(false);
   });
 
-  it("keeps the catalog available in preview, development, and locally", () => {
-    expect(isDesignCatalogEnabled("preview")).toBe(true);
+  it("keeps the catalog available in development and locally", () => {
     expect(isDesignCatalogEnabled("development")).toBe(true);
+    expect(isDesignCatalogEnabled("test")).toBe(true);
     expect(isDesignCatalogEnabled(undefined)).toBe(true);
   });
 });
@@ -36,8 +36,8 @@ describe("shouldBlockDesignCatalog", () => {
     expect(shouldBlockDesignCatalog("/Design", "production")).toBe(true);
     expect(shouldBlockDesignCatalog("/design/", "production")).toBe(true);
     expect(shouldBlockDesignCatalog("/%64esign", "production")).toBe(true);
-    expect(shouldBlockDesignCatalog("/design", "preview")).toBe(false);
-    expect(shouldBlockDesignCatalog("/Design", "preview")).toBe(false);
+    expect(shouldBlockDesignCatalog("/design", "development")).toBe(false);
+    expect(shouldBlockDesignCatalog("/Design", "test")).toBe(false);
     expect(shouldBlockDesignCatalog("/%64esign", undefined)).toBe(false);
   });
 
