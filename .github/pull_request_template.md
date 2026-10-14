@@ -27,6 +27,11 @@
 - [ ] `.env.example` atualizado se houve variável nova; valor real só na Vercel
 - [ ] Toda entrada no servidor validada com zod
 - [ ] Queries só via Drizzle (parametrizadas), filtradas pelo `user_id` da sessão quando houver dados de usuário
+- [ ] IDOR: nenhum id de usuário, treino ou recurso vem do cliente para autorizar a query; há teste quando a rota lê ou altera dados de usuário
+- [ ] Rate limit em login, reset de senha e outras rotas sensíveis, quando essas rotas existirem
+- [ ] Uploads validados (tipo, tamanho e conteúdo) e armazenados sem execução do arquivo
+- [ ] Saída de IA tratada como não confiável: não executar, não renderizar HTML cru, validar com zod antes de persistir ou exibir
+- [ ] Headers de segurança em todas as rotas: CSP, `frame-ancestors 'none'` e `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` restritiva e HSTS em produção
 - [ ] Novas dependências justificadas na descrição
 - [ ] Se mexe em auth ou dados pessoais: revisão do agente de Segurança
 

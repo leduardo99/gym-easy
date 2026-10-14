@@ -1,7 +1,7 @@
 // DS override: default h-11 (44px), lg h-12, icon 44×44 — Design System v2 §5.1.
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { Slot } from "radix-ui";
 
 const buttonVariants = cva(

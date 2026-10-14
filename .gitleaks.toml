@@ -4,8 +4,7 @@ title = "gym-easy"
 useDefault = true
 
 [allowlist]
-description = "Placeholders and generated lockfile"
+description = "Generated lockfile"
 paths = [
-  '''\.env\.example''',
   '''pnpm-lock\.yaml''',
 ]
