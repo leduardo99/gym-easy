@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { CATALOG_EXERCISES, type CatalogExercise } from "../catalog";
-import { renderExerciseSeedSql } from "./render-exercise-seed";
+import {
+  renderExerciseCatalogUpsertSql,
+  renderExerciseSeedSql,
+} from "./render-exercise-seed";
 
 const source = CATALOG_EXERCISES[0];
 if (source === undefined) {
@@ -55,6 +58,22 @@ describe("renderExerciseSeedSql", () => {
     expect(migration.indexOf('INSERT INTO "exercises"')).toBeGreaterThan(
       removeOld,
     );
+  });
+
+  it("upserts the plyometric flag without deleting catalog rows", () => {
+    const migration = readFileSync(
+      "src/db/migrations/0009_is_plyometric.sql",
+      "utf8",
+    );
+    const upsert = renderExerciseCatalogUpsertSql(CATALOG_EXERCISES);
+    expect(migration).toContain(
+      'ADD COLUMN "is_plyometric" boolean DEFAULT false NOT NULL',
+    );
+    expect(migration).toContain(upsert.trim());
+    expect(migration).not.toMatch(/\bDELETE\b/);
+    expect(migration).not.toMatch(/\bTRUNCATE\b/);
+    expect(upsert).not.toMatch(/\bDELETE\b/);
+    expect(upsert).not.toMatch(/\bTRUNCATE\b/);
   });
 
   it("drops the previous catalog before the metadata check", () => {

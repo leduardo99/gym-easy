@@ -1,4 +1,4 @@
-import { lt, sql } from "drizzle-orm";
+import { eq, lt, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "@/db";
 import { authRateLimits } from "@/db/schema";
@@ -56,6 +56,9 @@ export function createDrizzleRateLimiter(db: AppDatabase): RateLimiter {
           );
 
       return { allowed, retryAfterSeconds, hits };
+    },
+    async reset(bucket) {
+      await db.delete(authRateLimits).where(eq(authRateLimits.bucket, bucket));
     },
   };
 }

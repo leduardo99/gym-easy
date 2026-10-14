@@ -140,4 +140,17 @@ describe.skipIf(!runIntegration)("auth database", () => {
       .where(inArray(schema.authRateLimits.bucket, [stale, fresh]));
     expect(rows.map((row) => row.bucket)).toEqual([fresh]);
   });
+
+  it("clears one rate-limit bucket and leaves the other", async () => {
+    const account = `account:${crypto.randomUUID()}`;
+    const ip = `ip:${crypto.randomUUID()}`;
+    await limiter.hit(account, 5, 60_000);
+    await limiter.hit(account, 5, 60_000);
+    await limiter.hit(ip, 20, 60_000);
+
+    await limiter.reset(account);
+
+    expect((await limiter.hit(account, 5, 60_000)).hits).toBe(1);
+    expect((await limiter.hit(ip, 20, 60_000)).hits).toBe(2);
+  });
 });
