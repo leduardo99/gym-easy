@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import { getDb } from "@/db";
 import { getServerEnv } from "@/lib/env";
@@ -133,6 +134,12 @@ export async function signupAction(input: unknown): Promise<AuthActionResult> {
     );
 
     if (result.status === "pending") {
+      const deliver = result.deliver;
+      after(() =>
+        deliver().catch((error: unknown) => {
+          logAuthFailure("auth.signup_email_failed", error);
+        }),
+      );
       const jar = await cookies();
       jar.set(
         CONFIRM_EMAIL_COOKIE_NAME,

@@ -13,28 +13,11 @@ import {
 } from "./rate-limit";
 import { fieldErrorsFromZod, signupSchema, type FieldErrors } from "./schemas";
 import { CONFIRMATION_TTL_MS } from "./session-policy";
-
-export const SIGNUP_TIMING_DUMMY = "signup-timing-dummy";
-export const SIGNUP_RESPONSE_FLOOR_MS = 700;
-export const SIGNUP_RESPONSE_JITTER_MS = 50;
-
-export function signupResponsePadMs(elapsedMs: number, unit: number): number {
-  const jitter = Math.floor(
-    Math.min(1, Math.max(0, unit)) * SIGNUP_RESPONSE_JITTER_MS,
-  );
-  return Math.max(0, SIGNUP_RESPONSE_FLOOR_MS + jitter - elapsedMs);
-}
-
-function waitForSignupPad(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 import { sha256 } from "./tokens";
 import type { UserStore } from "./user-store";
 
 export type RegisterResult =
-  | { status: "pending"; email: string }
+  | { status: "pending"; email: string; deliver: () => Promise<void> }
   | { status: "invalid"; fieldErrors: FieldErrors }
   | { status: "breached" }
   | { status: "rate_limited"; retryAfterSeconds: number }
@@ -57,12 +40,8 @@ export async function registerAccount(
     rateLimiter: RateLimiter;
     createId: () => string;
     createToken: () => string;
-    clock?: () => number;
-    random?: () => number;
-    sleep?: (ms: number) => Promise<void>;
   },
 ): Promise<RegisterResult> {
-  const started = deps.clock?.() ?? performance.now();
   const parsed = signupSchema.safeParse({
     name: input.name,
     email: input.email,
@@ -93,30 +72,48 @@ export async function registerAccount(
     return { status: "breached" };
   }
 
-  const passwordHash = await deps.hasher.hash(parsed.data.password);
-  const id = deps.createId();
-  const outcome = await deps.users.insertUser({
-    id,
-    name: parsed.data.name,
-    email: parsed.data.email,
-    passwordHash,
-  });
-
+  let deliver: () => Promise<void>;
   try {
-    if (outcome === "inserted") {
-      const token = deps.createToken();
-      await deps.users.saveVerificationToken({
-        tokenHash: sha256(token),
-        userId: id,
-        expiresAt: new Date(input.now.getTime() + CONFIRMATION_TTL_MS),
+    const existing = await deps.users.findUserByEmail(parsed.data.email);
+    if (existing) {
+      // argon2id of the received password is not stored.
+      await deps.users.insertUser({
+        id: deps.createId(),
+        name: parsed.data.name,
+        email: parsed.data.email,
+        passwordHash: await deps.hasher.hash(parsed.data.password),
       });
-      await deps.emails.sendAccountConfirmation({
-        to: parsed.data.email,
-        confirmUrl: `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`,
-      });
+      deliver = () =>
+        deps.emails.sendAccountExistsNotice({ to: parsed.data.email });
     } else {
-      await deps.hasher.hash(SIGNUP_TIMING_DUMMY);
-      await deps.emails.sendAccountExistsNotice({ to: parsed.data.email });
+      const id = deps.createId();
+      const passwordHash = await deps.hasher.hash(parsed.data.password);
+      const outcome = await deps.users.insertUser({
+        id,
+        name: parsed.data.name,
+        email: parsed.data.email,
+        passwordHash,
+      });
+      if (outcome === "exists") {
+        deliver = () =>
+          deps.emails.sendAccountExistsNotice({ to: parsed.data.email });
+      } else {
+        const token = deps.createToken();
+        const tokenHash = sha256(token);
+        const expiresAt = new Date(input.now.getTime() + CONFIRMATION_TTL_MS);
+        const confirmUrl = `${input.origin}/cadastro/confirmar?token=${encodeURIComponent(token)}`;
+        deliver = async () => {
+          await deps.users.saveVerificationToken({
+            tokenHash,
+            userId: id,
+            expiresAt,
+          });
+          await deps.emails.sendAccountConfirmation({
+            to: parsed.data.email,
+            confirmUrl,
+          });
+        };
+      }
     }
   } catch {
     return { status: "server_error" };
@@ -128,11 +125,7 @@ export async function registerAccount(
     RESEND_COOLDOWN_WINDOW_MS,
   );
 
-  const elapsed = (deps.clock?.() ?? performance.now()) - started;
-  const pad = signupResponsePadMs(elapsed, deps.random?.() ?? Math.random());
-  if (pad > 0) await (deps.sleep ?? waitForSignupPad)(pad);
-
-  return { status: "pending", email: parsed.data.email };
+  return { status: "pending", email: parsed.data.email, deliver };
 }
 
 export function signupFieldMessage(status: "breached"): string {
