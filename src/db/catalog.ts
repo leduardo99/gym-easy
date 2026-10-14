@@ -214,6 +214,7 @@ export type CatalogExercise = {
   level: TrainingLevel;
   contraindicatedRegions: BodyRegion[];
   unilateral: boolean;
+  isPlyometric: boolean;
   defaultRepsMin: number;
   defaultRepsMax: number;
   substitutions: string[];
@@ -275,6 +276,7 @@ export const CATALOG_EXERCISES: readonly CatalogExercise[] = seed.exercises.map(
         "region",
       ),
       unilateral: item.unilateral,
+      isPlyometric: item.is_plyometric,
       defaultRepsMin,
       defaultRepsMax,
       substitutions: [...item.substitutions],

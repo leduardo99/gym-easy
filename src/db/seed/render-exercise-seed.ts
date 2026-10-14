@@ -41,3 +41,62 @@ ${values}
 ON CONFLICT ("slug") WHERE "exercises"."owner_user_id" is null DO NOTHING;
 `;
 }
+
+const CATALOG_UPSERT_COLUMNS = [
+  "name",
+  "normalized_name",
+  "muscle_group",
+  "equipment",
+  "slug",
+  "movement_pattern",
+  "primary_muscles",
+  "secondary_muscles",
+  "level",
+  "contraindicated_regions",
+  "unilateral",
+  "is_plyometric",
+  "default_reps_min",
+  "default_reps_max",
+  "substitution_slugs",
+] as const;
+
+export function renderExerciseCatalogUpsertSql(
+  exercises: readonly CatalogExercise[],
+): string {
+  const values = exercises
+    .map((exercise) => {
+      const normalized = normalizeExerciseName(exercise.name);
+      return `  (${[
+        sqlString(exercise.name),
+        sqlString(normalized),
+        sqlString(exercise.muscleGroup),
+        sqlString(exercise.equipment),
+        sqlString(exercise.slug),
+        sqlString(exercise.movementPattern),
+        enumArray("muscle", exercise.primaryMuscles),
+        enumArray("muscle", exercise.secondaryMuscles),
+        sqlString(exercise.level),
+        enumArray("body_region", exercise.contraindicatedRegions),
+        exercise.unilateral ? "true" : "false",
+        exercise.isPlyometric ? "true" : "false",
+        String(exercise.defaultRepsMin),
+        String(exercise.defaultRepsMax),
+        enumArray("text", exercise.substitutions),
+      ].join(", ")})`;
+    })
+    .join(",\n");
+  const quotedColumns = CATALOG_UPSERT_COLUMNS.map(
+    (column) => `"${column}"`,
+  ).join(", ");
+  const updates = CATALOG_UPSERT_COLUMNS.filter((column) => column !== "slug")
+    .map((column) => `"${column}" = EXCLUDED."${column}"`)
+    .join(",\n  ");
+
+  return `INSERT INTO "exercises" (${quotedColumns})
+VALUES
+${values}
+ON CONFLICT ("slug") WHERE "exercises"."owner_user_id" is null DO UPDATE
+SET
+  ${updates};
+`;
+}

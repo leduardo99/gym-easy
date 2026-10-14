@@ -64,6 +64,13 @@
       "when": 1792010246270,
       "tag": "0008_consent_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792014764556,
+      "tag": "0009_is_plyometric",
+      "breakpoints": true
     }
   ]
 }

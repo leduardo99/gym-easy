@@ -30,6 +30,7 @@ export const exerciseSeedSchema = z
             level: z.enum(LEVEL_VALUES),
             contraindicated_regions: z.array(z.enum(BODY_REGIONS)).max(4),
             unilateral: z.boolean(),
+            is_plyometric: z.boolean(),
             default_rep_range: z.tuple([
               z.number().int().min(1).max(999),
               z.number().int().min(1).max(999),
