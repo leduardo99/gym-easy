@@ -1,3 +1,14 @@
+import seed from "./catalog/exercises.json";
+import type { TrainingLevel } from "./domain";
+import { LEVEL_VALUES } from "./domain";
+
+/**
+ * Catálogo LED-32, versão 2026-10-14.
+ * Chaves, slugs e enums ficam em inglês. O nome exibido fica em português.
+ * A ordem de substituição de `bench_dip` segue a revisão da LED-32:
+ * pegada neutra, paralelas para peito, supino fechado.
+ */
+
 export const MUSCLE_GROUPS = [
   "chest",
   "back",
@@ -23,10 +34,65 @@ export const EQUIPMENT = [
   "kettlebell",
   "band",
   "other",
+  "smith",
+  "accessory",
+] as const;
+
+export const MOVEMENT_PATTERNS = [
+  "horizontal_push",
+  "vertical_push",
+  "horizontal_pull",
+  "vertical_pull",
+  "squat",
+  "hip_hinge",
+  "lunge",
+  "core",
+  "isolation",
+  "carry",
+] as const;
+
+export const MUSCLES = [
+  "pectoralis",
+  "latissimus",
+  "rhomboids",
+  "upper_trapezius",
+  "middle_trapezius",
+  "erector_spinae",
+  "anterior_deltoid",
+  "lateral_deltoid",
+  "posterior_deltoid",
+  "rotator_cuff",
+  "biceps",
+  "triceps",
+  "forearms",
+  "quadriceps",
+  "hamstrings",
+  "glutes",
+  "gluteus_medius",
+  "adductors",
+  "hip_flexors",
+  "calves",
+  "soleus",
+  "abdominals",
+  "obliques",
+] as const;
+
+export const BODY_REGIONS = [
+  "shoulder",
+  "elbow",
+  "wrist",
+  "neck",
+  "lumbar_spine",
+  "hip",
+  "knee",
+  "ankle",
 ] as const;
 
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
 export type Equipment = (typeof EQUIPMENT)[number];
+export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
+export type Muscle = (typeof MUSCLES)[number];
+export type BodyRegion = (typeof BODY_REGIONS)[number];
 
 export const MUSCLE_GROUP_LABELS = {
   chest: "Peito",
@@ -53,353 +119,164 @@ export const EQUIPMENT_LABELS = {
   kettlebell: "Kettlebell",
   band: "Elástico",
   other: "Outro",
+  smith: "Smith",
+  accessory: "Acessório",
 } as const satisfies Record<Equipment, string>;
 
+export const MOVEMENT_PATTERN_LABELS = {
+  horizontal_push: "Empurrar horizontal",
+  vertical_push: "Empurrar vertical",
+  horizontal_pull: "Puxar horizontal",
+  vertical_pull: "Puxar vertical",
+  squat: "Agachamento",
+  hip_hinge: "Dobradiça de quadril",
+  lunge: "Avanço",
+  core: "Core",
+  isolation: "Isolamento",
+  carry: "Carregamento",
+} as const satisfies Record<MovementPattern, string>;
+
+export const MUSCLE_LABELS = {
+  pectoralis: "Peitoral",
+  latissimus: "Latíssimo",
+  rhomboids: "Romboides",
+  upper_trapezius: "Trapézio superior",
+  middle_trapezius: "Trapézio médio",
+  erector_spinae: "Eretores da espinha",
+  anterior_deltoid: "Deltoide anterior",
+  lateral_deltoid: "Deltoide lateral",
+  posterior_deltoid: "Deltoide posterior",
+  rotator_cuff: "Manguito rotador",
+  biceps: "Bíceps",
+  triceps: "Tríceps",
+  forearms: "Antebraço",
+  quadriceps: "Quadríceps",
+  hamstrings: "Isquiotibiais",
+  glutes: "Glúteos",
+  gluteus_medius: "Glúteo médio",
+  adductors: "Adutores",
+  hip_flexors: "Flexores do quadril",
+  calves: "Panturrilha",
+  soleus: "Sóleo",
+  abdominals: "Abdômen",
+  obliques: "Oblíquos",
+} as const satisfies Record<Muscle, string>;
+
+export const BODY_REGION_LABELS = {
+  shoulder: "Ombro",
+  elbow: "Cotovelo",
+  wrist: "Punho",
+  neck: "Pescoço",
+  lumbar_spine: "Coluna lombar",
+  hip: "Quadril",
+  knee: "Joelho",
+  ankle: "Tornozelo",
+} as const satisfies Record<BodyRegion, string>;
+
+export const LEVEL_LABELS = {
+  beginner: "Iniciante",
+  intermediate: "Intermediário",
+  advanced: "Avançado",
+} as const satisfies Record<TrainingLevel, string>;
+
+/** Grupo amplo usado no filtro da biblioteca, a partir do primeiro músculo primário. */
+const COARSE_MUSCLE_GROUP = {
+  pectoralis: "chest",
+  latissimus: "back",
+  rhomboids: "back",
+  upper_trapezius: "back",
+  middle_trapezius: "back",
+  erector_spinae: "back",
+  anterior_deltoid: "shoulders",
+  lateral_deltoid: "shoulders",
+  posterior_deltoid: "shoulders",
+  rotator_cuff: "shoulders",
+  biceps: "biceps",
+  triceps: "triceps",
+  forearms: "forearms",
+  quadriceps: "quadriceps",
+  hamstrings: "hamstrings",
+  glutes: "glutes",
+  gluteus_medius: "glutes",
+  adductors: "glutes",
+  hip_flexors: "abs",
+  calves: "calves",
+  soleus: "calves",
+  abdominals: "abs",
+  obliques: "abs",
+} as const satisfies Record<Muscle, MuscleGroup>;
+
 export type CatalogExercise = {
+  slug: string;
   name: string;
   muscleGroup: MuscleGroup;
   equipment: Equipment;
+  movementPattern: MovementPattern;
+  primaryMuscles: Muscle[];
+  secondaryMuscles: Muscle[];
+  level: TrainingLevel;
+  contraindicatedRegions: BodyRegion[];
+  unilateral: boolean;
+  defaultRepsMin: number;
+  defaultRepsMax: number;
+  substitutions: string[];
 };
 
-export const CATALOG_EXERCISES = [
-  { name: "Supino reto (barra)", muscleGroup: "chest", equipment: "barbell" },
-  {
-    name: "Supino inclinado (barra)",
-    muscleGroup: "chest",
-    equipment: "barbell",
-  },
-  {
-    name: "Supino declinado (barra)",
-    muscleGroup: "chest",
-    equipment: "barbell",
-  },
-  {
-    name: "Supino reto (halteres)",
-    muscleGroup: "chest",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Supino inclinado (halteres)",
-    muscleGroup: "chest",
-    equipment: "dumbbell",
-  },
-  { name: "Crucifixo (halteres)", muscleGroup: "chest", equipment: "dumbbell" },
-  {
-    name: "Crucifixo inclinado (halteres)",
-    muscleGroup: "chest",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Supino máquina (máquina)",
-    muscleGroup: "chest",
-    equipment: "machine",
-  },
-  { name: "Crossover (cabo)", muscleGroup: "chest", equipment: "cable" },
-  {
-    name: "Flexão de braços (peso corporal)",
-    muscleGroup: "chest",
-    equipment: "bodyweight",
-  },
-  { name: "Puxada frontal (cabo)", muscleGroup: "back", equipment: "cable" },
-  { name: "Remada curvada (barra)", muscleGroup: "back", equipment: "barbell" },
-  {
-    name: "Remada cavalinho (barra)",
-    muscleGroup: "back",
-    equipment: "barbell",
-  },
-  {
-    name: "Remada unilateral (halter)",
-    muscleGroup: "back",
-    equipment: "dumbbell",
-  },
-  { name: "Remada sentada (cabo)", muscleGroup: "back", equipment: "cable" },
-  { name: "Remada baixa (máquina)", muscleGroup: "back", equipment: "machine" },
-  {
-    name: "Barra fixa (peso corporal)",
-    muscleGroup: "back",
-    equipment: "bodyweight",
-  },
-  { name: "Pullover (halter)", muscleGroup: "back", equipment: "dumbbell" },
-  {
-    name: "Remada elástica (elástico)",
-    muscleGroup: "back",
-    equipment: "band",
-  },
-  { name: "Pulldown (máquina)", muscleGroup: "back", equipment: "machine" },
-  {
-    name: "Desenvolvimento militar (barra)",
-    muscleGroup: "shoulders",
-    equipment: "barbell",
-  },
-  {
-    name: "Desenvolvimento (halteres)",
-    muscleGroup: "shoulders",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Desenvolvimento (máquina)",
-    muscleGroup: "shoulders",
-    equipment: "machine",
-  },
-  {
-    name: "Elevação lateral (halteres)",
-    muscleGroup: "shoulders",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Elevação frontal (halteres)",
-    muscleGroup: "shoulders",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Elevação lateral (cabo)",
-    muscleGroup: "shoulders",
-    equipment: "cable",
-  },
-  {
-    name: "Remada alta (barra)",
-    muscleGroup: "shoulders",
-    equipment: "barbell",
-  },
-  { name: "Face pull (cabo)", muscleGroup: "shoulders", equipment: "cable" },
-  { name: "Rosca direta (barra)", muscleGroup: "biceps", equipment: "barbell" },
-  {
-    name: "Rosca direta (halteres)",
-    muscleGroup: "biceps",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Rosca martelo (halteres)",
-    muscleGroup: "biceps",
-    equipment: "dumbbell",
-  },
-  { name: "Rosca scott (barra)", muscleGroup: "biceps", equipment: "barbell" },
-  {
-    name: "Rosca scott (máquina)",
-    muscleGroup: "biceps",
-    equipment: "machine",
-  },
-  {
-    name: "Rosca concentrada (halter)",
-    muscleGroup: "biceps",
-    equipment: "dumbbell",
-  },
-  { name: "Rosca cabo (cabo)", muscleGroup: "biceps", equipment: "cable" },
-  {
-    name: "Tríceps testa (barra)",
-    muscleGroup: "triceps",
-    equipment: "barbell",
-  },
-  {
-    name: "Tríceps testa (halteres)",
-    muscleGroup: "triceps",
-    equipment: "dumbbell",
-  },
-  { name: "Tríceps corda (cabo)", muscleGroup: "triceps", equipment: "cable" },
-  { name: "Tríceps pulley (cabo)", muscleGroup: "triceps", equipment: "cable" },
-  {
-    name: "Tríceps francês (halter)",
-    muscleGroup: "triceps",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Mergulho entre bancos (peso corporal)",
-    muscleGroup: "triceps",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Tríceps máquina (máquina)",
-    muscleGroup: "triceps",
-    equipment: "machine",
-  },
-  {
-    name: "Rosca inversa (barra)",
-    muscleGroup: "forearms",
-    equipment: "barbell",
-  },
-  {
-    name: "Rosca de punho (halteres)",
-    muscleGroup: "forearms",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Extensão de punho (halteres)",
-    muscleGroup: "forearms",
-    equipment: "dumbbell",
-  },
-  { name: "Rosca inversa (cabo)", muscleGroup: "forearms", equipment: "cable" },
-  {
-    name: "Agachamento livre (barra)",
-    muscleGroup: "quadriceps",
-    equipment: "barbell",
-  },
-  {
-    name: "Agachamento frontal (barra)",
-    muscleGroup: "quadriceps",
-    equipment: "barbell",
-  },
-  {
-    name: "Leg press (máquina)",
-    muscleGroup: "quadriceps",
-    equipment: "machine",
-  },
-  {
-    name: "Cadeira extensora (máquina)",
-    muscleGroup: "quadriceps",
-    equipment: "machine",
-  },
-  {
-    name: "Agachamento goblet (halter)",
-    muscleGroup: "quadriceps",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Afundo (halteres)",
-    muscleGroup: "quadriceps",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Agachamento hack (máquina)",
-    muscleGroup: "quadriceps",
-    equipment: "machine",
-  },
-  {
-    name: "Agachamento elástico (elástico)",
-    muscleGroup: "quadriceps",
-    equipment: "band",
-  },
-  {
-    name: "Levantamento terra romeno (barra)",
-    muscleGroup: "hamstrings",
-    equipment: "barbell",
-  },
-  {
-    name: "Stiff (halteres)",
-    muscleGroup: "hamstrings",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Mesa flexora (máquina)",
-    muscleGroup: "hamstrings",
-    equipment: "machine",
-  },
-  {
-    name: "Cadeira flexora (máquina)",
-    muscleGroup: "hamstrings",
-    equipment: "machine",
-  },
-  {
-    name: "Good morning (barra)",
-    muscleGroup: "hamstrings",
-    equipment: "barbell",
-  },
-  {
-    name: "Levantamento terra (barra)",
-    muscleGroup: "hamstrings",
-    equipment: "barbell",
-  },
-  { name: "Hip thrust (barra)", muscleGroup: "glutes", equipment: "barbell" },
-  {
-    name: "Elevação pélvica (peso corporal)",
-    muscleGroup: "glutes",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Abdução de quadril (máquina)",
-    muscleGroup: "glutes",
-    equipment: "machine",
-  },
-  { name: "Glúteo no cabo (cabo)", muscleGroup: "glutes", equipment: "cable" },
-  {
-    name: "Agachamento sumô (halter)",
-    muscleGroup: "glutes",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Panturrilha em pé (máquina)",
-    muscleGroup: "calves",
-    equipment: "machine",
-  },
-  {
-    name: "Panturrilha sentado (máquina)",
-    muscleGroup: "calves",
-    equipment: "machine",
-  },
-  {
-    name: "Panturrilha no leg press (máquina)",
-    muscleGroup: "calves",
-    equipment: "machine",
-  },
-  {
-    name: "Panturrilha unilateral (peso corporal)",
-    muscleGroup: "calves",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Abdominal crunch (peso corporal)",
-    muscleGroup: "abs",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Elevação de pernas (peso corporal)",
-    muscleGroup: "abs",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Abdominal máquina (máquina)",
-    muscleGroup: "abs",
-    equipment: "machine",
-  },
-  { name: "Abdominal na polia (cabo)", muscleGroup: "abs", equipment: "cable" },
-  {
-    name: "Abdominal elástico (elástico)",
-    muscleGroup: "abs",
-    equipment: "band",
-  },
-  {
-    name: "Swing (kettlebell)",
-    muscleGroup: "full_body",
-    equipment: "kettlebell",
-  },
-  { name: "Thruster (barra)", muscleGroup: "full_body", equipment: "barbell" },
-  {
-    name: "Agachamento com desenvolvimento (halteres)",
-    muscleGroup: "full_body",
-    equipment: "dumbbell",
-  },
-  {
-    name: "Burpee (peso corporal)",
-    muscleGroup: "full_body",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Arranco (kettlebell)",
-    muscleGroup: "full_body",
-    equipment: "kettlebell",
-  },
-  {
-    name: "Empurrar trenó (outro)",
-    muscleGroup: "full_body",
-    equipment: "other",
-  },
-  {
-    name: "Polichinelo (peso corporal)",
-    muscleGroup: "cardio",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Mountain climber (peso corporal)",
-    muscleGroup: "cardio",
-    equipment: "bodyweight",
-  },
-  {
-    name: "Bicicleta ergométrica (máquina)",
-    muscleGroup: "cardio",
-    equipment: "machine",
-  },
-  {
-    name: "Remo ergométrico (máquina)",
-    muscleGroup: "cardio",
-    equipment: "machine",
-  },
-] as const satisfies readonly CatalogExercise[];
+export const CATALOG_VERSION = seed.version;
+
+function enumValue<T extends string>(
+  values: readonly T[],
+  value: string,
+  field: string,
+): T {
+  const match = values.find((item) => item === value);
+  if (match === undefined) {
+    throw new Error(`Catálogo inválido: ${field} "${value}".`);
+  }
+  return match;
+}
+
+function enumList<T extends string>(
+  values: readonly T[],
+  items: readonly string[],
+  field: string,
+): T[] {
+  return items.map((item) => enumValue(values, item, field));
+}
+
+export const CATALOG_EXERCISES: readonly CatalogExercise[] = seed.exercises.map(
+  (item) => {
+    const primaryMuscles = enumList(MUSCLES, item.primaryMuscles, "muscle");
+    const primary = primaryMuscles[0];
+    if (primary === undefined) {
+      throw new Error(`Catálogo inválido: ${item.slug} sem músculo primário.`);
+    }
+    return {
+      slug: item.slug,
+      name: item.name,
+      muscleGroup: COARSE_MUSCLE_GROUP[primary],
+      equipment: enumValue(EQUIPMENT, item.equipment, "equipment"),
+      movementPattern: enumValue(
+        MOVEMENT_PATTERNS,
+        item.movementPattern,
+        "movementPattern",
+      ),
+      primaryMuscles,
+      secondaryMuscles: enumList(
+        MUSCLES,
+        item.secondaryMuscles,
+        "secondaryMuscle",
+      ),
+      level: enumValue(LEVEL_VALUES, item.level, "level"),
+      contraindicatedRegions: enumList(
+        BODY_REGIONS,
+        item.contraindicatedRegions,
+        "region",
+      ),
+      unilateral: item.unilateral,
+      defaultRepsMin: item.defaultRepsMin,
+      defaultRepsMax: item.defaultRepsMax,
+      substitutions: [...item.substitutions],
+    };
+  },
+);

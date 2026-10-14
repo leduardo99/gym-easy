@@ -182,7 +182,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
     const catalog = await repository.listExercises(ownerId, {
       search: "supino",
     });
-    const bench = catalog.find((item) => item.name === "Supino reto (barra)");
+    const bench = catalog.find((item) => item.name === "Supino reto com barra");
     expect(bench?.ownerUserId).toBeNull();
     if (!bench) return;
     const catalogArchive = await repository.archiveExercise(ownerId, bench.id);

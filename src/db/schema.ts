@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   foreignKey,
@@ -16,7 +17,13 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { EQUIPMENT, MUSCLE_GROUPS } from "./catalog";
+import {
+  BODY_REGIONS,
+  EQUIPMENT,
+  MOVEMENT_PATTERNS,
+  MUSCLE_GROUPS,
+  MUSCLES,
+} from "./catalog";
 import {
   CONSENT_ACTIONS,
   CONSENT_PURPOSES,
@@ -109,6 +116,12 @@ export const massUnitEnum = pgEnum("mass_unit", MASS_UNIT_VALUES);
 export const themeEnum = pgEnum("theme", THEME_VALUES);
 export const muscleGroupEnum = pgEnum("muscle_group", MUSCLE_GROUPS);
 export const equipmentEnum = pgEnum("equipment", EQUIPMENT);
+export const movementPatternEnum = pgEnum(
+  "movement_pattern",
+  MOVEMENT_PATTERNS,
+);
+export const muscleEnum = pgEnum("muscle", MUSCLES);
+export const bodyRegionEnum = pgEnum("body_region", BODY_REGIONS);
 export const sessionStatusEnum = pgEnum(
   "workout_session_status",
   SESSION_STATUS_VALUES,
@@ -236,6 +249,22 @@ export const exercises = pgTable(
     normalizedName: text("normalized_name").notNull(),
     muscleGroup: muscleGroupEnum("muscle_group").notNull(),
     equipment: equipmentEnum("equipment").notNull(),
+    slug: text("slug"),
+    movementPattern: movementPatternEnum("movement_pattern"),
+    primaryMuscles: muscleEnum("primary_muscles").array().notNull().default([]),
+    secondaryMuscles: muscleEnum("secondary_muscles")
+      .array()
+      .notNull()
+      .default([]),
+    level: trainingLevelEnum("level"),
+    contraindicatedRegions: bodyRegionEnum("contraindicated_regions")
+      .array()
+      .notNull()
+      .default([]),
+    unilateral: boolean("unilateral").notNull().default(false),
+    defaultRepsMin: smallint("default_reps_min"),
+    defaultRepsMax: smallint("default_reps_max"),
+    substitutionSlugs: text("substitution_slugs").array().notNull().default([]),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -245,6 +274,9 @@ export const exercises = pgTable(
       .defaultNow(),
   },
   (table) => [
+    uniqueIndex("exercises_catalog_slug_unique")
+      .on(table.slug)
+      .where(sql`${table.ownerUserId} is null`),
     uniqueIndex("exercises_catalog_normalized_name_unique")
       .on(table.normalizedName)
       .where(sql`${table.ownerUserId} is null`),
@@ -260,6 +292,24 @@ export const exercises = pgTable(
     check(
       "exercises_catalog_not_archived",
       sql`${table.ownerUserId} is not null or ${table.archivedAt} is null`,
+    ),
+    check(
+      "exercises_slug_format",
+      sql`${table.slug} is null or ${table.slug} ~ '^[a-z0-9]+(_[a-z0-9]+)*$'`,
+    ),
+    check(
+      "exercises_catalog_metadata",
+      sql`${table.ownerUserId} is not null or (
+        ${table.slug} is not null
+        and ${table.movementPattern} is not null
+        and ${table.level} is not null
+        and cardinality(${table.primaryMuscles}) >= 1
+        and ${table.defaultRepsMin} is not null
+        and ${table.defaultRepsMax} is not null
+        and ${table.defaultRepsMin} between 1 and ${table.defaultRepsMax}
+        and ${table.defaultRepsMax} <= 999
+        and cardinality(${table.substitutionSlugs}) <= 3
+      )`,
     ),
   ],
 );
