@@ -684,12 +684,13 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(profile).toMatchObject({ ok: false, error: "consent_required" });
     expect(weight).toMatchObject({ ok: false, error: "consent_required" });
 
-    expect(
-      await db
-        .select({ userId: userProfiles.userId })
-        .from(userProfiles)
-        .where(eq(userProfiles.userId, userB)),
-    ).toEqual([]);
+    const profileB = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userB));
+    expect(profileB).toHaveLength(1);
+    expect(profileB[0]?.birthYear).toBe(1991);
+    expect(profileB[0]?.heightCm).toBeNull();
     expect(
       await db
         .select({ id: bodyMeasurements.id })
