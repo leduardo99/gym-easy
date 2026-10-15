@@ -2,7 +2,15 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import type { AppDatabase } from "@/db";
 import { databaseUrlForRole, isLocalDatabaseUrl } from "@/db/driver";
@@ -15,6 +23,7 @@ import {
 } from "@/features/consent/repository";
 
 import { submitReconsent } from "./reconsent";
+import * as revokeBodyData from "./revoke-body-data";
 import { revokeBodyDataConsent } from "./revoke-body-data";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
@@ -42,6 +51,10 @@ describe.skipIf(!runIntegration)("body_data privacy integration", () => {
 
   afterAll(async () => {
     await client.end({ timeout: 5 });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   async function insertUser(label: string) {
@@ -177,5 +190,113 @@ describe.skipIf(!runIntegration)("body_data privacy integration", () => {
       .from(bodyMeasurements)
       .where(eq(bodyMeasurements.userId, userId));
     expect(measurements).toHaveLength(0);
+  });
+
+  it("não grava revogação nem apaga dados se a purga falhar na transação", async () => {
+    const userId = await insertUser("body-data-rollback");
+    const consents = createConsentRepository(db as unknown as AppDatabase);
+    await consents.recordConsent(userId, {
+      purpose: "body_data",
+      action: "granted",
+      source: "profile",
+    });
+    await db.insert(userProfiles).values({
+      userId,
+      birthYear: 1991,
+      sex: "female",
+      heightCm: 168,
+    });
+    await db.insert(bodyMeasurements).values({
+      userId,
+      recordedOn: "2026-04-01",
+      weightKg: "65.0",
+    });
+
+    vi.spyOn(revokeBodyData, "purgeBodyDataRows").mockRejectedValueOnce(
+      new Error("purge_failed"),
+    );
+
+    const result = await revokeBodyDataConsent(
+      db as unknown as AppDatabase,
+      userId,
+    );
+    expect(result).toEqual({ ok: false, error: "transaction_failed" });
+
+    const events = await db
+      .select()
+      .from(consentLog)
+      .where(eq(consentLog.userId, userId));
+    expect(events.some((event) => event.action === "revoked")).toBe(false);
+
+    const [profile] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId));
+    expect(profile?.birthYear).toBe(1991);
+    expect(profile?.heightCm).toBe(168);
+    expect(profile?.sex).toBe("female");
+
+    const measurements = await db
+      .select()
+      .from(bodyMeasurements)
+      .where(eq(bodyMeasurements.userId, userId));
+    expect(measurements).toHaveLength(1);
+  });
+
+  it("revoga só o utilizador A e mantém altura/sexo/medidas de B", async () => {
+    const userA = await insertUser("body-data-a");
+    const userB = await insertUser("body-data-b");
+    const consents = createConsentRepository(db as unknown as AppDatabase);
+    for (const userId of [userA, userB]) {
+      await consents.recordConsent(userId, {
+        purpose: "body_data",
+        action: "granted",
+        source: "profile",
+      });
+      await db.insert(userProfiles).values({
+        userId,
+        birthYear: 1985,
+        sex: "male",
+        heightCm: 175,
+      });
+      await db.insert(bodyMeasurements).values({
+        userId,
+        recordedOn: "2026-05-01",
+        weightKg: "80.0",
+      });
+    }
+
+    const result = await revokeBodyDataConsent(
+      db as unknown as AppDatabase,
+      userA,
+    );
+    expect(result).toEqual({ ok: true });
+
+    const [profileA] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userA));
+    expect(profileA?.heightCm).toBeNull();
+    expect(profileA?.sex).toBeNull();
+    expect(
+      await db
+        .select()
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userA)),
+    ).toHaveLength(0);
+
+    const [profileB] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userB));
+    expect(profileB?.birthYear).toBe(1985);
+    expect(profileB?.heightCm).toBe(175);
+    expect(profileB?.sex).toBe("male");
+    expect(
+      await db
+        .select()
+        .from(bodyMeasurements)
+        .where(eq(bodyMeasurements.userId, userB)),
+    ).toHaveLength(1);
   });
 });

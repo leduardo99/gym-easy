@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import type { AppDatabase } from "@/db";
+import type { AppDatabase, DbClient } from "@/db";
 import type { ConsentSource } from "@/db/domain";
 import { bodyMeasurements, userProfiles } from "@/db/schema";
 
@@ -8,6 +8,21 @@ import { createConsentRepository } from "./repository";
 
 export type RevokeBodyDataConsentResult =
   { ok: true } | { ok: false; error: "invalid" | "transaction_failed" };
+
+export async function purgeBodyDataRows(
+  tx: DbClient,
+  userId: string,
+): Promise<void> {
+  await tx.delete(bodyMeasurements).where(eq(bodyMeasurements.userId, userId));
+  await tx
+    .update(userProfiles)
+    .set({
+      heightCm: null,
+      sex: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(userProfiles.userId, userId));
+}
 
 export async function revokeBodyDataConsent(
   db: AppDatabase,
@@ -26,17 +41,7 @@ export async function revokeBodyDataConsent(
       if (!saved.ok) {
         throw new Error("consent_invalid");
       }
-      await tx
-        .delete(bodyMeasurements)
-        .where(eq(bodyMeasurements.userId, userId));
-      await tx
-        .update(userProfiles)
-        .set({
-          heightCm: null,
-          sex: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(userProfiles.userId, userId));
+      await purgeBodyDataRows(tx, userId);
     });
     return { ok: true };
   } catch (error) {

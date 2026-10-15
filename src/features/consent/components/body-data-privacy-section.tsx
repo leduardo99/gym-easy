@@ -98,6 +98,15 @@ export function BodyDataPrivacySection({
             }
             router.push(grantHref);
           }}
+          onKeyDown={(event) => {
+            if (event.key !== " " && event.key !== "Enter") return;
+            event.preventDefault();
+            if (bodyDataGranted) {
+              setRevokeOpen(true);
+              return;
+            }
+            router.push(grantHref);
+          }}
         />
       </div>
       <AlertDialog open={revokeOpen} onOpenChange={setRevokeOpen}>
