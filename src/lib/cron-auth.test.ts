@@ -15,7 +15,7 @@ describe("verifyCronSecret", () => {
 });
 
 describe("unauthorizedCron", () => {
-  it("rejects missing bearer and secrets in the query string", () => {
+  it("rejects a request with no Authorization header", () => {
     const secret = "cron-secret-value-32-characters-ok";
     process.env.CRON_SECRET = secret;
     expect(
@@ -23,10 +23,22 @@ describe("unauthorizedCron", () => {
         new Request("http://localhost/api/cron/purge-coach-messages"),
       )?.status,
     ).toBe(401);
+  });
+
+  it("rejects ?token= even when the value matches CRON_SECRET (header only)", () => {
+    const secret = "cron-secret-value-32-characters-ok";
+    process.env.CRON_SECRET = secret;
+    const response = unauthorizedCron(
+      new Request(
+        `http://localhost/api/cron/purge-coach-messages?token=${encodeURIComponent(secret)}`,
+      ),
+    );
+    expect(response?.status).toBe(401);
     expect(
       unauthorizedCron(
         new Request(
-          `http://localhost/api/cron/purge-coach-messages?token=${secret}`,
+          `http://localhost/api/cron/purge-coach-messages?token=${encodeURIComponent(secret)}`,
+          { headers: { authorization: `Bearer ${secret}` } },
         ),
       )?.status,
     ).toBe(401);
