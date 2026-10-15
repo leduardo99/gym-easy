@@ -100,17 +100,24 @@ describe("PrivacyPage", () => {
     expect(profileBody).not.toHaveTextContent(/medidas corporais/i);
 
     const lists = within(profileBody).getAllByRole("list");
-    expect(lists[0]).toHaveTextContent("birthYear");
-    expect(lists[0]).toHaveTextContent("goal");
-    expect(lists[0]).not.toHaveTextContent("heightCm");
-    expect(lists[1]).toHaveTextContent("heightCm");
-    expect(lists[1]).toHaveTextContent("weight_kg");
-    expect(lists[1]).toHaveTextContent("birthYear");
-    expect(lists[1]).toHaveTextContent(/2026-10-15b/);
-    expect(lists[1]).not.toHaveTextContent("goal");
+    const contractualList = lists[0];
+    const bodyDataList = lists[1];
+    expect(contractualList).toBeDefined();
+    expect(bodyDataList).toBeDefined();
+    if (!contractualList || !bodyDataList) return;
+    expect(contractualList).toHaveTextContent("birthYear");
+    expect(contractualList).toHaveTextContent("goal");
+    expect(contractualList).not.toHaveTextContent("heightCm");
+    expect(bodyDataList).toHaveTextContent("heightCm");
+    expect(bodyDataList).toHaveTextContent("weight_kg");
+    expect(bodyDataList).toHaveTextContent("birthYear");
+    expect(bodyDataList).toHaveTextContent(/2026-10-15b/);
+    expect(bodyDataList).not.toHaveTextContent("goal");
 
-    expect(lists[0].textContent).toMatch(/ano de nascimento \(birthYear\)/);
-    expect(lists[1].textContent).toMatch(
+    expect(contractualList.textContent).toMatch(
+      /ano de nascimento \(birthYear\)/,
+    );
+    expect(bodyDataList.textContent).toMatch(
       /uso do ano de nascimento \(birthYear\)/,
     );
 

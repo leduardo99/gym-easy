@@ -15,15 +15,22 @@ describe("privacy policy birthYear contexts", () => {
       name: "Dados do perfil e do corpo",
     });
     const lists = within(profileBody).getAllByRole("list");
+    const contractualList = lists[0];
+    const bodyDataList = lists[1];
+    expect(contractualList).toBeDefined();
+    expect(bodyDataList).toBeDefined();
+    if (!contractualList || !bodyDataList) return;
 
-    expect(lists[0].textContent).toContain("ano de nascimento (birthYear)");
+    expect(contractualList.textContent).toContain(
+      "ano de nascimento (birthYear)",
+    );
     expect(profileBody).toHaveTextContent("execução do contrato");
 
-    expect(lists[1].textContent).toContain(
+    expect(bodyDataList.textContent).toContain(
       "uso do ano de nascimento (birthYear)",
     );
-    expect(lists[1].textContent).toContain("2026-10-15b");
-    expect(lists[1].textContent).toContain("sexo (sex)");
-    expect(lists[1].textContent).toContain("heightCm");
+    expect(bodyDataList.textContent).toContain("2026-10-15b");
+    expect(bodyDataList.textContent).toContain("sexo (sex)");
+    expect(bodyDataList.textContent).toContain("heightCm");
   });
 });
