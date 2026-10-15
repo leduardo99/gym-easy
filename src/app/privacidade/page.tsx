@@ -17,7 +17,36 @@ export default function PrivacyPage() {
         </p>
       ))}
       <section
+        aria-labelledby={PRIVACY_POLICY.profileBodyData.id}
+        role="region"
+        className="flex flex-col gap-3"
+      >
+        <h2
+          id={PRIVACY_POLICY.profileBodyData.id}
+          className="text-title-2 font-semibold"
+        >
+          {PRIVACY_POLICY.profileBodyData.heading}
+        </h2>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Com a autorização «Dados do corpo», recolhemos:
+        </p>
+        <ul className="list-disc pl-5 text-sm leading-6 text-muted-foreground">
+          {PRIVACY_POLICY.profileBodyData.collectedFields.map((field) => (
+            <li key={field}>{field}</li>
+          ))}
+        </ul>
+        {PRIVACY_POLICY.profileBodyData.paragraphs.map((paragraph) => (
+          <p
+            key={paragraph}
+            className="text-sm leading-6 text-muted-foreground"
+          >
+            {paragraph}
+          </p>
+        ))}
+      </section>
+      <section
         aria-labelledby={PRIVACY_POLICY.rights.id}
+        role="region"
         className="flex flex-col gap-3"
       >
         <h2

@@ -55,7 +55,7 @@ describe("BodyDataPrivacySection", () => {
     );
     const switchControl = screen.getByRole("switch", {
       name: BODY_DATA_PRIVACY_COPY.sectionTitle,
-    }) as HTMLInputElement;
+    });
     const focusSpy = vi.spyOn(switchControl, "focus");
     fireEvent.click(switchControl);
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));

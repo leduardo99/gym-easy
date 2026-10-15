@@ -3,6 +3,29 @@ const CONTACT_EMAIL = "contacto@gaffer.pt";
 export const PRIVACY_POLICY = {
   retentionYears: 3,
   contactEmail: CONTACT_EMAIL,
+  profileBodyData: {
+    id: "dados-do-perfil-e-corpo",
+    heading: "Dados do perfil e do corpo",
+    minimumAgeYears: 16,
+    collectedFields: [
+      "ano de nascimento (birthYear)",
+      "sexo (sex)",
+      "altura em centímetros (heightCm)",
+      "objetivo de treino (goal)",
+      "nível de treino (level)",
+      "dias de treino por semana (daysPerWeek)",
+      "duração da sessão em minutos (sessionMinutes)",
+      "local de treino (trainingPlace)",
+      "registo de peso (histórico de peso)",
+      "medidas corporais (body measurements)",
+    ],
+    paragraphs: [
+      "Com a autorização «Dados do corpo», guardamos os campos acima para personalizar treinos, registar peso e medidas e verificar elegibilidade. A idade mínima para usar o Gym Easy é 16 anos.",
+      "Se você retirar a autorização «Dados do corpo», apagamos altura, sexo, histórico de peso e medidas corporais. O ano de nascimento permanece na conta para executar o contrato consigo, demonstrar que você tem pelo menos 16 anos e respeitar o art. 8.º do RGPD (idade mínima no serviço da sociedade da informação). Essa conservação apoia-se no art. 6.º, n.º 1, alíneas b) e c), do RGPD (execução do contrato e obrigação legal). O ano de nascimento só é apagado quando você apaga a conta.",
+      "O Coach só usa dados de saúde ou do corpo no chat quando você tem a autorização «Saúde no Coach» (coach_health) ativa. Sem essa autorização, o Coach não trata esses dados, mesmo que outros campos do perfil existam.",
+      "Mensagens do Coach podem citar peso ou altura que você escreveu; ficam até 90 dias ou até você usar «Apagar histórico» em Privacidade. Registos técnicos da IA (ai_generation_logs) não guardam texto nem medidas — só pseudónimo, modelo e resultado.",
+    ],
+  },
   paragraphs: [
     "O Gym Easy registra quando você autoriza ou retira o uso dos seus dados. A prova guarda a finalidade, a ação, a versão do texto e a origem. Ela não guarda email, endereço IP, identificador do navegador nem dados de saúde.",
     "Ao apagar a conta, o vínculo com o seu usuário sai do registro. No lugar fica um pseudônimo HMAC, que não reconstrói a conta. Essa prova fica retida por 3 anos depois da exclusão, somente para defesa legal de coimas e reclamações, e não entra em análise de uso.",
@@ -67,6 +90,11 @@ export function processorText(processor: {
 export function privacyPolicyText(): string {
   return [
     ...PRIVACY_POLICY.paragraphs,
+    PRIVACY_POLICY.profileBodyData.heading,
+    ...PRIVACY_POLICY.profileBodyData.paragraphs,
+    ...PRIVACY_POLICY.profileBodyData.collectedFields.map(
+      (field) => `• ${field}`,
+    ),
     PRIVACY_POLICY.rights.heading,
     ...PRIVACY_POLICY.rights.paragraphs,
     PRIVACY_POLICY.dataLocation.heading,

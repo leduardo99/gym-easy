@@ -62,8 +62,25 @@ describe("PrivacyPage", () => {
     expect(
       screen.getByText(/Resend: Email transacional, opcional, só em produção/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/90 dias/)).toBeInTheDocument();
-    expect(screen.getByText(/Apagar histórico/)).toBeInTheDocument();
+    expect(screen.getAllByText(/90 dias/).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/Apagar histórico/).length,
+    ).toBeGreaterThanOrEqual(1);
+
+    const profileBody = screen.getByRole("region", {
+      name: "Dados do perfil e do corpo",
+    });
+    expect(profileBody).toHaveTextContent("birthYear");
+    expect(profileBody).toHaveTextContent("heightCm");
+    expect(profileBody).toHaveTextContent("coach_health");
+    expect(profileBody).toHaveTextContent(/idade mínima.*16 anos/i);
+    expect(profileBody).toHaveTextContent(
+      /art\. 6\.º, n\.º 1, alíneas b\) e c\)/,
+    );
+    expect(profileBody).toHaveTextContent(/art\. 8\.º do RGPD/);
+    expect(profileBody).toHaveTextContent(
+      /ano de nascimento só é apagado quando você apaga a conta/,
+    );
 
     const text = document.body.textContent ?? "";
     expect(text).not.toMatch(/vercel/i);
@@ -81,6 +98,10 @@ describe("PrivacyPage", () => {
     expect(privacyPolicyText()).not.toContain("eu-central-1");
     expect(privacyPolicyText()).not.toContain("Neon");
     expect(privacyPolicyText()).not.toContain("infra-postgres");
+    expect(privacyPolicyText()).toContain("Dados do perfil e do corpo");
+    expect(privacyPolicyText()).toContain("daysPerWeek");
+    expect(privacyPolicyText()).toContain("coach_health");
+    expect(privacyPolicyText()).toMatch(/16 anos/);
   });
 
   it("inclui a retirada do consentimento e a reclamação à CNPD", () => {
