@@ -54,6 +54,18 @@ describe("POST /api/cron/purge-coach-messages", () => {
     expect(purgeExpiredCoachMessages).not.toHaveBeenCalled();
   });
 
+  it("rejects a valid cron secret in ?token= without Authorization", async () => {
+    process.env.CRON_SECRET = cronSecret;
+    const response = await POST(
+      new Request(
+        `http://localhost/api/cron/purge-coach-messages?token=${encodeURIComponent(cronSecret)}`,
+        { method: "POST" },
+      ),
+    );
+    expect(response.status).toBe(401);
+    expect(purgeExpiredCoachMessages).not.toHaveBeenCalled();
+  });
+
   it("purges chat and generation logs when the bearer matches", async () => {
     process.env.CRON_SECRET = cronSecret;
     vi.mocked(purgeExpiredCoachMessages).mockResolvedValue(4);

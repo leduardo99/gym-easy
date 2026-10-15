@@ -46,11 +46,23 @@ vi.mock("@/db", () => ({
     ),
 }));
 
+import { resetServerEnvCache } from "@/lib/env";
+
 import { acceptReconsentAction } from "./actions";
 
 describe("acceptReconsentAction", () => {
   beforeEach(() => {
     redirect.mockClear();
+    resetServerEnvCache();
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("DATABASE_URL", "postgresql://user:pass@localhost:5432/gym");
+    vi.stubEnv(
+      "CONFIRM_EMAIL_SECRET",
+      "confirm-email-secret-for-unit-tests-00",
+    );
+    vi.stubEnv("CONSENT_PSEUDONYM_KEY", "consent-pseudonym-test-key-32b!!");
+    delete process.env.APP_URL;
+    resetServerEnvCache();
   });
 
   it("redireciona com erro=caixa sem transferAccepted no coach_chat", async () => {

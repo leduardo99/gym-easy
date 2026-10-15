@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { loginRedirectPath } from "@/features/auth/destination";
 import { lookupSession } from "@/features/auth/lookup-session";
-import { isSameOrigin } from "@/features/auth/session-cookie";
+import { isAllowedOriginFromHeaders } from "@/lib/allowed-origin";
 import { reconsentPath } from "@/features/consent/reconsent";
 
 import { createTrainingRepository } from "./repository";
@@ -19,8 +19,7 @@ function redirectToProfile(flag: "guardado" | "altura" | "origem"): never {
 
 export async function saveProfileAction(formData: FormData) {
   const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  if (!isSameOrigin(headerStore.get("origin"), host)) {
+  if (!isAllowedOriginFromHeaders(headerStore)) {
     redirectToProfile("origem");
   }
   const session = await lookupSession();

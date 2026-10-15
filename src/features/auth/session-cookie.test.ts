@@ -4,8 +4,6 @@ import {
   CONFIRM_EMAIL_MAX_AGE_SECONDS,
   confirmEmailCookieOptions,
   getClientIp,
-  isSameOrigin,
-  requestOrigin,
   sessionCookieOptions,
   shouldUseSecureCookie,
 } from "./session-cookie";
@@ -32,23 +30,6 @@ describe("session cookies", () => {
     expect(shouldUseSecureCookie("development", null)).toBe(false);
     expect(shouldUseSecureCookie("production", "http")).toBe(true);
     expect(shouldUseSecureCookie("production", null)).toBe(true);
-  });
-
-  it("accepts only a same-host origin", () => {
-    expect(isSameOrigin("http://127.0.0.1:3000", "127.0.0.1:3000")).toBe(true);
-    expect(isSameOrigin("https://evil.example", "gym.example")).toBe(false);
-    expect(isSameOrigin(null, "gym.example")).toBe(false);
-  });
-
-  it("builds the public origin", () => {
-    const headers = new Headers({
-      host: "gym.example",
-      "x-forwarded-proto": "https",
-      "x-forwarded-for": "198.51.100.4, 10.0.0.1",
-      "x-real-ip": "203.0.113.5",
-    });
-
-    expect(requestOrigin(headers)).toBe("https://gym.example");
   });
 
   it("ignores forged forwarding headers unless the proxy is trusted", () => {
