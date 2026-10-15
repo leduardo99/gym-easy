@@ -18,5 +18,17 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
     exclude: ["tests/e2e/**", "node_modules/**", ".next/**"],
+    coverage: {
+      provider: "v8",
+      include: ["src/features/**/*.{ts,tsx}", "src/lib/**/*.{ts,tsx}"],
+      exclude: ["**/*.{test,integration.test}.{ts,tsx}", "src/**/*.d.ts"],
+      reporter: ["text", "text-summary"],
+      thresholds: {
+        lines: 56,
+        statements: 54,
+        branches: 52,
+        functions: 58,
+      },
+    },
   },
 });

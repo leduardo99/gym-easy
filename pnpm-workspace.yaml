@@ -1,9 +1,9 @@
 auditConfig:
-  # CVE-2026-93687: braces <=3.0.3 can exhaust the stack on deeply nested
-  # patterns. It arrives only through eslint-config-next > fast-glob >
-  # micromatch, and there is no patched release. Not used in production.
+  # CVE-2026-93687 (braces <=3.0.3): stack exhaustion on nested globs. Only via
+  # eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch.
+  # Not in production (`pnpm audit --prod` is clean; shadcn CLI is dev-only).
   # Owner: leduardo99
-  # Expires: 2026-11-13 — remove this exception or replace the dependency.
+  # Expires: 2026-11-13 — remove when eslint-config-next drops or patches braces.
   ignoreCves:
     - CVE-2026-93687
 
