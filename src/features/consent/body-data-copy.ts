@@ -9,7 +9,7 @@ export const BODY_DATA_PRIVACY_COPY = {
   grantLink: "Autorizar dados do corpo",
   revokeTitle: "Retirar autorização dos dados do corpo?",
   revokeDescription:
-    "Apagamos altura, sexo e todo o histórico de peso da sua conta. O ano de nascimento e o resto do perfil de treino não mudam.",
+    "Apagamos altura, sexo e os registos de peso da sua conta. O ano de nascimento e o resto do perfil de treino não mudam.",
   revokeConfirm: "Retirar autorização",
   revokeSuccess: "Autorização retirada e dados do corpo apagados.",
   cancel: "Cancelar",

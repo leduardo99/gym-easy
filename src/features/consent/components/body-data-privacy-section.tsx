@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 import { revokeBodyDataConsentAction } from "../body-data-actions";
 import {
@@ -34,7 +35,7 @@ export function BodyDataPrivacySection({
   grantHref: string;
 }) {
   const router = useRouter();
-  const switchRef = useRef<HTMLInputElement>(null);
+  const switchRef = useRef<HTMLButtonElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const [revokeOpen, setRevokeOpen] = useState(false);
   const [focusAfterDialog, setFocusAfterDialog] =
@@ -61,6 +62,15 @@ export function BodyDataPrivacySection({
 
   function handleRevokeOpenChange(open: boolean) {
     setRevokeOpen(open);
+  }
+
+  function requestGrantOrRevoke() {
+    if (bodyDataGranted) {
+      setFocusAfterDialog("switch");
+      setRevokeOpen(true);
+      return;
+    }
+    router.push(grantHref);
   }
 
   function confirmRevoke() {
@@ -106,52 +116,51 @@ export function BodyDataPrivacySection({
         </p>
       </div>
       {banner ? (
-        <Alert variant={banner.variant}>
-          <AlertDescription
-            id={BODY_DATA_PRIVACY_STATUS_ID}
-            ref={statusRef}
-            tabIndex={-1}
-            role="status"
-          >
-            {banner.message}
-          </AlertDescription>
+        <Alert
+          variant={banner.variant}
+          id={BODY_DATA_PRIVACY_STATUS_ID}
+          ref={statusRef}
+          tabIndex={-1}
+          role={banner.variant === "destructive" ? "alert" : "status"}
+        >
+          <AlertDescription>{banner.message}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="flex items-center justify-between gap-4 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10">
+      <div
+        data-testid="body-data-switch-row"
+        className="flex min-h-11 items-center justify-between gap-4 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            requestGrantOrRevoke();
+          }
+        }}
+      >
         <Label
+          data-testid="body-data-switch-label"
           htmlFor={BODY_DATA_CONSENT_SWITCH_ID}
-          className="text-sm font-medium"
+          className="min-h-11 flex-1 cursor-pointer py-2 text-sm font-medium"
         >
           {BODY_DATA_PRIVACY_COPY.sectionTitle}
         </Label>
-        <input
+        <Switch
           ref={switchRef}
           id={BODY_DATA_CONSENT_SWITCH_ID}
-          type="checkbox"
-          role="switch"
-          aria-checked={bodyDataGranted}
-          aria-describedby={BODY_DATA_PRIVACY_DESCRIPTION_ID}
           checked={bodyDataGranted}
-          readOnly
           disabled={pending}
-          className="h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-input transition-colors checked:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={() => {
-            if (bodyDataGranted) {
-              setFocusAfterDialog("switch");
-              setRevokeOpen(true);
+          aria-describedby={BODY_DATA_PRIVACY_DESCRIPTION_ID}
+          className="size-11 shrink-0 data-[size=default]:h-11 data-[size=default]:w-[4.25rem] [&_[data-slot=switch-thumb]]:size-5"
+          onCheckedChange={(checked) => {
+            if (checked) {
+              router.push(grantHref);
               return;
             }
-            router.push(grantHref);
+            setFocusAfterDialog("switch");
+            setRevokeOpen(true);
           }}
           onKeyDown={(event) => {
-            if (event.key !== " " && event.key !== "Enter") return;
+            if (event.key !== "Enter") return;
             event.preventDefault();
-            if (bodyDataGranted) {
-              setFocusAfterDialog("switch");
-              setRevokeOpen(true);
-              return;
-            }
-            router.push(grantHref);
+            requestGrantOrRevoke();
           }}
         />
       </div>

@@ -42,7 +42,7 @@ test("recusar o reconsentimento não libera a ação", async ({ page }) => {
   await page.goto("/consentimento?scope=body_data&next=/perfil");
   await refuseReconsentWithConfirm(
     page,
-    /Apagamos altura, sexo e todo o histórico de peso/i,
+    /Apagamos altura, sexo e os registos de peso/i,
   );
   await expect(page.getByTestId("reconsent-notice")).toContainText(
     /ano de nascimento no perfil foi mantido/i,

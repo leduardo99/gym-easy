@@ -33,6 +33,21 @@ describe("BodyDataPrivacySection", () => {
     vi.clearAllMocks();
   });
 
+  it("mantém alvo de toque da linha e do switch (min-h-11 e after:-inset)", () => {
+    render(
+      <BodyDataPrivacySection bodyDataGranted grantHref="/consentimento" />,
+    );
+    const row = screen.getByTestId("body-data-switch-row");
+    expect(row).toHaveClass("min-h-11");
+    const label = screen.getByTestId("body-data-switch-label");
+    expect(label).toHaveClass("min-h-11");
+    const switchControl = screen.getByRole("switch", {
+      name: BODY_DATA_PRIVACY_COPY.sectionTitle,
+    });
+    expect(switchControl.className).toMatch(/after:-inset-x-3/);
+    expect(switchControl.className).toMatch(/after:-inset-y-2/);
+  });
+
   it("liga o switch à descrição com aria-describedby", () => {
     render(
       <BodyDataPrivacySection bodyDataGranted grantHref="/consentimento" />,
@@ -55,7 +70,7 @@ describe("BodyDataPrivacySection", () => {
     );
     const switchControl = screen.getByRole("switch", {
       name: BODY_DATA_PRIVACY_COPY.sectionTitle,
-    }) as HTMLInputElement;
+    });
     const focusSpy = vi.spyOn(switchControl, "focus");
     fireEvent.click(switchControl);
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
@@ -85,5 +100,24 @@ describe("BodyDataPrivacySection", () => {
       ).not.toBeNull();
     });
     focusSpy.mockRestore();
+  });
+
+  it("usa role=alert na mensagem de erro", async () => {
+    revokeBodyDataConsentAction.mockResolvedValue({
+      ok: false,
+      formError: { code: "server", message: "Erro de teste" },
+    });
+    render(
+      <BodyDataPrivacySection bodyDataGranted grantHref="/consentimento" />,
+    );
+    fireEvent.click(
+      screen.getByRole("switch", { name: BODY_DATA_PRIVACY_COPY.sectionTitle }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retirar autorização" }),
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Erro de teste");
+    });
   });
 });

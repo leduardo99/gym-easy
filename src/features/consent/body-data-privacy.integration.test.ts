@@ -68,7 +68,7 @@ describe.skipIf(!runIntegration)("body_data privacy integration", () => {
     return id;
   }
 
-  it("revoga body_data, apaga altura/sexo/medidas e mantém o ano de nascimento", async () => {
+  it("revoga body_data, apaga altura/sexo/registos de peso e mantém o ano de nascimento", async () => {
     const userId = await insertUser("body-data-revoke");
     const consents = createConsentRepository(db as unknown as AppDatabase);
     await consents.recordConsent(userId, {
@@ -243,7 +243,7 @@ describe.skipIf(!runIntegration)("body_data privacy integration", () => {
     expect(measurements).toHaveLength(1);
   });
 
-  it("revoga só o utilizador A e mantém altura/sexo/medidas de B", async () => {
+  it("revoga só o utilizador A e mantém altura/sexo/registos de peso de B", async () => {
     const userA = await insertUser("body-data-a");
     const userB = await insertUser("body-data-b");
     const consents = createConsentRepository(db as unknown as AppDatabase);
