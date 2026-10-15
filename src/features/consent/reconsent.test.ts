@@ -9,6 +9,7 @@ import {
   reconsentNoticeMessage,
   reconsentPath,
   reconsentRefuseNoticeForScope,
+  reconsentRefuseRequiresConfirmation,
   safeReconsentNext,
   submitReconsent,
 } from "./reconsent";
@@ -34,7 +35,24 @@ describe("reconsent path", () => {
     );
   });
 
-  it("codifica avisos de recusa por finalidade do coach", () => {
+  it("exige confirmação ao recusar body_data, coach_health e coach_chat", () => {
+    expect(reconsentRefuseRequiresConfirmation("body_data")).toBe(true);
+    expect(reconsentRefuseRequiresConfirmation("coach_health")).toBe(true);
+    expect(reconsentRefuseRequiresConfirmation("coach_chat")).toBe(true);
+    expect(reconsentRefuseRequiresConfirmation("analytics")).toBe(false);
+  });
+
+  it("codifica avisos de recusa por finalidade", () => {
+    expect(reconsentPath("body_data", "/perfil", "refused_body_data")).toBe(
+      "/consentimento?scope=body_data&next=%2Fperfil&recusado=corpo",
+    );
+    expect(parseReconsentNotice("corpo", undefined)).toBe("refused_body_data");
+    expect(reconsentRefuseNoticeForScope("body_data")).toBe(
+      "refused_body_data",
+    );
+    expect(reconsentNoticeMessage("refused_body_data")).toBe(
+      RECONSENT_COPY.refusedBodyData,
+    );
     expect(
       reconsentPath("coach_health", "/perfil", "refused_coach_health"),
     ).toBe("/consentimento?scope=coach_health&next=%2Fperfil&recusado=saude");

@@ -10,6 +10,7 @@ import {
   heightField,
   SAVED_BIRTH_YEAR,
 } from "./helpers/profile";
+import { refuseReconsentWithConfirm } from "./helpers/reconsent";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
@@ -39,23 +40,6 @@ async function postCoach(
       origin,
     },
   });
-}
-
-async function refuseReconsentWithConfirm(
-  page: import("@playwright/test").Page,
-  warning: RegExp,
-) {
-  await page.getByRole("button", { name: "Agora não" }).click();
-  const dialog = page.getByTestId("reconsent-refuse-dialog");
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText(warning);
-  await page.getByRole("button", { name: "Voltar" }).click();
-  await expect(dialog).not.toBeVisible();
-  await expect(page).not.toHaveURL(/recusado=/);
-
-  await page.getByRole("button", { name: "Agora não" }).click();
-  await expect(dialog).toBeVisible();
-  await page.getByRole("button", { name: "Recusar autorização" }).click();
 }
 
 test.describe("revogação de saúde do coach", () => {
