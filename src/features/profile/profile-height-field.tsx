@@ -20,10 +20,11 @@ export function ProfileHeightField({
       <Label htmlFor="profile-height">Altura (cm)</Label>
       <Input
         id="profile-height"
-        name={disabled ? undefined : "heightCm"}
+        name="heightCm"
         inputMode="numeric"
         autoComplete="off"
-        disabled={disabled}
+        readOnly={disabled}
+        aria-disabled={disabled}
         defaultValue={formatProfileHeightCm(heightCm)}
       />
       {disabled ? (
