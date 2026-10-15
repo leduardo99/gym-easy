@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { RED_FLAG_RESPONSE, SELF_HARM_RESPONSE } from "./copy";
+import {
+  RATE_LIMIT_RESPONSE,
+  RED_FLAG_RESPONSE,
+  SELF_HARM_RESPONSE,
+} from "./copy";
+
+describe("RATE_LIMIT_RESPONSE", () => {
+  it("uses formal você concordance (Volte)", () => {
+    expect(RATE_LIMIT_RESPONSE).toBe(
+      "Você usou as mensagens do coach de hoje. Volte amanhã.",
+    );
+  });
+});
 
 describe("crisis copy", () => {
   it("uses Portuguese emergency contacts and never 911", () => {
