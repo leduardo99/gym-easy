@@ -9,6 +9,18 @@ export function heightField(page: Page) {
   return page.getByLabel("Altura (cm)", { exact: true });
 }
 
+/** O campo de altura pode estar readOnly sem body_data; o servidor ainda valida o POST. */
+export async function fillHeightCm(page: Page, value: string) {
+  const field = heightField(page);
+  await field.evaluate((el, cm) => {
+    const input = el as HTMLInputElement;
+    input.readOnly = false;
+    input.value = cm;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+}
+
 export const SAVED_BIRTH_YEAR = "1990";
 
 /** Ano que falha a regra «ano atual − birth_year ≤ 16» (LED-46). */

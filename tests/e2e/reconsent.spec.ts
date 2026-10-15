@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { signedIn } from "./helpers/auth";
-import { birthYearField, heightField } from "./helpers/profile";
+import { birthYearField, fillHeightCm, heightField } from "./helpers/profile";
 import { refuseReconsentWithConfirm } from "./helpers/reconsent";
 
 test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
@@ -9,7 +9,7 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
 }) => {
   await signedIn(page);
   await page.goto("/perfil");
-  await heightField(page).fill("170");
+  await fillHeightCm(page, "170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await page.waitForURL(/\/consentimento\?/);
   const url = new URL(page.url());
@@ -29,7 +29,7 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   await page.waitForURL("**/perfil");
 
   await birthYearField(page).fill("1990");
-  await heightField(page).fill("170");
+  await fillHeightCm(page, "170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Perfil guardado.")).toBeVisible();
   await page.goto("/perfil");
@@ -50,7 +50,7 @@ test("recusar o reconsentimento não libera a ação", async ({ page }) => {
   await expect(page).toHaveURL(/recusado=corpo/);
 
   await page.goto("/perfil");
-  await heightField(page).fill("170");
+  await fillHeightCm(page, "170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await page.waitForURL(/\/consentimento\?/);
   expect(new URL(page.url()).searchParams.get("scope")).toBe("body_data");
