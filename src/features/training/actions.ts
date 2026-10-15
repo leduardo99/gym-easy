@@ -20,7 +20,10 @@ import { isAllowedOriginFromHeaders } from "@/lib/allowed-origin";
 import { reconsentPath } from "@/features/consent/reconsent";
 
 import { createTrainingRepository } from "./repository";
-import { createProfileInputSchema } from "./schemas";
+import {
+  createOnboardingBirthYearInputSchema,
+  createProfileInputSchema,
+} from "./schemas";
 
 type ProfileRedirectFlag = "guardado" | ProfileFormValidationError | "origem";
 
@@ -91,7 +94,8 @@ export async function saveOnboardingProfileAction(formData: FormData) {
     redirect(loginRedirectPath(session.status, "/onboarding"));
   }
 
-  const parsed = createProfileInputSchema(new Date()).safeParse(
+  const now = new Date();
+  const parsed = createOnboardingBirthYearInputSchema(now).safeParse(
     parseOnboardingBirthYearForm(formData),
   );
   if (!parsed.success) {
@@ -103,7 +107,7 @@ export async function saveOnboardingProfileAction(formData: FormData) {
   await db.transaction(async (tx) => {
     const result = await createTrainingRepository(tx).saveProfile(
       session.user.id,
-      { birthYear: parsed.data.birthYear ?? null },
+      { birthYear: parsed.data.birthYear },
     );
     if (!result.ok && result.error === "consent_required") {
       redirect(reconsentPath("body_data", "/onboarding"));

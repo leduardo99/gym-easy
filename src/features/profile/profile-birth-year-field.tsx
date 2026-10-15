@@ -12,8 +12,10 @@ export function formatProfileBirthYear(
 
 export function ProfileBirthYearField({
   birthYear,
+  required = false,
 }: {
   birthYear: number | null | undefined;
+  required?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -24,6 +26,7 @@ export function ProfileBirthYearField({
         inputMode="numeric"
         autoComplete="bday-year"
         placeholder="1990"
+        required={required}
         defaultValue={formatProfileBirthYear(birthYear)}
       />
       <p className="text-sm text-muted-foreground">

@@ -86,6 +86,34 @@ export function createProfileInputSchema(now: Date) {
     });
 }
 
+/** Onboarding: ano obrigatório; nunca grava `null`. */
+export function createOnboardingBirthYearInputSchema(now: Date) {
+  const bounds = birthYearBounds(now);
+  const yearMessage = `Digite um ano com 4 dígitos, entre ${bounds.min} e ${bounds.max}.`;
+  return z
+    .object({
+      birthYear: z.number().int(),
+    })
+    .strict()
+    .superRefine((value, context) => {
+      if (value.birthYear < bounds.min || value.birthYear > bounds.max) {
+        context.addIssue({
+          code: "custom",
+          path: ["birthYear"],
+          message: yearMessage,
+        });
+        return;
+      }
+      if (isUnderMinimumAge(value.birthYear, now)) {
+        context.addIssue({
+          code: "custom",
+          path: ["birthYear"],
+          message: "O Gym Easy é para maiores de 16 anos.",
+        });
+      }
+    });
+}
+
 const KG_MIN_TENTHS = 300;
 const KG_MAX_TENTHS = 3000;
 const LB_MIN_TENTHS = 660;

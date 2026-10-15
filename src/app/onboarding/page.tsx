@@ -44,7 +44,7 @@ export default async function OnboardingPage({
         action={saveOnboardingProfileAction}
         className="mt-8 flex flex-col gap-4"
       >
-        <ProfileBirthYearField birthYear={profile?.birthYear} />
+        <ProfileBirthYearField birthYear={profile?.birthYear} required />
         <Button type="submit" size="lg" className="w-full">
           Guardar e continuar
         </Button>

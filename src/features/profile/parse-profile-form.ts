@@ -19,12 +19,15 @@ function parseOptionalEnum<T extends string>(text: string): T | null {
   return text as T;
 }
 
-/** Apenas o ano de nascimento (onboarding). */
-export function parseOnboardingBirthYearForm(
-  formData: FormData,
-): Pick<ProfileInput, "birthYear"> {
-  const birthYear = parseOptionalInt(readString(formData, "birthYear"));
-  return { birthYear } as Pick<ProfileInput, "birthYear">;
+/** Apenas o ano de nascimento (onboarding); vazio ou inválido falha no schema. */
+export function parseOnboardingBirthYearForm(formData: FormData): {
+  birthYear: number;
+} {
+  const text = readString(formData, "birthYear");
+  if (text === "" || !/^\d+$/.test(text)) {
+    return { birthYear: Number.NaN };
+  }
+  return { birthYear: Number(text) };
 }
 
 /** Converte `FormData` do perfil em entrada para `createProfileInputSchema`. */
@@ -70,7 +73,7 @@ export function parseProfileFormData(formData: FormData): ProfileInput {
 export type ProfileFormValidationError = "nascimento" | "altura" | "perfil";
 
 export function profileFormErrorFlag(
-  parsed: ZodSafeParseError<ProfileInput>,
+  parsed: ZodSafeParseError<unknown>,
 ): ProfileFormValidationError {
   const paths = parsed.error.issues.map((issue) => issue.path[0]);
   if (paths.includes("birthYear")) return "nascimento";

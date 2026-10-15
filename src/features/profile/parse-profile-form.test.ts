@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createProfileInputSchema } from "@/features/training/schemas";
+import {
+  createOnboardingBirthYearInputSchema,
+  createProfileInputSchema,
+} from "@/features/training/schemas";
 
 import {
   parseOnboardingBirthYearForm,
@@ -8,7 +11,9 @@ import {
   profileFormErrorFlag,
 } from "./parse-profile-form";
 
-const schema = createProfileInputSchema(new Date("2026-10-14T12:00:00Z"));
+const now = new Date("2026-10-14T12:00:00Z");
+const schema = createProfileInputSchema(now);
+const onboardingSchema = createOnboardingBirthYearInputSchema(now);
 
 function form(entries: Record<string, string>) {
   const formData = new FormData();
@@ -20,11 +25,18 @@ function form(entries: Record<string, string>) {
 
 describe("parseOnboardingBirthYearForm", () => {
   it("lê só o ano de nascimento", () => {
-    const parsed = schema.safeParse(
+    const parsed = onboardingSchema.safeParse(
       parseOnboardingBirthYearForm(form({ birthYear: "1993" })),
     );
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.birthYear).toBe(1993);
+  });
+
+  it("falha com ano vazio", () => {
+    expect(
+      onboardingSchema.safeParse(parseOnboardingBirthYearForm(form({})))
+        .success,
+    ).toBe(false);
   });
 });
 
