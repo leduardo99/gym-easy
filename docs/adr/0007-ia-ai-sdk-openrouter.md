@@ -9,7 +9,7 @@ O coach precisa de vários modelos, fallback e privacidade.
 
 ## Decisão
 
-AI SDK com o provider OpenRouter, pedindo zero retention/no-training. Adaptador em `lib/ai`; prompts e regras em `features/coach`.
+AI SDK com o provider OpenRouter, pedindo zero retention/no-training. Adaptador em `lib/ai` (**alvo; ainda não existe**); prompts e regras em `features/coach` (**alvo; ainda não existe**).
 
 ## Consequências
 

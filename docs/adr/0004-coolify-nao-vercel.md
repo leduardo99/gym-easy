@@ -13,4 +13,4 @@ Imagem standalone multi-stage para linux/arm64, non-root, com healthcheck, deplo
 
 ## Consequências
 
-Sem features exclusivas da Vercel. Os binários nativos têm de existir em arm64. Somos nós a gerir TLS, logs e backups.
+Sem features exclusivas da Vercel. Validação e smoke de QA só em produção no Coolify (`https://app.gaffer.pt`), não em previews Vercel. Os binários nativos têm de existir em arm64. Somos nós a gerir TLS, logs e backups.

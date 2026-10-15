@@ -7,4 +7,4 @@ alwaysApply: false
 - Zod em todos os limites (forms, JSON, env, saída de IA, ficheiros de seed).
 - `unknown` + narrowing. `any` é proibido.
 - Os erros esperados são valores tipados; os inesperados propagam para `error.tsx` ou para o handler.
-- Logs só via `@/lib/logger`. `console.*` é proibido.
+- Logs só via `@/lib/logger` **(alvo; ainda não existe)**. `console.*` é proibido.

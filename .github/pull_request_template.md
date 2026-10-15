@@ -6,6 +6,8 @@
 
 Refs LED-xx
 
+<!-- Usar sempre `Refs LED-xx`, nunca `Fixes` nem `Closes`. -->
+
 ## Como testar
 
 - [ ] `pnpm lint` · `pnpm typecheck` · `pnpm format:check`
@@ -34,6 +36,11 @@ Refs LED-xx
 
 - [ ] Migração gerada, revista, com GRANTs e plano de rollback (ou "nenhuma")
 - [ ] Compatível com Coolify em linux/arm64
+- [ ] Smoke de QA em `https://app.gaffer.pt` (sem previews Vercel)
+
+## Aprovações
+
+- [ ] OK Lambda (Arquitetura), Sigma (QA) e Delta (Segurança) no **HEAD atual** do PR (reconfirmar após rebase)
 
 ## Dependências novas
 

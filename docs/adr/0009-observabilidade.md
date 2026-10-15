@@ -9,7 +9,7 @@ Há `console.*` espalhados e nenhum padrão.
 
 ## Decisão
 
-Logger JSON único (`lib/logger`, pino) com redação, `requestId`, OpenTelemetry via `instrumentation.ts` e SLOs em `docs/OBSERVABILITY.md`.
+Logger JSON único (`lib/logger` **alvo; ainda não existe**, pino) com redação, `requestId`, OpenTelemetry via `instrumentation.ts` e SLOs em `docs/OBSERVABILITY.md`.
 
 ## Consequências
 

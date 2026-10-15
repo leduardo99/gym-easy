@@ -7,5 +7,6 @@
 - [ ] Docs atualizadas (AGENTS.md, ARCHITECTURE.md, ADR, runbook ou `.env.example`)
 - [ ] Migração gerada, revista, com GRANTs e plano de rollback
 - [ ] Logs e métricas para o novo caminho, sem PII
-- [ ] Aprovações de Arquitetura, QA e Segurança
-- [ ] Deploy verificado no Coolify (healthcheck OK); a Qualidade move para Done
+- [ ] Aprovações de Arquitetura (Lambda), QA (Sigma) e Segurança (Delta) no HEAD atual do PR
+- [ ] Smoke de QA em produção: `https://app.gaffer.pt` (`APP_URL`), deploy no Coolify com healthcheck OK — **sem previews da Vercel** nem outro host temporário
+- [ ] Só a **Sigma (QA)** move a issue para Done (ver `CONTRIBUTING.md` e `TESTING.md`)

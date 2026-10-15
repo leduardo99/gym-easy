@@ -9,7 +9,7 @@ Concentrar a infraestrutura no Coolify.
 
 ## Decisão
 
-`DATABASE_URL` aponta para o Postgres partilhado com TLS. O Neon fica como fallback até ao fim do cutover (runbook).
+`DATABASE_URL` aponta para o Postgres partilhado com `sslmode=verify-full` e a CA do Coolify. O Neon permanece como fallback até a QA (Sigma) validar o cutover (runbook); depois o projeto Neon é **pausado** (não apagado) e as credenciais Neon são **rodadas**.
 
 ## Consequências
 

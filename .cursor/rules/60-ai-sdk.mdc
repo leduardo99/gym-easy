@@ -4,8 +4,5 @@ globs: src/lib/ai/**,src/features/coach/**
 alwaysApply: false
 ---
 
-- `lib/ai`: só o adaptador (provider, modelos, zero retention/no-training, `generateObject`/`streamText`).
-- `features/coach`: prompts, tools tipadas com Zod, classificação de risco, histórico e propostas.
-- A saída do modelo é input não confiável: validar com Zod e nunca renderizar como HTML.
-- Rate limit e cooldown por utilizador. Timeout e `AbortSignal` propagados.
-- Registar só metadados (modelo, tokens, latência, resultado). Nunca o conteúdo.
+- `lib/ai` (**alvo; ainda não existe**): só o adaptador (provider, modelos, zero retention/no-training, `generateObject`/`streamText`).
+- `features/coach` (**alvo; ainda não existe**): prompts, tools tipadas com Zod, classificação de risco, histórico e propostas.

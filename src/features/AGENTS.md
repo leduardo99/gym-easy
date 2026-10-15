@@ -1,6 +1,6 @@
 # src/features
 
-Uma pasta por domínio (`auth`, `consent`, `training`, `profile`, `coach`).
+Uma pasta por domínio (`auth`, `consent`, `training`, `profile`, `coach` — `coach` é **alvo; ainda não existe** em `main`).
 
 ```
 <feature>/
@@ -13,6 +13,6 @@ Uma pasta por domínio (`auth`, `consent`, `training`, `profile`, `coach`).
 ```
 
 - As Server Actions devolvem `ActionResult<T>` (`{ ok: true, data } | { ok: false, fieldErrors?, formError? }`). Usam `redirect()` só para navegar quando tudo correu bem.
-- `features/coach` tem os prompts, as tools, as regras de risco, o histórico e as propostas. O adaptador do provider (OpenRouter/AI SDK) fica em `lib/ai`.
-- Os duplos de teste (`memory-*`, `capture-*`) vivem em `src/test/`, não aqui.
+- `features/coach` (**alvo; ainda não existe**): prompts, tools, regras de risco, histórico e propostas. O adaptador do provider (OpenRouter/AI SDK) fica em `lib/ai` (**alvo; ainda não existe**).
+- Duplos de teste `memory-*` / `capture-*` (**alvo; ainda não existem**) vivem em `src/test/` (hoje só `server-only-stub.ts`), não aqui.
 - Uma feature não importa outra feature: usa o `index.ts` da outra ou sobe a peça para `lib`.

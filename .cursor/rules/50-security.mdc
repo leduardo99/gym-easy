@@ -1,12 +1,13 @@
 ---
 description: 50-security
-globs: src/**,next.config.ts,Dockerfile,.env.example
+globs: src/**,next.config.ts,Dockerfile,.env.example,docs/runbooks/**,src/db/migrations/**
 alwaysApply: false
 ---
 
-- O host e a origem vêm de `APP_URL`. Nunca de `host`/`x-forwarded-host`.
-- Segredos só via `getServerEnv()`. `NEXT_PUBLIC_` é proibido para segredos.
+- O host e a origem vêm de `APP_URL`. Nunca de `host`/`x-forwarded-host` nem de outros `X-Forwarded-*`/`Forwarded` forjados.
+- Segredos só via `getServerEnv()` e só nas env do Coolify em runtime. `NEXT_PUBLIC_` é proibido para segredos.
 - Cookies `HttpOnly`, `SameSite=Lax`, `Secure` em produção.
-- Comparação de segredos com `timingSafeEqual`.
+- Crons: só **POST**, `CRON_SECRET` obrigatório em produção, comparação `timingSafeEqual` sobre **SHA-256** dos dois valores (evita fuga de tamanho).
+- Comparação de outros segredos com `timingSafeEqual`.
 - Os logs não levam email, IP em claro, dados de saúde nem mensagens do coach.
-- Mudanças em auth, consent, env, headers ou Docker exigem revisão da Segurança (Delta).
+- Mudanças em auth, consent, env, headers, Docker, runbooks ou migrações exigem revisão da Segurança (Delta).
