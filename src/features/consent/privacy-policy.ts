@@ -17,7 +17,7 @@ export function privacyPolicyMinimumAgeSentence(
 }
 
 export function privacyPolicyBirthYearAgeBandSentence(): string {
-  return "O ano de nascimento também serve para calcular a faixa etária usada com os dados do corpo, como no texto de consentimento publicado (body_data, versão 2026-10-15b).";
+  return "O texto de consentimento «Dados do corpo» publicado (body_data, versão 2026-10-15b) nomeia o ano de nascimento (birthYear) junto com peso, altura e sexo: a autorização body_data cobre o uso desses quatro elementos em conjunto para calcular a faixa etária na análise dos dados do corpo. Isso não contradiz o armazenamento do birthYear no perfil com base contratual e no art. 8.º para a verificação de idade mínima.";
 }
 
 export function privacyPolicyBodyDataTechnicalGateSentence(): string {
@@ -27,7 +27,7 @@ export function privacyPolicyBodyDataTechnicalGateSentence(): string {
 function buildProfileBodyDataParagraphs(minimumAgeYears: number) {
   return {
     intro:
-      "O perfil de treino e o ano de nascimento tratam-se desde o início para executar o contrato consigo (art. 6.º, n.º 1, alínea b), do RGPD). O ano de nascimento tem ainda fundamento legal para verificar a idade mínima (art. 8.º). Sexo, altura e registos de peso dependem da autorização «Dados do corpo» (consentimento body_data).",
+      "O perfil de treino e o ano de nascimento (birthYear) guardam-se desde o início com fundamento contratual (art. 6.º, n.º 1, alínea b), do RGPD); o birthYear tem ainda base legal para a verificação de idade mínima (art. 8.º). Sexo, altura e registos de peso, e o uso do birthYear com esses dados para a faixa etária, dependem da autorização «Dados do corpo» (consentimento body_data), como no texto -15b — sem alterar a base de armazenamento do birthYear descrita nas listas.",
     birthYearAgeBand: privacyPolicyBirthYearAgeBandSentence(),
     technicalGate: privacyPolicyBodyDataTechnicalGateSentence(),
     minimumAge: privacyPolicyMinimumAgeSentence(minimumAgeYears),
@@ -69,6 +69,7 @@ export const PRIVACY_POLICY = {
         "sexo (sex)",
         "altura em centímetros (heightCm)",
         "registos de peso (weight_kg)",
+        "uso do ano de nascimento (birthYear) com sexo, altura e peso para calcular a faixa etária (consentimento body_data 2026-10-15b)",
       ],
     },
     retainedAfterRevoke: {

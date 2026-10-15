@@ -105,8 +105,14 @@ describe("PrivacyPage", () => {
     expect(lists[0]).not.toHaveTextContent("heightCm");
     expect(lists[1]).toHaveTextContent("heightCm");
     expect(lists[1]).toHaveTextContent("weight_kg");
-    expect(lists[1]).not.toHaveTextContent("birthYear");
+    expect(lists[1]).toHaveTextContent("birthYear");
+    expect(lists[1]).toHaveTextContent(/2026-10-15b/);
     expect(lists[1]).not.toHaveTextContent("goal");
+
+    expect(lists[0].textContent).toMatch(/ano de nascimento \(birthYear\)/);
+    expect(lists[1].textContent).toMatch(
+      /uso do ano de nascimento \(birthYear\)/,
+    );
 
     expect(
       document.getElementById(PRIVACY_POLICY_MINIMUM_AGE_ID),
