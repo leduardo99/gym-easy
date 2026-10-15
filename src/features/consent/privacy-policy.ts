@@ -22,9 +22,9 @@ export const PRIVACY_POLICY = {
   processorsId: "subprocessadores",
   processors: [
     {
-      name: "Neon",
-      role: "Banco de dados",
-      region: "eu-central-1",
+      name: "PostgreSQL (infra-postgres)",
+      role: "Banco de dados gerido pela equipe do Gym Easy no servidor Oracle Cloud Infrastructure, no mesmo servidor onde o app é hospedado, com conexões criptografadas; dados do corpo, saúde do Coach, chat, estatísticas de uso e prova de consentimento conforme as autorizações vigentes",
+      region: "eu-madrid-1",
     },
     {
       name: "Oracle Cloud Infrastructure",

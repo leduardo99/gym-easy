@@ -45,6 +45,21 @@ export function ReconsentConsentForm({
           </p>
         ))}
       </div>
+      <details className="mt-6 rounded-lg border border-border bg-card">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+          Ler o texto completo
+        </summary>
+        <div className="flex flex-col gap-4 border-t border-border px-4 py-4">
+          {copy.body.split("\n").map((paragraph) => (
+            <p
+              key={paragraph}
+              className="text-sm leading-6 text-muted-foreground"
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </details>
       <form action={acceptReconsentAction} className="mt-6 flex flex-col gap-4">
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="next" value={nextPath} />
@@ -93,21 +108,6 @@ export function ReconsentConsentForm({
           {RECONSENT_COPY.accept}
         </Button>
       </form>
-      <details className="mt-6 rounded-lg border border-border bg-card">
-        <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
-          Ler o texto completo
-        </summary>
-        <div className="flex flex-col gap-4 border-t border-border px-4 py-4">
-          {copy.body.split("\n").map((paragraph) => (
-            <p
-              key={paragraph}
-              className="text-sm leading-6 text-muted-foreground"
-            >
-              {paragraph}
-            </p>
-          ))}
-        </div>
-      </details>
       <form action={refuseReconsentAction} className="mt-3">
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="next" value={nextPath} />

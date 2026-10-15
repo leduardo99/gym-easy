@@ -22,12 +22,16 @@ describe("PrivacyPage", () => {
     expect(
       screen.getByRole("heading", { name: "Subprocessadores" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Neon: Banco de dados/)).toBeInTheDocument();
-    expect(screen.getByText(/eu-central-1/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/PostgreSQL \(infra-postgres\): Banco de dados gerido/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/dados do corpo, saúde do Coach, chat/),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/Oracle Cloud Infrastructure: Hospedagem/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/eu-madrid-1/)).toBeInTheDocument();
+    expect(screen.getAllByText(/eu-madrid-1/).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/cópias de segurança/)).toBeInTheDocument();
     expect(
       screen.getByText(/Tailscale: Rede privada da infraestrutura/),
@@ -51,7 +55,8 @@ describe("PrivacyPage", () => {
     expect(privacyPolicyText()).not.toMatch(/vercel/i);
     expect(privacyPolicyText()).toContain("contacto@gaffer.pt");
     expect(privacyPolicyText()).toContain("eu-madrid-1");
-    expect(privacyPolicyText()).toContain("eu-central-1");
+    expect(privacyPolicyText()).not.toContain("eu-central-1");
+    expect(privacyPolicyText()).not.toContain("Neon");
   });
 
   it("inclui a retirada do consentimento e a reclamação à CNPD", () => {
