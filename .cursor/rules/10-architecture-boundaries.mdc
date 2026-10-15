@@ -5,6 +5,7 @@ alwaysApply: false
 ---
 
 Direção dos imports: `app → features → (db | lib)`, `components → lib`.
+
 - `lib` nunca importa `features`/`app`; `db` nunca importa `features`.
 - Uma feature não importa outra feature, salvo através do seu `index.ts`.
 - Os ficheiros com `server-only` não são importados por componentes cliente.

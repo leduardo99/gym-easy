@@ -1,4 +1,5 @@
 # Cutover Neon → Postgres partilhado
+
 1. Criar a BD e os roles no servidor (`gym_easy_migrator`, `gym_easy_app`, `gym_easy_purge`) com TLS.
 2. Janela de manutenção: parar as escritas (pôr a app em modo manutenção ou parar o contentor).
 3. `pg_dump` do Neon → `pg_restore` no destino. Comparar a contagem de linhas por tabela.

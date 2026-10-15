@@ -5,6 +5,7 @@ alwaysApply: false
 ---
 
 Ordem fixa: `assertSameOriginMutation()` (contra `APP_URL`) → `requireUser`/sessão → `schema.safeParse` → caso de uso → `ActionResult`.
+
 - Sem SQL nem lógica de domínio na action.
 - Nunca confiar num `userId` vindo do cliente.
 - Erros: devolver `{ ok: false, ... }` tipado. Não usar query strings `?erro=`.
