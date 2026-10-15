@@ -5,13 +5,10 @@ import { unavailableOutcomeForProduct, type AiProduct } from "./unavailable";
 
 export const FIRST_TOKEN_TIMEOUT_MS = 20_000;
 export const CHAT_TOTAL_TIMEOUT_MS = 60_000;
-export const CHAT_BACKOFF_CAP_MS = 10_000;
 /** Up to two backoff retries after the first 429/5xx on the same model route. */
 export const RATE_LIMIT_MAX_RETRIES = 2;
 export const RATE_LIMIT_BACKOFF_MS = [800, 2_000] as const;
 export const RETRY_AFTER_CAP_MS = 3_000;
-
-const BACKOFF_MS = [1_000, 2_000, 4_000] as const;
 
 export type ProviderFailureKind =
   | "rate_limited"
@@ -227,17 +224,28 @@ function retryAfterToMs(value: string | undefined): number | null {
   return Math.max(0, date - Date.now());
 }
 
-/** `null` quando a espera estouraria o teto de 10 s do chat. */
-export function retryDelayMs(
-  failedAttemptIndex: number,
-  retryAfterMs: number | null,
-  waitedMs: number,
-  capMs = CHAT_BACKOFF_CAP_MS,
-): number | null {
-  const backoff = BACKOFF_MS[failedAttemptIndex] ?? 4_000;
-  const requested = Math.max(backoff, retryAfterMs ?? 0);
-  if (requested > capMs - waitedMs) return null;
-  return requested;
+async function sleepUnlessAborted(
+  ms: number,
+  signal: AbortSignal | undefined,
+  sleep: (ms: number) => Promise<void>,
+): Promise<boolean> {
+  if (signal?.aborted) return false;
+  if (!signal) {
+    await sleep(ms);
+    return true;
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      resolve(ok);
+    };
+    const onAbort = () => finish(false);
+    signal.addEventListener("abort", onAbort);
+    void sleep(ms).then(() => finish(!signal.aborted));
+  });
 }
 
 export function finalFallbackOutcome(
@@ -352,7 +360,21 @@ async function tryModelRoute<T>(input: {
       if (delay <= 0) {
         return { ok: false, failure: failure.kind };
       }
-      await input.sleep(delay);
+      const slept = await sleepUnlessAborted(
+        delay,
+        input.stopSignal,
+        input.sleep,
+      );
+      if (!slept) {
+        input.attempts.push({
+          model: input.model,
+          zdr: input.zdr,
+          dataPolicy,
+          outcome: "timeout",
+          attempt,
+        });
+        return { ok: false, failure: "timeout" };
+      }
       input.waitedMs.value += delay;
       backoffRetry += 1;
     } finally {

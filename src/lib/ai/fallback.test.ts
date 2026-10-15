@@ -8,7 +8,6 @@ import {
   createAttemptController,
   openRouterProviderRouting,
   rateLimitRetryDelayMs,
-  retryDelayMs,
   runModelFallback,
 } from "./fallback";
 
@@ -171,6 +170,119 @@ describe("provider fallback", () => {
     });
   });
 
+  it("succeeds on the same model after a transient 503", async () => {
+    let calls = 0;
+    const call = vi.fn(async ({ model, zdr }) => {
+      calls += 1;
+      if (calls === 1) {
+        throw Object.assign(new Error("service unavailable"), {
+          statusCode: 503,
+        });
+      }
+      return { model, zdr };
+    });
+
+    const result = await runModelFallback({
+      models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: steadyJitter,
+      sleep: async () => undefined,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      model: "alpha/example:free",
+      servedWithZdr: true,
+    });
+    expect(call).toHaveBeenCalledTimes(2);
+    expect(call.mock.calls.every((entry) => entry[0]?.zdr === true)).toBe(true);
+  });
+
+  it("retries 500 up to two times on the same model then moves on", async () => {
+    let alpha = 0;
+    const call = vi.fn(async ({ model }) => {
+      if (model.startsWith("alpha")) {
+        alpha += 1;
+        throw Object.assign(new Error("internal"), { statusCode: 500 });
+      }
+      return { text: "ok" };
+    });
+
+    const result = await runModelFallback({
+      models,
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: steadyJitter,
+      sleep: async () => undefined,
+    });
+
+    expect(alpha).toBe(3);
+    expect(result).toMatchObject({
+      ok: true,
+      model: "beta/example:free",
+      servedWithZdr: true,
+    });
+  });
+
+  it("does not retry HTTP 400 on the same model", async () => {
+    const sleeps: number[] = [];
+    const call = vi.fn(async ({ model }) => {
+      if (model.startsWith("alpha")) {
+        throw Object.assign(new Error("bad request"), { statusCode: 400 });
+      }
+      return { text: "ok" };
+    });
+
+    const result = await runModelFallback({
+      models,
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(sleeps).toEqual([]);
+    expect(call.mock.calls.map((entry) => entry[0]?.model)).toEqual([
+      "alpha/example:free",
+      "beta/example:free",
+    ]);
+    expect(result).toMatchObject({ ok: true, model: "beta/example:free" });
+  });
+
+  it("cancels backoff sleep immediately when stopSignal aborts", async () => {
+    const controller = new AbortController();
+    let sleepFinished = 0;
+    const call = vi.fn(async () => {
+      throw Object.assign(new Error("rl"), { statusCode: 429 });
+    });
+
+    const promise = runModelFallback({
+      models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: steadyJitter,
+      stopSignal: controller.signal,
+      sleep: async (ms) => {
+        await new Promise((resolve) => setTimeout(resolve, ms));
+        sleepFinished += 1;
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    controller.abort();
+    const result = await promise;
+
+    expect(result.ok).toBe(false);
+    expect(sleepFinished).toBe(0);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
   it("succeeds on the same model after transient 429 responses", async () => {
     let calls = 0;
     const call = vi.fn(async ({ model, zdr }) => {
@@ -297,7 +409,7 @@ describe("provider fallback", () => {
     expect(result).toMatchObject({ ok: false, outcome: "provider_error" });
   });
 
-  it("classifies provider failures and caps the chat backoff at 10 seconds", () => {
+  it("classifies provider failures", () => {
     expect(
       classifyProviderFailure({
         statusCode: 429,
@@ -316,8 +428,11 @@ describe("provider fallback", () => {
         Object.assign(new Error("aborted"), { name: "TimeoutError" }),
       ),
     ).toEqual({ kind: "timeout", retryAfterMs: null });
-    expect(retryDelayMs(0, 500, 0)).toBe(1000);
-    expect(retryDelayMs(1, 2000, 9_500)).toBeNull();
+    expect(
+      classifyProviderFailure(
+        Object.assign(new Error("upstream"), { statusCode: 503 }),
+      ),
+    ).toEqual({ kind: "provider_error", retryAfterMs: null });
     expect(FIRST_TOKEN_TIMEOUT_MS).toBe(20_000);
     expect(CHAT_TOTAL_TIMEOUT_MS).toBe(60_000);
   });
