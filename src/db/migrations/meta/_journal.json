@@ -92,6 +92,13 @@
       "when": 1792024800000,
       "tag": "0012_ai_coach_log_privileges",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792028400000,
+      "tag": "0013_ai_generation_log_privacy",
+      "breakpoints": true
     }
   ]
 }

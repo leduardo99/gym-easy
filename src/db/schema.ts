@@ -584,6 +584,7 @@ export const aiGenerationLogs = pgTable(
     tokensIn: integer("tokens_in"),
     tokensOut: integer("tokens_out"),
     outcome: text("outcome").notNull(),
+    servedWithZdr: boolean("served_with_zdr"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -596,7 +597,7 @@ export const aiGenerationLogs = pgTable(
     ),
     check(
       "ai_generation_logs_outcome",
-      sql`${table.outcome} in ('ok', 'timeout', 'provider_error', 'schema_invalid', 'validation_rejected', 'safety_block', 'rate_limited', 'internal')`,
+      sql`${table.outcome} in ('ok', 'timeout', 'provider_error', 'provider_policy_unavailable', 'coach_unavailable', 'plan_unavailable', 'schema_invalid', 'validation_rejected', 'safety_block', 'rate_limited', 'internal')`,
     ),
     check(
       "ai_generation_logs_data_policy",

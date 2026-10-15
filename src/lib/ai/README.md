@@ -6,6 +6,7 @@ Camada do coach. Só este diretório importa `ai` e `@openrouter/ai-sdk-provider
 
 - `OPENROUTER_API_KEY` — opcional. Sem chave, o chat não chama modelo.
 - `COACH_MODELS` e `PLAN_MODELS` — ids separados por vírgula, cada um a terminar em `:free`. Lista vazia é válida.
+- `OPENROUTER_PRIVACY_MODE` — `zdr_only` (padrão) ou `zdr_then_fallback`. Em `zdr_then_fallback`, cada modelo `:free` tenta primeiro com `zdr:true` e `data_collection:deny`; só após 404 de política de dados repete o mesmo modelo com `zdr:false` e `data_collection:deny`.
 - `NEXT_PUBLIC_OPENROUTER_API_KEY` é rejeitado.
 
 O identificador da app no OpenRouter é `https://app.gaffer.pt`.

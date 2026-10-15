@@ -12,6 +12,9 @@ export const AI_OUTCOMES = [
   "ok",
   "timeout",
   "provider_error",
+  "provider_policy_unavailable",
+  "coach_unavailable",
+  "plan_unavailable",
   "schema_invalid",
   "validation_rejected",
   "safety_block",
@@ -153,7 +156,7 @@ export type CoachContext = z.infer<typeof coachContextSchema>;
 
 export const aiLogRecordSchema = z
   .object({
-    request_id: z.string().min(1).max(80),
+    request_id: z.string().min(1).max(96),
     user_id_hash: z.string().regex(/^[a-f0-9]{64}$/),
     model: z.string().max(120).nullable(),
     policy: z.enum(DATA_POLICIES).nullable(),
@@ -161,6 +164,7 @@ export const aiLogRecordSchema = z
     tokens_in: z.number().int().min(0).nullable(),
     tokens_out: z.number().int().min(0).nullable(),
     outcome: z.enum(AI_OUTCOMES),
+    served_with_zdr: z.boolean().nullable().optional(),
   })
   .strict();
 

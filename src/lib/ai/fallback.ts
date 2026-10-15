@@ -1,4 +1,7 @@
-import type { DataPolicy } from "./schemas";
+import type { OpenRouterPrivacyMode } from "@/lib/env";
+
+import type { AiOutcome, DataPolicy } from "./schemas";
+import { unavailableOutcomeForProduct, type AiProduct } from "./unavailable";
 
 export const FIRST_TOKEN_TIMEOUT_MS = 20_000;
 export const CHAT_TOTAL_TIMEOUT_MS = 60_000;
@@ -10,7 +13,7 @@ const BACKOFF_MS = [1_000, 2_000, 4_000] as const;
 export type ProviderFailureKind =
   | "rate_limited"
   | "timeout"
-  | "no_zdr_endpoint"
+  | "provider_policy_unavailable"
   | "payment_required"
   | "provider_error"
   | "schema_invalid";
@@ -22,7 +25,7 @@ export type ProviderFailure = {
 
 export type ModelAttempt = {
   model: string;
-  policy: DataPolicy;
+  zdr: boolean;
   attempt: number;
   signal: AbortSignal;
   markFirstToken: () => void;
@@ -30,7 +33,8 @@ export type ModelAttempt = {
 
 export type FallbackAttempt = {
   model: string;
-  policy: DataPolicy;
+  zdr: boolean;
+  dataPolicy: DataPolicy;
   outcome: "ok" | ProviderFailureKind;
   attempt: number;
 };
@@ -40,17 +44,13 @@ export type FallbackResult<T> =
       ok: true;
       value: T;
       model: string;
-      policy: DataPolicy;
+      dataPolicy: DataPolicy;
+      servedWithZdr: boolean;
       attempts: FallbackAttempt[];
     }
   | {
       ok: false;
-      outcome:
-        | "timeout"
-        | "provider_error"
-        | "schema_invalid"
-        | "rate_limited"
-        | "internal";
+      outcome: AiOutcome;
       attempts: FallbackAttempt[];
     };
 
@@ -62,15 +62,20 @@ type ErrorLike = {
   responseBody?: string;
 };
 
-export function openRouterProviderRouting(policy: DataPolicy): {
-  zdr?: boolean;
-  data_collection?: "deny";
+export function openRouterProviderRouting(input: { zdr: boolean }): {
+  zdr: boolean;
+  data_collection: "deny";
   allow_fallbacks: boolean;
 } {
-  if (policy === "zdr") {
-    return { zdr: true, data_collection: "deny", allow_fallbacks: true };
-  }
-  return { allow_fallbacks: true };
+  return {
+    zdr: input.zdr,
+    data_collection: "deny",
+    allow_fallbacks: true,
+  };
+}
+
+export function dataPolicyForZdr(zdr: boolean): DataPolicy {
+  return zdr ? "zdr" : "any_free";
 }
 
 export function createAttemptController(timeouts: {
@@ -122,6 +127,19 @@ function header(
   return match?.[1];
 }
 
+function isDataPolicyUnavailable(like: ErrorLike): boolean {
+  const message = `${like.message ?? ""} ${like.responseBody ?? ""}`;
+  if (
+    like.statusCode === 404 &&
+    /data policy|zero data retention|zdr/i.test(message)
+  ) {
+    return true;
+  }
+  return /no endpoints found matching your data policy|zero data retention/i.test(
+    message,
+  );
+}
+
 export function classifyProviderFailure(error: unknown): ProviderFailure {
   const like = asErrorLike(error);
   const message = `${like.message ?? ""} ${like.responseBody ?? ""}`;
@@ -143,16 +161,29 @@ export function classifyProviderFailure(error: unknown): ProviderFailure {
       retryAfterMs: retryAfterToMs(header(like.responseHeaders, "retry-after")),
     };
   }
-  if (
-    like.statusCode === 404 ||
-    /no endpoints|data policy|zero data retention|zdr/i.test(message)
-  ) {
-    return { kind: "no_zdr_endpoint", retryAfterMs: null };
+  if (isDataPolicyUnavailable(like)) {
+    return { kind: "provider_policy_unavailable", retryAfterMs: null };
+  }
+  if (like.statusCode === 404) {
+    return { kind: "provider_error", retryAfterMs: null };
   }
   if (/schema/i.test(message)) {
     return { kind: "schema_invalid", retryAfterMs: null };
   }
   return { kind: "provider_error", retryAfterMs: null };
+}
+
+export function attemptToLogOutcome(
+  outcome: FallbackAttempt["outcome"],
+): AiOutcome {
+  if (outcome === "ok") return "ok";
+  if (outcome === "provider_policy_unavailable") {
+    return "provider_policy_unavailable";
+  }
+  if (outcome === "rate_limited") return "rate_limited";
+  if (outcome === "timeout") return "timeout";
+  if (outcome === "schema_invalid") return "schema_invalid";
+  return "provider_error";
 }
 
 function retryAfterToMs(value: string | undefined): number | null {
@@ -178,25 +209,21 @@ export function retryDelayMs(
   return requested;
 }
 
-function finalOutcome(
+export function finalFallbackOutcome(
   attempts: FallbackAttempt[],
-):
-  | "timeout"
-  | "provider_error"
-  | "schema_invalid"
-  | "rate_limited"
-  | "internal" {
+  product: AiProduct,
+): AiOutcome {
   const kinds = attempts.map((attempt) => attempt.outcome);
   if (kinds.length === 0) return "internal";
   if (kinds.every((kind) => kind === "timeout")) return "timeout";
   if (kinds.every((kind) => kind === "rate_limited")) return "rate_limited";
   if (kinds.some((kind) => kind === "schema_invalid")) return "schema_invalid";
-  return "provider_error";
+  return unavailableOutcomeForProduct(product);
 }
 
-async function runPhase<T>(input: {
-  models: string[];
-  policy: DataPolicy;
+async function tryModelRoute<T>(input: {
+  model: string;
+  zdr: boolean;
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
   maxAttempts: number;
@@ -204,85 +231,83 @@ async function runPhase<T>(input: {
   waitedMs: { value: number };
   stopSignal?: AbortSignal;
 }): Promise<
-  | { ok: true; value: T; model: string }
-  | { ok: false; sawLiveEndpoint: boolean }
+  { ok: true; value: T } | { ok: false; failure: ProviderFailureKind }
 > {
-  let sawLiveEndpoint = false;
-
-  for (const model of input.models) {
-    for (let attempt = 0; attempt < input.maxAttempts; attempt += 1) {
+  const dataPolicy = dataPolicyForZdr(input.zdr);
+  for (let attempt = 0; attempt < input.maxAttempts; attempt += 1) {
+    if (input.stopSignal?.aborted) {
+      input.attempts.push({
+        model: input.model,
+        zdr: input.zdr,
+        dataPolicy,
+        outcome: "timeout",
+        attempt,
+      });
+      return { ok: false, failure: "timeout" };
+    }
+    const controller = createAttemptController({
+      firstTokenMs: FIRST_TOKEN_TIMEOUT_MS,
+      totalMs: CHAT_TOTAL_TIMEOUT_MS,
+    });
+    try {
+      const value = await input.call({
+        model: input.model,
+        zdr: input.zdr,
+        attempt,
+        signal: controller.signal,
+        markFirstToken: controller.markFirstToken,
+      });
+      input.attempts.push({
+        model: input.model,
+        zdr: input.zdr,
+        dataPolicy,
+        outcome: "ok",
+        attempt,
+      });
+      return { ok: true, value };
+    } catch (error) {
       if (input.stopSignal?.aborted) {
         input.attempts.push({
-          model,
-          policy: input.policy,
+          model: input.model,
+          zdr: input.zdr,
+          dataPolicy,
           outcome: "timeout",
           attempt,
         });
-        return { ok: false, sawLiveEndpoint: true };
+        return { ok: false, failure: "timeout" };
       }
-      const controller = createAttemptController({
-        firstTokenMs: FIRST_TOKEN_TIMEOUT_MS,
-        totalMs: CHAT_TOTAL_TIMEOUT_MS,
+      const failure = classifyProviderFailure(error);
+      input.attempts.push({
+        model: input.model,
+        zdr: input.zdr,
+        dataPolicy,
+        outcome: failure.kind,
+        attempt,
       });
-      try {
-        const value = await input.call({
-          model,
-          policy: input.policy,
-          attempt,
-          signal: controller.signal,
-          markFirstToken: controller.markFirstToken,
-        });
-        input.attempts.push({
-          model,
-          policy: input.policy,
-          outcome: "ok",
-          attempt,
-        });
-        return { ok: true, value, model };
-      } catch (error) {
-        if (input.stopSignal?.aborted) {
-          input.attempts.push({
-            model,
-            policy: input.policy,
-            outcome: "timeout",
-            attempt,
-          });
-          return { ok: false, sawLiveEndpoint: true };
-        }
-        const failure = classifyProviderFailure(error);
-        input.attempts.push({
-          model,
-          policy: input.policy,
-          outcome: failure.kind,
-          attempt,
-        });
-        if (failure.kind !== "no_zdr_endpoint") sawLiveEndpoint = true;
-        if (failure.kind === "payment_required") {
-          return { ok: false, sawLiveEndpoint: true };
-        }
-        if (failure.kind !== "rate_limited") break;
-        if (attempt >= input.maxAttempts - 1) break;
-        const delay = retryDelayMs(
-          attempt,
-          failure.retryAfterMs,
-          input.waitedMs.value,
-        );
-        if (delay === null) break;
-        await input.sleep(delay);
-        input.waitedMs.value += delay;
-      } finally {
-        controller.dispose();
+      if (failure.kind === "payment_required") {
+        return { ok: false, failure: failure.kind };
       }
+      if (failure.kind !== "rate_limited") {
+        return { ok: false, failure: failure.kind };
+      }
+      if (attempt >= input.maxAttempts - 1) {
+        return { ok: false, failure: failure.kind };
+      }
+      const delay = retryDelayMs(
+        attempt,
+        failure.retryAfterMs,
+        input.waitedMs.value,
+      );
+      if (delay === null) return { ok: false, failure: failure.kind };
+      await input.sleep(delay);
+      input.waitedMs.value += delay;
+    } finally {
+      controller.dispose();
     }
   }
-
-  return { ok: false, sawLiveEndpoint };
+  return { ok: false, failure: "provider_error" };
 }
 
-/**
- * Prefere endpoint sem retenção e sem treino. Só desce para qualquer modelo
- * `:free` quando nenhum endpoint ZDR existe. Exceção de uso pessoal.
- */
 export function linkAbortSignals(
   left: AbortSignal,
   right: AbortSignal | undefined,
@@ -301,6 +326,8 @@ export function linkAbortSignals(
 
 export async function runModelFallback<T>(options: {
   models: string[];
+  privacyMode: OpenRouterPrivacyMode;
+  product: AiProduct;
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
   maxAttempts?: number;
@@ -314,33 +341,10 @@ export async function runModelFallback<T>(options: {
     return { ok: false, outcome: "internal", attempts };
   }
 
-  const preferred = await runPhase({
-    models: options.models,
-    policy: "zdr",
-    call: options.call,
-    sleep: options.sleep,
-    maxAttempts,
-    attempts,
-    waitedMs,
-    stopSignal: options.stopSignal,
-  });
-  if (preferred.ok) {
-    return {
-      ok: true,
-      value: preferred.value,
-      model: preferred.model,
-      policy: "zdr",
-      attempts,
-    };
-  }
-
-  const stoppedForPayment = attempts.some(
-    (attempt) => attempt.outcome === "payment_required",
-  );
-  if (!stoppedForPayment && !preferred.sawLiveEndpoint) {
-    const open = await runPhase({
-      models: options.models,
-      policy: "any_free",
+  for (const model of options.models) {
+    const zdrTry = await tryModelRoute({
+      model,
+      zdr: true,
       call: options.call,
       sleep: options.sleep,
       maxAttempts,
@@ -348,16 +352,56 @@ export async function runModelFallback<T>(options: {
       waitedMs,
       stopSignal: options.stopSignal,
     });
-    if (open.ok) {
+    if (zdrTry.ok) {
       return {
         ok: true,
-        value: open.value,
-        model: open.model,
-        policy: "any_free",
+        value: zdrTry.value,
+        model,
+        dataPolicy: "zdr",
+        servedWithZdr: true,
         attempts,
       };
     }
+    if (zdrTry.failure === "payment_required") {
+      return {
+        ok: false,
+        outcome: "provider_error",
+        attempts,
+      };
+    }
+    if (
+      options.privacyMode === "zdr_then_fallback" &&
+      zdrTry.failure === "provider_policy_unavailable"
+    ) {
+      const relaxed = await tryModelRoute({
+        model,
+        zdr: false,
+        call: options.call,
+        sleep: options.sleep,
+        maxAttempts,
+        attempts,
+        waitedMs,
+        stopSignal: options.stopSignal,
+      });
+      if (relaxed.ok) {
+        return {
+          ok: true,
+          value: relaxed.value,
+          model,
+          dataPolicy: "any_free",
+          servedWithZdr: false,
+          attempts,
+        };
+      }
+      if (relaxed.failure === "payment_required") {
+        return { ok: false, outcome: "provider_error", attempts };
+      }
+    }
   }
 
-  return { ok: false, outcome: finalOutcome(attempts), attempts };
+  return {
+    ok: false,
+    outcome: finalFallbackOutcome(attempts, options.product),
+    attempts,
+  };
 }
