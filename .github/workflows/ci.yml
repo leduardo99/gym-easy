@@ -9,8 +9,156 @@ on:
 permissions:
   contents: read
 
+env:
+  CONFIRM_EMAIL_SECRET: confirm-email-secret-for-e2e-only-00
+  CONSENT_PSEUDONYM_KEY: ci-consent-pseudonym-key-not-secret
+  CRON_SECRET: ci-cron-secret-value-32-characters-ok
+  EMAIL_TRANSPORT: resend
+  RESEND_API_KEY: ci-resend-key-not-secret
+  APP_URL: http://127.0.0.1:3000
+
 jobs:
-  verify:
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        run: |
+          set -euo pipefail
+          asset="gitleaks_8.30.1_linux_x64.tar.gz"
+          # SHA-256 published for the v8.30.1 linux x64 archive, which contains the binary.
+          expected="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+          curl -sSfL -o "/tmp/${asset}" "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/${asset}"
+          echo "${expected}  /tmp/${asset}" | sha256sum -c -
+          sudo tar -xzf "/tmp/${asset}" -C /usr/local/bin gitleaks
+          gitleaks detect --redact --no-banner --exit-code 1 --config .gitleaks.toml
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint (zero warnings)
+        run: pnpm lint
+
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prettier
+        run: pnpm format:check
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript
+        run: pnpm typecheck
+
+  migration-journal:
+    name: migration-journal
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Drizzle journal consistency
+        run: pnpm db:check-journal
+
+  audit:
+    name: audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit all dependencies (high or critical)
+        run: pnpm audit --audit-level high
+
+      - name: Audit production dependencies (high or critical)
+        run: pnpm audit --prod --audit-level high
+
+  test:
+    name: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -35,17 +183,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://gym_easy_app:app@localhost:5432/gym_easy
       DB_TLS_MODE: insecure
-      CONFIRM_EMAIL_SECRET: confirm-email-secret-for-e2e-only-00
-      CONSENT_PSEUDONYM_KEY: ci-consent-pseudonym-key-not-secret
-      CRON_SECRET: ci-cron-secret-value-32-characters-ok
-      EMAIL_TRANSPORT: resend
-      RESEND_API_KEY: ci-resend-key-not-secret
-      APP_URL: http://127.0.0.1:3000
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -58,26 +198,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: gitleaks
-        run: |
-          set -euo pipefail
-          asset="gitleaks_8.30.1_linux_x64.tar.gz"
-          # SHA-256 published for the v8.30.1 linux x64 archive, which contains the binary.
-          expected="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
-          curl -sSfL -o "/tmp/${asset}" "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/${asset}"
-          echo "${expected}  /tmp/${asset}" | sha256sum -c -
-          sudo tar -xzf "/tmp/${asset}" -C /usr/local/bin gitleaks
-          gitleaks detect --redact --no-banner --exit-code 1 --config .gitleaks.toml
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Format
-        run: pnpm format:check
-
-      - name: Typecheck
-        run: pnpm typecheck
 
       - name: Bootstrap Infra roles
         run: bash scripts/ci-bootstrap-roles.sh
@@ -105,13 +225,81 @@ jobs:
           echo "Mailpit did not become ready" >&2
           exit 1
 
-      - name: Unit tests
+      - name: Unit tests and coverage floor
         env:
           MAILPIT_SMTP_HOST: 127.0.0.1
           MAILPIT_SMTP_PORT: "1025"
           MAILPIT_API_URL: http://127.0.0.1:8025
           DATABASE_URL_SUPERUSER: postgresql://postgres:postgres@localhost:5432/gym_easy
-        run: pnpm test
+        run: pnpm test:coverage
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mailpit:
+        image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+        ports:
+          - 1025:1025
+          - 8025:8025
+    env:
+      DATABASE_URL: postgresql://gym_easy_app:app@localhost:5432/gym_easy
+      DB_TLS_MODE: insecure
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap Infra roles
+        run: bash scripts/ci-bootstrap-roles.sh
+
+      - name: Migrate local database
+        env:
+          DATABASE_URL: postgresql://gym_easy_migrator:migrator@localhost:5432/gym_easy
+        run: pnpm db:migrate
+
+      - name: Container migrate script against local Postgres
+        env:
+          RUN_MIGRATIONS: "true"
+          DATABASE_URL_MIGRATOR: postgresql://gym_easy_migrator:migrator@localhost:5432/gym_easy
+        run: node scripts/migrate-on-deploy.mjs
+
+      - name: Wait for Mailpit
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8025/readyz >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mailpit did not become ready" >&2
+          exit 1
 
       - name: Resolve Playwright version
         id: playwright-version
@@ -132,12 +320,6 @@ jobs:
 
       - name: End-to-end tests
         run: pnpm test:e2e
-
-      - name: Audit
-        run: pnpm audit --audit-level high
-
-      - name: Audit production dependencies
-        run: pnpm audit --prod
 
   docker:
     name: docker (${{ matrix.arch }})
