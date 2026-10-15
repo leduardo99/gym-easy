@@ -1,6 +1,3 @@
-import { mkdir } from "node:fs/promises";
-import path from "node:path";
-
 import { expect, test } from "@playwright/test";
 
 import { grantConsent, signedIn } from "./helpers/auth";
@@ -12,28 +9,12 @@ import {
   SAVED_BIRTH_YEAR,
 } from "./helpers/profile";
 
-const onboardingAuthState = path.join(
-  ".data",
-  "e2e-profile-flow-onboarding.json",
-);
-const perfilAuthState = path.join(".data", "e2e-profile-flow-perfil.json");
-const coachAuthState = path.join(".data", "e2e-profile-flow-coach.json");
-
 test.describe.configure({ mode: "serial" });
 
-test.describe("onboarding", () => {
-  test.beforeAll(async ({ browser }) => {
-    await mkdir(".data", { recursive: true });
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await signedIn(page, "profile-flow-onboarding");
-    await context.storageState({ path: onboardingAuthState });
-    await context.close();
-  });
+test("onboarding: validação de ano e conclusão no perfil", async ({ page }) => {
+  await signedIn(page, "profile-flow-onboarding");
 
-  test.use({ storageState: onboardingAuthState });
-
-  test("rejeita ano vazio no servidor", async ({ page }) => {
+  await test.step("rejeita ano vazio no servidor", async () => {
     await page.goto("/onboarding");
     await page.locator("#birthYear").evaluate((el) => {
       el.removeAttribute("required");
@@ -45,7 +26,7 @@ test.describe("onboarding", () => {
     await expectOnboardingIncomplete(page);
   });
 
-  test("envio vazio não apaga ano já guardado", async ({ page }) => {
+  await test.step("envio vazio não apaga ano já guardado", async () => {
     await saveBirthYearOnPerfil(page, SAVED_BIRTH_YEAR);
     await page.goto("/onboarding");
     await expect(birthYearField(page)).toHaveValue(SAVED_BIRTH_YEAR);
@@ -60,7 +41,7 @@ test.describe("onboarding", () => {
     await expectOnboardingIncomplete(page);
   });
 
-  test("rejeita menor de 16 anos no servidor", async ({ page }) => {
+  await test.step("rejeita menor de 16 anos no servidor", async () => {
     await saveBirthYearOnPerfil(page, SAVED_BIRTH_YEAR);
     await page.goto("/onboarding");
     await grantConsent(page, "body_data", "/onboarding");
@@ -73,7 +54,7 @@ test.describe("onboarding", () => {
     await expectOnboardingIncomplete(page);
   });
 
-  test("grava ano válido e continua no perfil", async ({ page }) => {
+  await test.step("grava ano válido e continua no perfil", async () => {
     await page.goto("/onboarding");
     await grantConsent(page, "body_data", "/onboarding");
     await birthYearField(page).fill(SAVED_BIRTH_YEAR);
@@ -83,65 +64,39 @@ test.describe("onboarding", () => {
   });
 });
 
-test.describe("perfil", () => {
-  test.beforeAll(async ({ browser }) => {
-    await mkdir(".data", { recursive: true });
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await signedIn(page, "profile-flow-perfil");
-    await context.storageState({ path: perfilAuthState });
-    await context.close();
-  });
-
-  test.use({ storageState: perfilAuthState });
-
-  test("rejeita menor de 16 anos no servidor", async ({ page }) => {
-    await saveBirthYearOnPerfil(page, SAVED_BIRTH_YEAR);
-    const underAge = birthYearUnderMinimumAge();
-    await birthYearField(page).fill(underAge);
-    await page.getByRole("button", { name: "Guardar" }).click();
-    await expect(page).toHaveURL(/\/perfil\?erro=nascimento/);
-    await expect(page.locator("#birthYear-error")).toContainText(
-      /maiores de 16 anos/i,
-    );
-    await page.reload();
-    await expect(birthYearField(page)).toHaveValue(SAVED_BIRTH_YEAR);
-  });
+test("perfil: rejeita menor de 16 anos no servidor", async ({ page }) => {
+  await signedIn(page, "profile-flow-perfil");
+  await saveBirthYearOnPerfil(page, SAVED_BIRTH_YEAR);
+  const underAge = birthYearUnderMinimumAge();
+  await birthYearField(page).fill(underAge);
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page).toHaveURL(/\/perfil\?erro=nascimento/);
+  await expect(page.locator("#birthYear-error")).toContainText(
+    /maiores de 16 anos/i,
+  );
+  await page.reload();
+  await expect(birthYearField(page)).toHaveValue(SAVED_BIRTH_YEAR);
 });
 
-test.describe("coach", () => {
-  test.beforeAll(async ({ browser }) => {
-    await mkdir(".data", { recursive: true });
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await signedIn(page, "profile-flow-coach");
-    await context.storageState({ path: coachAuthState });
-    await context.close();
-  });
+test("coach: profile_incomplete mostra CTA que foca o ano no perfil", async ({
+  page,
+}) => {
+  await signedIn(page, "profile-flow-coach");
+  await page.goto("/onboarding");
+  await page.getByRole("button", { name: "Pular" }).click();
+  await page.waitForURL("**/inicio");
+  await grantConsent(page, "body_data", "/inicio");
+  await grantConsent(page, "coach_health", "/inicio");
+  await grantConsent(page, "coach_chat", "/inicio");
 
-  test.use({ storageState: coachAuthState });
+  await page.goto("/treinos");
+  await page.getByPlaceholder("Pergunte sobre o treino…").fill("oi");
+  await page.getByRole("button", { name: "Enviar" }).click();
+  await expect(
+    page.getByRole("link", { name: "Completar ano de nascimento" }),
+  ).toBeVisible();
 
-  test("profile_incomplete mostra CTA que foca o ano no perfil", async ({
-    page,
-  }) => {
-    await page.goto("/onboarding");
-    await page.getByRole("button", { name: "Pular" }).click();
-    await page.waitForURL("**/inicio");
-    await grantConsent(page, "body_data", "/inicio");
-    await grantConsent(page, "coach_health", "/inicio");
-    await grantConsent(page, "coach_chat", "/inicio");
-
-    await page.goto("/treinos");
-    await page.getByPlaceholder("Pergunte sobre o treino…").fill("oi");
-    await page.getByRole("button", { name: "Enviar" }).click();
-    await expect(
-      page.getByRole("link", { name: "Completar ano de nascimento" }),
-    ).toBeVisible();
-
-    await page
-      .getByRole("link", { name: "Completar ano de nascimento" })
-      .click();
-    await expect(page).toHaveURL(/\/perfil#birthYear$/);
-    await expect(birthYearField(page)).toBeFocused({ timeout: 10_000 });
-  });
+  await page.getByRole("link", { name: "Completar ano de nascimento" }).click();
+  await expect(page).toHaveURL(/\/perfil#birthYear$/);
+  await expect(birthYearField(page)).toBeFocused({ timeout: 10_000 });
 });
