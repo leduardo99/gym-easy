@@ -609,12 +609,19 @@ describe.skipIf(!runIntegration)("training data access", () => {
       },
     );
     expect(refused.status).toBe("refused");
+    const afterRefuse = await db
+      .select()
+      .from(consentLog)
+      .where(eq(consentLog.userId, userId));
+    expect(afterRefuse).toHaveLength(before.length + 1);
     expect(
-      await db
-        .select({ id: consentLog.id })
-        .from(consentLog)
-        .where(eq(consentLog.userId, userId)),
-    ).toHaveLength(before.length);
+      afterRefuse.some(
+        (event) =>
+          event.purpose === "body_data" &&
+          event.action === "revoked" &&
+          event.source === "reconsent",
+      ),
+    ).toBe(true);
     expect(await repository.saveProfile(userId, profileInput)).toMatchObject({
       ok: false,
       error: "consent_required",
