@@ -64,6 +64,24 @@ export type ReconsentNotice =
   | "checkbox"
   | "origin";
 
+/** Valores do query `recusado`, um por scope de reconsentimento. */
+export const RECONSENT_REFUSE_QUERY_BY_SCOPE = {
+  body_data: "corpo",
+  coach_health: "saude",
+  coach_chat: "chat",
+  analytics: "1",
+} as const satisfies Record<ReconsentScope, string>;
+
+function reconsentScopeForRefuseNotice(
+  notice: ReconsentNotice,
+): ReconsentScope | null {
+  if (notice === "refused_body_data") return "body_data";
+  if (notice === "refused_coach_health") return "coach_health";
+  if (notice === "refused_coach_chat") return "coach_chat";
+  if (notice === "refused") return "analytics";
+  return null;
+}
+
 export function reconsentRefuseRequiresConfirmation(
   scope: ReconsentScope,
 ): boolean {
@@ -102,10 +120,13 @@ export function parseReconsentNotice(
   recusado: string | undefined,
   erro: string | undefined,
 ): ReconsentNotice | null {
-  if (recusado === "corpo") return "refused_body_data";
-  if (recusado === "saude") return "refused_coach_health";
-  if (recusado === "chat") return "refused_coach_chat";
-  if (recusado === "1") return "refused";
+  if (recusado) {
+    for (const scope of RECONSENT_SCOPES) {
+      if (recusado === RECONSENT_REFUSE_QUERY_BY_SCOPE[scope]) {
+        return reconsentRefuseNoticeForScope(scope);
+      }
+    }
+  }
   if (erro === "caixa") return "checkbox";
   if (erro === "origem") return "origin";
   return null;
@@ -138,10 +159,12 @@ export function reconsentPath(
   const params = new URLSearchParams();
   params.set("scope", scope);
   params.set("next", safeReconsentNext(nextPath));
-  if (notice === "refused") params.set("recusado", "1");
-  if (notice === "refused_body_data") params.set("recusado", "corpo");
-  if (notice === "refused_coach_health") params.set("recusado", "saude");
-  if (notice === "refused_coach_chat") params.set("recusado", "chat");
+  if (notice) {
+    const refuseScope = reconsentScopeForRefuseNotice(notice);
+    if (refuseScope) {
+      params.set("recusado", RECONSENT_REFUSE_QUERY_BY_SCOPE[refuseScope]);
+    }
+  }
   if (notice === "checkbox") params.set("erro", "caixa");
   if (notice === "origin") params.set("erro", "origem");
   return `/consentimento?${params.toString()}`;

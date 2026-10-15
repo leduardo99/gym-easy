@@ -4,6 +4,7 @@ import type { AppDatabase } from "@/db";
 
 import {
   RECONSENT_COPY,
+  RECONSENT_REFUSE_QUERY_BY_SCOPE,
   parseReconsentNotice,
   parseReconsentScope,
   reconsentNoticeMessage,
@@ -43,10 +44,21 @@ describe("reconsent path", () => {
   });
 
   it("codifica avisos de recusa por finalidade", () => {
+    expect(RECONSENT_REFUSE_QUERY_BY_SCOPE).toEqual({
+      body_data: "corpo",
+      coach_health: "saude",
+      coach_chat: "chat",
+      analytics: "1",
+    });
     expect(reconsentPath("body_data", "/perfil", "refused_body_data")).toBe(
-      "/consentimento?scope=body_data&next=%2Fperfil&recusado=corpo",
+      `/consentimento?scope=body_data&next=%2Fperfil&recusado=${RECONSENT_REFUSE_QUERY_BY_SCOPE.body_data}`,
     );
-    expect(parseReconsentNotice("corpo", undefined)).toBe("refused_body_data");
+    expect(
+      parseReconsentNotice(
+        RECONSENT_REFUSE_QUERY_BY_SCOPE.body_data,
+        undefined,
+      ),
+    ).toBe("refused_body_data");
     expect(reconsentRefuseNoticeForScope("body_data")).toBe(
       "refused_body_data",
     );
