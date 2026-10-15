@@ -1,40 +1,47 @@
 ## O quê
 
-<!-- Resumo da mudança. -->
+<!-- Uma intenção por PR. -->
 
-## Por quê
+## Porquê
 
-<!-- Issue (LED-XX) e o problema que isso resolve. -->
+Refs LED-xx
+
+<!-- Usar sempre `Refs LED-xx`, nunca `Fixes` nem `Closes`. -->
 
 ## Como testar
 
-- [ ] `pnpm lint`
-- [ ] `pnpm typecheck`
-- [ ] `pnpm test`
-- [ ] `pnpm test:e2e`
-- [ ] `pnpm build` sem `DATABASE_URL` real
+- [ ] `pnpm lint` · `pnpm typecheck` · `pnpm format:check`
+- [ ] `pnpm test` · `pnpm test:e2e` · `pnpm build`
 
-## Checklist de revisão
+## Checklist de arquitetura
 
-- [ ] Testes cobrem o comportamento novo
-- [ ] Tipos estritos (`strict` + `noUncheckedIndexedAccess`), sem `any` injustificado e sem `@ts-ignore`
-- [ ] Acessibilidade: rótulos, foco visível, alvo de toque de 44px
-- [ ] Performance: sem trabalho extra no caminho crítico
+- [ ] PR pequeno (< 400 linhas úteis) e sem misturar refactor com comportamento
+- [ ] Respeita as camadas (`app → features → db|lib`); nenhuma feature importa outra
+- [ ] Server Actions: origem (`APP_URL`) → sessão → Zod → caso de uso → `ActionResult`
+- [ ] Sem `any`, `@ts-ignore`, `console.*`, código morto nem TODO sem issue
+- [ ] Docs/ADR/AGENTS.md atualizados quando há decisão ou convenção nova
+- [ ] Testes no nível certo; bug com teste de regressão
 
 ## Checklist de segurança
 
-- [ ] Nenhum segredo no repositório (gitleaks limpo; nada em `NEXT_PUBLIC_` que seja secreto)
-- [ ] `.env.example` atualizado se houve variável nova; valor real só no Coolify ou nos secrets do GitHub
-- [ ] Toda entrada no servidor validada com zod
-- [ ] Queries só via Drizzle (parametrizadas), filtradas pelo `user_id` da sessão quando houver dados de usuário
-- [ ] IDOR: nenhum id de usuário, treino ou recurso vem do cliente para autorizar a query; há teste quando a rota lê ou altera dados de usuário
-- [ ] Rate limit em login, reset de senha e outras rotas sensíveis, quando essas rotas existirem
-- [ ] Uploads validados (tipo, tamanho e conteúdo) e armazenados sem execução do arquivo
-- [ ] Saída de IA tratada como não confiável: não executar, não renderizar HTML cru, validar com zod antes de persistir ou exibir
-- [ ] Headers de segurança em todas as rotas: CSP, `frame-ancestors 'none'` e `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` restritiva e HSTS em produção
-- [ ] Novas dependências justificadas na descrição
-- [ ] Se mexe em auth ou dados pessoais: revisão do agente de Segurança
+- [ ] Nenhum segredo no repo; nada secreto em `NEXT_PUBLIC_`; `.env.example` atualizado
+- [ ] Todo o input do servidor validado com Zod; queries filtradas pelo `user.id` da sessão (sem IDOR)
+- [ ] Host/origem só a partir de `APP_URL`
+- [ ] Rate limit nas rotas sensíveis
+- [ ] Saída de IA tratada como não confiável; logs sem PII, dados de saúde nem conteúdo do coach
+- [ ] Headers de segurança mantidos (CSP com nonce, HSTS, `frame-ancestors 'none'`)
+- [ ] Mexe em auth, consent, env, Docker ou dados pessoais → revisão da Delta
+
+## Deploy
+
+- [ ] Migração gerada, revista, com GRANTs e plano de rollback (ou "nenhuma")
+- [ ] Compatível com Coolify em linux/arm64
+- [ ] Smoke de QA em `https://app.gaffer.pt` (sem previews Vercel)
+
+## Aprovações
+
+- [ ] OK Lambda (Arquitetura), Sigma (QA) e Delta (Segurança) no **HEAD atual** do PR (reconfirmar após rebase)
 
 ## Dependências novas
 
-<!-- Liste cada pacote adicionado e por que ele é necessário. Escreva "nenhuma" se não houver. -->
+<!-- Pacote e justificação, ou "nenhuma". -->

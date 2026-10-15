@@ -1,0 +1,10 @@
+---
+description: 30-data-access-drizzle
+globs: src/db/**,src/**/repository*.ts
+alwaysApply: false
+---
+
+- Só os repositórios usam `getDb()`. As operações compostas correm numa transação.
+- Os dados do utilizador filtram sempre por `userId` da sessão.
+- As mudanças de schema fazem-se com `pnpm db:generate`. Nunca editar migrações aplicadas. GRANTs explícitos para `gym_easy_app`.
+- Sem `sql.unsafe` com input. Usar sempre o query builder ou `sql` com template.

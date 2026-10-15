@@ -1,0 +1,12 @@
+---
+description: 21-server-actions
+globs: src/**/actions.ts
+alwaysApply: false
+---
+
+Ordem fixa: `assertSameOriginMutation()` (contra `APP_URL`) → `requireUser`/sessão → `schema.safeParse` → caso de uso → `ActionResult`.
+
+- Sem SQL nem lógica de domínio na action.
+- Nunca confiar num `userId` vindo do cliente.
+- Erros: devolver `{ ok: false, ... }` tipado. Não usar query strings `?erro=`.
+- Estado de módulo mutável é proibido (é partilhado entre pedidos).

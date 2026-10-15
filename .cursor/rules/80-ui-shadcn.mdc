@@ -1,0 +1,10 @@
+---
+description: 80-ui-shadcn
+globs: src/components/**,src/features/**/components/**
+alwaysApply: false
+---
+
+- Componentes base via `pnpm dlx shadcn add`; não editar `ui/` à mão.
+- Tailwind v4 com tokens do tema; sem cores hardcoded.
+- Composição em vez de props booleanas.
+- Acessibilidade: rótulos, foco, 44px e mensagens de erro ligadas ao campo.

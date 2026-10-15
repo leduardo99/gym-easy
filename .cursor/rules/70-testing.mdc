@@ -1,0 +1,10 @@
+---
+description: 70-testing
+globs: **/*.test.ts,**/*.test.tsx,tests/**
+alwaysApply: false
+---
+
+- Nomes que descrevem o comportamento ("rejeita origem diferente de APP_URL").
+- Unitário para a lógica pura; integração para repositórios, migrações e email; e2e só para os fluxos críticos.
+- Sem `.only`/`.skip`, sem sleeps fixos, sem rede externa (usar fakes).
+- Cada bug corrigido leva um teste de regressão.

@@ -1,0 +1,12 @@
+---
+description: 00-core
+alwaysApply: true
+---
+
+Idioma da prosa: pt-PT. Código e identificadores em inglês.
+
+- Ler o AGENTS.md mais próximo antes de editar.
+- TDD: escrever o teste a falhar, depois implementar. Antes de declarar o trabalho concluído, correr `pnpm lint && pnpm typecheck && pnpm test`.
+- PR pequeno, uma intenção por PR, Conventional Commits e `Refs LED-xx`.
+- Nada de código morto, comentários óbvios nem TODO sem issue.
+- Para docs de bibliotecas, usar context7 em vez da memória.
