@@ -21,6 +21,7 @@ import { loginAccount } from "./login-account";
 import { lookupSession } from "./lookup-session";
 import { argon2Hasher, getDummyPasswordHash } from "./password";
 import { registerAccount } from "./register-account";
+import { signupRegistrationIp } from "./signup-ip";
 import { requestPasswordReset } from "./request-password-reset";
 import { resendConfirmation } from "./resend-confirmation";
 import {
@@ -155,8 +156,7 @@ export async function signupAction(input: unknown): Promise<AuthActionResult> {
         name: readString(input, "name"),
         email: readString(input, "email"),
         password: readString(input, "password"),
-        // E2E usa captura de email (desativada em produção); sem IP não há bucket de cadastro.
-        ip: env.EMAIL_CAPTURE_PATH ? null : context.ip,
+        ip: signupRegistrationIp(env.EMAIL_CAPTURE_PATH, context.ip),
         origin: env.APP_URL,
         now: new Date(),
       },
