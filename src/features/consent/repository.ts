@@ -76,7 +76,6 @@ export function createConsentRepository(db: AppDatabase) {
           version: text.version,
           textSha256: consentTextSha256(parsed.data.purpose),
           source: parsed.data.source,
-          createdAt: new Date(),
         })
         .returning();
       const row = rows[0];

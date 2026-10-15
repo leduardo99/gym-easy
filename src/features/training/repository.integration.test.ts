@@ -2,7 +2,7 @@ import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
 import type { AppDatabase } from "@/db";
@@ -759,67 +759,54 @@ describe.skipIf(!runIntegration)("training data access", () => {
   });
 
   it("counts only a grant of the current text version and hash", async () => {
-    // Postgres defaultNow() passed 2026-10-15 and outranked a hardcoded row.
-    // The grant uses this clock. Version and hash stay the published text.
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-14T12:00:00.000Z"));
-    try {
-      const currentUser = await insertUser("Versao atual");
-      const saved = await consents.recordConsent(currentUser, {
-        purpose: "body_data",
-        action: "granted",
-        source: "onboarding",
-      });
-      expect(saved.ok).toBe(true);
-      const active = await consents.currentConsent(currentUser);
-      expect(active.body_data?.action).toBe("granted");
-      expect(active.body_data?.version).toBe(CONSENT_TEXTS.body_data.version);
-      expect(active.body_data?.textSha256).toBe(consentTextSha256("body_data"));
-      expect(active.body_data?.createdAt.toISOString()).toBe(
-        "2026-10-14T12:00:00.000Z",
-      );
+    const currentUser = await insertUser("Versao atual");
+    const saved = await consents.recordConsent(currentUser, {
+      purpose: "body_data",
+      action: "granted",
+      source: "onboarding",
+    });
+    expect(saved.ok).toBe(true);
+    const active = await consents.currentConsent(currentUser);
+    expect(active.body_data?.action).toBe("granted");
+    expect(active.body_data?.version).toBe(CONSENT_TEXTS.body_data.version);
+    expect(active.body_data?.textSha256).toBe(consentTextSha256("body_data"));
 
-      const staleUser = await insertUser("Versao antiga");
-      await db.insert(consentLog).values({
-        userId: staleUser,
-        purpose: "body_data",
-        action: "granted",
-        version: "body_data-2026-10-14",
-        textSha256: consentTextSha256("body_data"),
-        source: "onboarding",
-      });
-      expect(
-        (await consents.currentConsent(staleUser)).body_data,
-      ).toBeUndefined();
+    const staleUser = await insertUser("Versao antiga");
+    await db.insert(consentLog).values({
+      userId: staleUser,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "onboarding",
+    });
+    expect(
+      (await consents.currentConsent(staleUser)).body_data,
+    ).toBeUndefined();
 
-      const hashUser = await insertUser("Hash diferente");
-      await db.insert(consentLog).values({
-        userId: hashUser,
-        purpose: "body_data",
-        action: "granted",
-        version: CONSENT_TEXTS.body_data.version,
-        textSha256: "ab".repeat(32),
-        source: "onboarding",
-      });
-      expect(
-        (await consents.currentConsent(hashUser)).body_data,
-      ).toBeUndefined();
+    const hashUser = await insertUser("Hash diferente");
+    await db.insert(consentLog).values({
+      userId: hashUser,
+      purpose: "body_data",
+      action: "granted",
+      version: CONSENT_TEXTS.body_data.version,
+      textSha256: "ab".repeat(32),
+      source: "onboarding",
+    });
+    expect((await consents.currentConsent(hashUser)).body_data).toBeUndefined();
 
-      await db.insert(consentLog).values({
-        userId: currentUser,
-        purpose: "body_data",
-        action: "granted",
-        version: "body_data-2026-10-14",
-        textSha256: consentTextSha256("body_data"),
-        source: "reconsent",
-        createdAt: new Date("2026-10-14T13:00:00.000Z"),
-      });
-      expect(
-        (await consents.currentConsent(currentUser)).body_data,
-      ).toBeUndefined();
-    } finally {
-      vi.useRealTimers();
-    }
+    await db.insert(consentLog).values({
+      userId: currentUser,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-2026-10-14",
+      textSha256: consentTextSha256("body_data"),
+      source: "reconsent",
+      createdAt: new Date("2099-01-01T00:00:00.000Z"),
+    });
+    expect(
+      (await consents.currentConsent(currentUser)).body_data,
+    ).toBeUndefined();
   });
 
   it("removes a custom exercise and the history that references it when the account is deleted", async () => {
