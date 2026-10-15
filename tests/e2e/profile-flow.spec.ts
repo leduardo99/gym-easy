@@ -39,7 +39,9 @@ test("perfil rejeita menor de 16 anos no servidor", async ({ page }) => {
   await birthYearField(page).fill("2010");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page).toHaveURL(/\/perfil\?erro=nascimento/);
-  await expect(page.getByText(/maiores de 16 anos/i)).toBeVisible();
+  await expect(page.locator("#birthYear-error")).toContainText(
+    /maiores de 16 anos/i,
+  );
 });
 
 test("coach profile_incomplete mostra CTA que foca o ano no perfil", async ({
