@@ -726,12 +726,13 @@ describe.skipIf(!runIntegration)("training data access", () => {
         .from(bodyMeasurements)
         .where(eq(bodyMeasurements.userId, userA)),
     ).toHaveLength(1);
-    expect(
-      await db
-        .select({ userId: userProfiles.userId })
-        .from(userProfiles)
-        .where(eq(userProfiles.userId, userB)),
-    ).toEqual([]);
+    const profileBAfterA = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userB));
+    expect(profileBAfterA).toHaveLength(1);
+    expect(profileBAfterA[0]?.birthYear).toBe(1991);
+    expect(profileBAfterA[0]?.heightCm).toBeNull();
     expect(
       await db
         .select({ id: bodyMeasurements.id })
