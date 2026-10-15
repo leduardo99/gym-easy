@@ -1,12 +1,9 @@
 import { PageHeader } from "@/components/app/page-header";
 import { AppShell } from "@/components/app/bottom-nav";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Field, FieldLabel } from "@/components/ui/field";
 import type { ConsentCopy } from "@/consent/texts";
 
-import { acceptReconsentAction, refuseReconsentAction } from "./actions";
+import { ReconsentConsentForm } from "./reconsent-consent-form";
 import { RECONSENT_COPY, type ReconsentScope } from "./reconsent";
 
 export function ReconsentScreen({
@@ -32,18 +29,6 @@ export function ReconsentScreen({
   return (
     <AppShell>
       <PageHeader title={copy.title} description={RECONSENT_COPY.intro} />
-      <Card className="mt-6">
-        <CardContent className="flex flex-col gap-4">
-          {copy.body.split("\n").map((paragraph) => (
-            <p
-              key={paragraph}
-              className="text-sm leading-6 text-muted-foreground"
-            >
-              {paragraph}
-            </p>
-          ))}
-        </CardContent>
-      </Card>
       {noticeText ? (
         <Alert
           className="mt-4"
@@ -52,35 +37,7 @@ export function ReconsentScreen({
           <AlertDescription>{noticeText}</AlertDescription>
         </Alert>
       ) : null}
-      <form action={acceptReconsentAction} className="mt-6 flex flex-col gap-4">
-        <input type="hidden" name="scope" value={scope} />
-        <input type="hidden" name="next" value={nextPath} />
-        <Field orientation="horizontal" className="items-start">
-          <input
-            id="reconsent-accepted"
-            name="accepted"
-            type="checkbox"
-            value="sim"
-            className="mt-0.5 size-5 shrink-0 accent-primary"
-          />
-          <FieldLabel
-            htmlFor="reconsent-accepted"
-            className="text-sm leading-5 font-normal"
-          >
-            {copy.checkbox}
-          </FieldLabel>
-        </Field>
-        <Button type="submit" size="lg" className="w-full">
-          {RECONSENT_COPY.accept}
-        </Button>
-      </form>
-      <form action={refuseReconsentAction} className="mt-3">
-        <input type="hidden" name="scope" value={scope} />
-        <input type="hidden" name="next" value={nextPath} />
-        <Button type="submit" variant="outline" size="lg" className="w-full">
-          {RECONSENT_COPY.refuse}
-        </Button>
-      </form>
+      <ReconsentConsentForm copy={copy} scope={scope} nextPath={nextPath} />
     </AppShell>
   );
 }

@@ -36,12 +36,18 @@ describe("canonicalConsentText", () => {
 });
 
 describe("textos publicados", () => {
-  it("fixa o sha256 de cada versão 2026-10-14c", () => {
+  it("fixa o sha256 de cada versão publicada", () => {
     const hashes = Object.fromEntries(
       CONSENT_TEXT_PURPOSES.map((purpose) => {
         const text = CONSENT_TEXTS[purpose];
         const canonical = canonicalConsentText(text);
-        expect(text.version).toBe(`${purpose}-pt-BR-2026-10-14c`);
+        const versions = {
+          body_data: "body_data-pt-BR-2026-10-15b",
+          coach_health: "coach_health-pt-BR-2026-10-15b",
+          coach_chat: "coach_chat-pt-BR-2026-10-15b",
+          analytics: "analytics-pt-BR-2026-10-15b",
+        } as const;
+        expect(text.version).toBe(versions[purpose]);
         expect(text.locale).toBe("pt-BR");
         expect(consentTextSha256(purpose)).toBe(sha256(canonical));
         return [text.version, consentTextSha256(purpose)];
@@ -61,6 +67,7 @@ describe("textos publicados", () => {
           text.title,
           text.body,
           text.checkbox,
+          text.transferCheckbox ?? "",
           canonicalConsentText(text),
         ]),
       ),

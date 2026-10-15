@@ -39,6 +39,7 @@ COPY --from=builder --chown=nextjs:nodejs /out/argon2/argon2-linux-x64-gnu ./nod
 COPY --from=builder --chown=nextjs:nodejs /out/argon2/argon2-linux-arm64-gnu ./node_modules/@node-rs/argon2-linux-arm64-gnu
 COPY --from=builder --chown=nextjs:nodejs /app/deploy-bundles/migrate-on-deploy.mjs ./migrate-on-deploy.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/deploy-bundles/purge-consent.mjs ./scripts/purge-consent.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/deploy-bundles/purge-coach-messages.mjs ./scripts/purge-coach-messages.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/migrations ./migrations
 COPY --from=builder --chown=nextjs:nodejs /app/docker/entrypoint.sh ./entrypoint.sh
 RUN chmod 755 ./entrypoint.sh

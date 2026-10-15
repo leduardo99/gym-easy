@@ -2,19 +2,27 @@ import type { AppDatabase } from "@/db";
 import type { ConsentPurpose } from "@/db/domain";
 import { isAllowedNext } from "@/features/auth/destination";
 
+import { CONSENT_TEXTS } from "@/consent/texts";
+
 import type { ConsentEvent } from "./repository";
 import { createConsentRepository } from "./repository";
 
-/** Finalidades que a página pode gravar. `coach_chat` fica de fora até o enum. */
+/** Finalidades que a página pode gravar, incluindo o chat. */
 export const RECONSENT_SCOPES = [
   "body_data",
   "coach_health",
+  "coach_chat",
   "analytics",
 ] as const satisfies readonly ConsentPurpose[];
 
 export type ReconsentScope = (typeof RECONSENT_SCOPES)[number];
 
 export const RECONSENT_FALLBACK = "/perfil";
+
+/** Resumo de riscos (UI apenas; não entra no hash do consentimento -15b). */
+export const COACH_TRANSFER_RISK_HEADING = "Riscos";
+export const COACH_TRANSFER_RISK_LINE =
+  "Sem decisão de adequação nem cláusulas-padrão. Seus dados podem ficar sujeitos a leis de outros países, inclusive acesso por autoridades, com proteção menor que a da UE. Pode ser difícil exercer seus direitos, e não conseguimos apagar o que os fornecedores já guardaram.";
 
 export const RECONSENT_COPY = {
   intro:
@@ -64,6 +72,7 @@ export type ReconsentSubmission = {
   scope: string;
   intent: "grant" | "refuse";
   accepted: boolean;
+  transferAccepted?: boolean;
 };
 
 export type ReconsentSubmissionResult =
@@ -82,6 +91,9 @@ export async function submitReconsent(
   if (!scope) return { status: "invalid_scope" };
   if (input.intent === "refuse") return { status: "refused" };
   if (!input.accepted) return { status: "needs_checkbox" };
+  if (CONSENT_TEXTS[scope].transferCheckbox && !input.transferAccepted) {
+    return { status: "needs_checkbox" };
+  }
 
   const saved = await createConsentRepository(db).recordConsent(userId, {
     purpose: scope,

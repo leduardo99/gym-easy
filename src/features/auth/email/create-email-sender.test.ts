@@ -40,6 +40,9 @@ function serverEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
     DB_IDLE_TIMEOUT: 20,
     DB_CONNECT_TIMEOUT: 10,
     DB_STATEMENT_TIMEOUT: 15_000,
+    OPENROUTER_API_KEY: null,
+    COACH_MODELS: [],
+    PLAN_MODELS: [],
     ...overrides,
   };
 }

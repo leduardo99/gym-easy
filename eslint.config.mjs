@@ -21,6 +21,27 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/ai/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "ai",
+              message: "Chamadas a modelos ficam só em src/lib/ai.",
+            },
+            {
+              name: "@openrouter/ai-sdk-provider",
+              message: "O provider OpenRouter fica só em src/lib/ai.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   globalIgnores([
     ".next/**",
     "out/**",

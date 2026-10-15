@@ -31,17 +31,27 @@ describe("consentInputSchema", () => {
 });
 
 describe("consent texts", () => {
-  it("fixa a versão pt-BR 2026-10-14c, incluindo o chat", () => {
-    expect(CONSENT_TEXTS.body_data.version).toBe("body_data-pt-BR-2026-10-14c");
+  it("fixa as versões publicadas na -15b (LED-45)", () => {
+    expect(CONSENT_TEXTS.body_data.version).toBe("body_data-pt-BR-2026-10-15b");
     expect(CONSENT_TEXTS.coach_health.version).toBe(
-      "coach_health-pt-BR-2026-10-14c",
+      "coach_health-pt-BR-2026-10-15b",
     );
     expect(CONSENT_TEXTS.coach_chat.version).toBe(
-      "coach_chat-pt-BR-2026-10-14c",
+      "coach_chat-pt-BR-2026-10-15b",
     );
-    expect(CONSENT_TEXTS.analytics.version).toBe("analytics-pt-BR-2026-10-14c");
-    expect(consentTextSha256("body_data")).toMatch(/^[a-f0-9]{64}$/);
-    expect(consentTextSha256("coach_chat")).toMatch(/^[a-f0-9]{64}$/);
+    expect(CONSENT_TEXTS.analytics.version).toBe("analytics-pt-BR-2026-10-15b");
+    expect(consentTextSha256("body_data")).toBe(
+      "5df4e14e0c7d5126112a2158c8a4559ecb8b8b12f95b2318de7bb9b3b715f052",
+    );
+    expect(consentTextSha256("coach_health")).toBe(
+      "dbae5392ac91d477f71c5776c19dab7b8ada7b55338f0128b21620465fe5fece",
+    );
+    expect(consentTextSha256("coach_chat")).toBe(
+      "1dc468b4177fa51d916f401f30a3c6e114eefdf55a8bd98cc5d3df55a5d219dc",
+    );
+    expect(consentTextSha256("analytics")).toBe(
+      "3f7e46dc6a382c68570c7b31ed81ea852508f128ca5dda4c7f923e0b78f2ec27",
+    );
   });
 });
 
@@ -62,5 +72,33 @@ describe("isCurrentConsent", () => {
       false,
     );
     expect(isCurrentConsent({ ...current, action: "revoked" })).toBe(false);
+  });
+
+  it("recusa a versão -14c de coach_health e coach_chat", () => {
+    expect(
+      isCurrentConsent({
+        purpose: "coach_health",
+        action: "granted",
+        version: "coach_health-pt-BR-2026-10-14c",
+        textSha256: consentTextSha256("coach_health"),
+      }),
+    ).toBe(false);
+    expect(
+      isCurrentConsent({
+        purpose: "coach_chat",
+        action: "granted",
+        version: "coach_chat-pt-BR-2026-10-14c",
+        textSha256:
+          "512ef10a3ea3f8efc2444884553763c6c195fb8dd4e20bfccf23f7ebac140400",
+      }),
+    ).toBe(false);
+    expect(
+      isCurrentConsent({
+        purpose: "coach_chat",
+        action: "granted",
+        version: CONSENT_TEXTS.coach_chat.version,
+        textSha256: consentTextSha256("coach_chat"),
+      }),
+    ).toBe(true);
   });
 });

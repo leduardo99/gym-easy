@@ -35,7 +35,7 @@ describe("reconsent path", () => {
     expect(parseReconsentScope("body_data")).toBe("body_data");
     expect(parseReconsentScope("coach_health")).toBe("coach_health");
     expect(parseReconsentScope("analytics")).toBe("analytics");
-    expect(parseReconsentScope("coach_chat")).toBeNull();
+    expect(parseReconsentScope("coach_chat")).toBe("coach_chat");
     expect(parseReconsentScope("admin")).toBeNull();
   });
 });
@@ -62,6 +62,14 @@ describe("submitReconsent", () => {
         scope: "coach_chat",
         intent: "grant",
         accepted: true,
+      }),
+    ).resolves.toEqual({ status: "needs_checkbox" });
+    await expect(
+      submitReconsent(db, "user", {
+        scope: "admin",
+        intent: "grant",
+        accepted: true,
+        transferAccepted: true,
       }),
     ).resolves.toEqual({ status: "invalid_scope" });
     expect(RECONSENT_COPY.refused).toContain("continua bloqueada");
