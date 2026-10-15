@@ -46,6 +46,7 @@ function harness() {
         log: (record) => logs.push(record),
         sleep: async () => undefined,
         models: ["alpha/example:free"],
+        privacyMode: "zdr_only",
       });
     },
   };
@@ -110,6 +111,7 @@ describe("coach risk gate", () => {
       log: () => undefined,
       sleep: async () => undefined,
       models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
     });
 
     expect(result.status).toBe("profile_incomplete");
@@ -137,6 +139,7 @@ describe("coach risk gate", () => {
       log: () => undefined,
       sleep: async () => undefined,
       models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
     });
 
     expect(result.status).toBe("safety_block");
@@ -163,6 +166,7 @@ describe("coach risk gate", () => {
       log: () => undefined,
       sleep: async () => undefined,
       models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
     });
 
     expect(result.status).toBe("consent_missing");
@@ -189,6 +193,7 @@ describe("coach risk gate", () => {
       log: () => undefined,
       sleep: async () => undefined,
       models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
     });
 
     expect(result.status).toBe("consent_missing");
@@ -214,6 +219,7 @@ describe("coach risk gate", () => {
       log: () => undefined,
       sleep: async () => undefined,
       models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
     });
 
     expect(result.status).toBe("reconsent_required");

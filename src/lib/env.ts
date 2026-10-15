@@ -11,6 +11,12 @@ import { readDbPoolConfig } from "@/db/driver";
 import { parseFreeModelList } from "@/lib/ai/models";
 import { strictAppUrlOrigin } from "./app-url";
 
+export const OPENROUTER_PRIVACY_MODES = [
+  "zdr_only",
+  "zdr_then_fallback",
+] as const;
+export type OpenRouterPrivacyMode = (typeof OPENROUTER_PRIVACY_MODES)[number];
+
 const postgresUrl = z
   .string()
   .min(1)
@@ -193,6 +199,9 @@ export const serverEnvSchema = z
     OPENROUTER_API_KEY: z.string().min(1).optional(),
     COACH_MODELS: z.string().optional(),
     PLAN_MODELS: z.string().optional(),
+    OPENROUTER_PRIVACY_MODE: z
+      .enum(OPENROUTER_PRIVACY_MODES)
+      .default("zdr_only"),
     NEXT_PUBLIC_DATABASE_URL: z.string().optional(),
     NEXT_PUBLIC_RESEND_API_KEY: z.string().optional(),
     NEXT_PUBLIC_EMAIL_FROM: z.string().optional(),
@@ -279,6 +288,7 @@ export type ServerEnv = {
   OPENROUTER_API_KEY: string | null;
   COACH_MODELS: string[];
   PLAN_MODELS: string[];
+  OPENROUTER_PRIVACY_MODE: OpenRouterPrivacyMode;
 };
 
 /** Non-connecting stand-in so `next build` can evaluate server modules. */
@@ -330,6 +340,7 @@ export function readServerEnv(
     OPENROUTER_API_KEY: source.OPENROUTER_API_KEY || undefined,
     COACH_MODELS: source.COACH_MODELS || undefined,
     PLAN_MODELS: source.PLAN_MODELS || undefined,
+    OPENROUTER_PRIVACY_MODE: source.OPENROUTER_PRIVACY_MODE || undefined,
     NEXT_PUBLIC_DATABASE_URL: source.NEXT_PUBLIC_DATABASE_URL,
     NEXT_PUBLIC_RESEND_API_KEY: source.NEXT_PUBLIC_RESEND_API_KEY,
     NEXT_PUBLIC_EMAIL_FROM: source.NEXT_PUBLIC_EMAIL_FROM,
@@ -476,6 +487,7 @@ export function readServerEnv(
     OPENROUTER_API_KEY: parsed.data.OPENROUTER_API_KEY ?? null,
     COACH_MODELS: coachModels.models,
     PLAN_MODELS: planModels.models,
+    OPENROUTER_PRIVACY_MODE: parsed.data.OPENROUTER_PRIVACY_MODE,
   };
 }
 

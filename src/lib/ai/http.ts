@@ -11,6 +11,10 @@ import type { ConsentPurpose } from "@/db/domain";
 import { createTrainingRepository } from "@/features/training/repository";
 import { getServerEnv } from "@/lib/env";
 
+import {
+  fallbackAttemptsToLogRecords,
+  persistFallbackLogs,
+} from "./attempt-logs";
 import { UNAVAILABLE_RESPONSE } from "./copy";
 import type { CoachProfileSource, ConsentFreshness } from "./context";
 import {
@@ -29,6 +33,11 @@ import {
 import { sanitizeCoachOutput, FILTERED_OUTPUT } from "./output";
 import { COACH_PROMPT_VERSION, renderCoachPrompt } from "./prompts";
 import { createGymOpenRouter, openRouterChatModel } from "./provider";
+import {
+  clientErrorCodeForOutcome,
+  COACH_TEMPORARILY_UNAVAILABLE_MESSAGE,
+  isAllModelsUnavailableOutcome,
+} from "./unavailable";
 import type { AiLogRecord, CoachContext } from "./schemas";
 import { beginCoachStream, createCoachTools } from "./sdk-chat";
 import type { ProposalResult } from "./tools";
@@ -85,6 +94,7 @@ function record(input: {
   outcome: AiLogRecord["outcome"];
   tokensIn?: number | null;
   tokensOut?: number | null;
+  servedWithZdr?: boolean | null;
 }): AiLogRecord {
   const log = toAiLogRecord({
     request_id: input.requestId,
@@ -95,6 +105,7 @@ function record(input: {
     tokens_in: input.tokensIn ?? null,
     tokens_out: input.tokensOut ?? null,
     outcome: input.outcome,
+    served_with_zdr: input.servedWithZdr ?? null,
   });
   writeAiLog(log);
   return log;
@@ -168,6 +179,7 @@ export async function createCoachHttpResponse(input: {
     limiter: createDrizzleRateLimiter(db),
     locks: createDrizzleRedFlagLockStore(db),
     models: env.COACH_MODELS,
+    privacyMode: env.OPENROUTER_PRIVACY_MODE,
     callModel: async () => {
       throw new Error("unused");
     },
@@ -309,11 +321,13 @@ export async function createCoachHttpResponse(input: {
       let tokensOut: number | null = null;
       const generated = await runModelFallback({
         models: env.COACH_MODELS,
+        privacyMode: env.OPENROUTER_PRIVACY_MODE,
+        product: "coach",
         sleep: turnInput.sleep,
         stopSignal: input.signal,
         call: async (attempt) => {
           const opened = await beginCoachStream({
-            model: openRouterChatModel(provider, attempt.model, attempt.policy),
+            model: openRouterChatModel(provider, attempt.model, attempt.zdr),
             system: rendered.system,
             prompt: rendered.prompt,
             signal: linkAbortSignals(attempt.signal, input.signal),
@@ -325,23 +339,27 @@ export async function createCoachHttpResponse(input: {
       });
 
       if (!generated.ok) {
-        send("error", { code: generated.outcome });
-        send("delta", { text: UNAVAILABLE_RESPONSE });
+        const userMessage = isAllModelsUnavailableOutcome(generated.outcome)
+          ? COACH_TEMPORARILY_UNAVAILABLE_MESSAGE
+          : UNAVAILABLE_RESPONSE;
+        send("error", {
+          code: clientErrorCodeForOutcome(generated.outcome),
+        });
+        send("delta", { text: userMessage });
         send("done", {
           message_id: requestId,
           model: generated.attempts.at(-1)?.model ?? null,
-          policy: generated.attempts.at(-1)?.policy ?? null,
+          policy: generated.attempts.at(-1)?.dataPolicy ?? null,
           used_data: usedData(assessed.context),
         });
-        const log = record({
-          userId: input.userId,
+        const logs = fallbackAttemptsToLogRecords({
           requestId,
-          startedAt,
-          model: generated.attempts.at(-1)?.model ?? null,
-          policy: generated.attempts.at(-1)?.policy ?? null,
-          outcome: generated.outcome,
+          userId: input.userId,
+          attempts: generated.attempts,
+          finalOutcome: generated.outcome,
+          latencyMs: Math.max(0, Date.now() - startedAt),
         });
-        await persistQuietly(() => insertAiGenerationLog(db, log));
+        await persistQuietly(() => persistFallbackLogs(db, logs));
         controller.close();
         return;
       }
@@ -456,7 +474,7 @@ export async function createCoachHttpResponse(input: {
         content: visible || UNAVAILABLE_RESPONSE,
         risk: assessed.risk,
         model: generated.model,
-        dataPolicy: generated.policy,
+        dataPolicy: generated.dataPolicy,
         promptVersion: COACH_PROMPT_VERSION,
       }).catch(() => null);
       await insertCoachMessage(db, {
@@ -472,20 +490,21 @@ export async function createCoachHttpResponse(input: {
       send("done", {
         message_id: assistantId ?? requestId,
         model: generated.model,
-        policy: generated.policy,
+        policy: generated.dataPolicy,
         used_data: usedData(assessed.context),
       });
-      const log = record({
-        userId: input.userId,
+      const logs = fallbackAttemptsToLogRecords({
         requestId,
-        startedAt,
-        model: generated.model,
-        policy: generated.policy,
-        outcome,
+        userId: input.userId,
+        attempts: generated.attempts,
+        finalOutcome: outcome,
+        latencyMs: Math.max(0, Date.now() - startedAt),
         tokensIn,
         tokensOut,
+        successPolicy: generated.dataPolicy,
+        servedWithZdr: generated.servedWithZdr,
       });
-      await persistQuietly(() => insertAiGenerationLog(db, log));
+      await persistQuietly(() => persistFallbackLogs(db, logs));
       controller.close();
     },
   });

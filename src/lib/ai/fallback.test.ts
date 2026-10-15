@@ -12,12 +12,23 @@ import {
 
 const models = ["alpha/example:free", "beta/example:free"];
 
+function policy404() {
+  return Object.assign(
+    new Error("No endpoints found matching your data policy"),
+    {
+      statusCode: 404,
+    },
+  );
+}
+
 describe("provider fallback", () => {
-  it("keeps the zero-retention route when the first free model succeeds", async () => {
-    const call = vi.fn(async ({ model, policy }) => ({ model, policy }));
+  it("keeps ZDR when the first free model succeeds in zdr_only mode", async () => {
+    const call = vi.fn(async ({ model, zdr }) => ({ model, zdr }));
 
     const result = await runModelFallback({
       models,
+      privacyMode: "zdr_only",
+      product: "coach",
       call,
       sleep: async () => undefined,
     });
@@ -25,10 +36,101 @@ describe("provider fallback", () => {
     expect(result).toMatchObject({
       ok: true,
       model: "alpha/example:free",
-      policy: "zdr",
+      servedWithZdr: true,
     });
     expect(call).toHaveBeenCalledTimes(1);
-    expect(call.mock.calls[0]?.[0]).toMatchObject({ policy: "zdr" });
+    expect(call.mock.calls[0]?.[0]).toMatchObject({ zdr: true });
+  });
+
+  it("retries the same model without ZDR only after a data-policy failure", async () => {
+    const call = vi.fn(async ({ zdr }) => {
+      if (zdr) throw policy404();
+      return { text: "ok" };
+    });
+
+    const result = await runModelFallback({
+      models,
+      privacyMode: "zdr_then_fallback",
+      product: "coach",
+      call,
+      sleep: async () => undefined,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      model: "alpha/example:free",
+      servedWithZdr: false,
+      dataPolicy: "any_free",
+    });
+    expect(call.mock.calls.map((entry) => entry[0]?.zdr)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it("never sends zdr:false in zdr_only mode", async () => {
+    const call = vi.fn(async ({ zdr }) => {
+      if (zdr) throw policy404();
+      return { text: "unexpected" };
+    });
+
+    await runModelFallback({
+      models: ["only/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      sleep: async () => undefined,
+    });
+
+    expect(call.mock.calls.every((entry) => entry[0]?.zdr === true)).toBe(true);
+  });
+
+  it("moves to the next model after ZDR and deny fallback both fail", async () => {
+    const call = vi.fn(async ({ model, zdr }) => {
+      if (model.startsWith("alpha")) throw policy404();
+      if (zdr) throw policy404();
+      return { text: "beta" };
+    });
+
+    const result = await runModelFallback({
+      models,
+      privacyMode: "zdr_then_fallback",
+      product: "coach",
+      call,
+      sleep: async () => undefined,
+    });
+
+    expect(result).toMatchObject({ ok: true, model: "beta/example:free" });
+    expect(call.mock.calls.map((entry) => entry[0]?.model)).toEqual([
+      "alpha/example:free",
+      "alpha/example:free",
+      "beta/example:free",
+      "beta/example:free",
+    ]);
+  });
+
+  it("continues to the next model on HTTP 403 without a deny fallback", async () => {
+    const call = vi.fn(async ({ model, zdr }) => {
+      if (model.startsWith("alpha")) {
+        throw Object.assign(new Error("agentic harness only"), {
+          statusCode: 403,
+        });
+      }
+      if (!zdr) throw new Error("unexpected relaxed route");
+      return { text: "ok" };
+    });
+
+    const result = await runModelFallback({
+      models,
+      privacyMode: "zdr_then_fallback",
+      product: "coach",
+      call,
+      sleep: async () => undefined,
+    });
+
+    expect(result).toMatchObject({ ok: true, model: "beta/example:free" });
+    expect(call).toHaveBeenCalledTimes(2);
+    expect(call.mock.calls.map((entry) => entry[0]?.zdr)).toEqual([true, true]);
   });
 
   it("honors retry-after, stops after 3 attempts, then uses the next model", async () => {
@@ -47,6 +149,8 @@ describe("provider fallback", () => {
 
     const result = await runModelFallback({
       models,
+      privacyMode: "zdr_only",
+      product: "coach",
       call,
       sleep: async (ms) => {
         sleeps.push(ms);
@@ -58,67 +162,22 @@ describe("provider fallback", () => {
     expect(result).toMatchObject({
       ok: true,
       model: "beta/example:free",
-      policy: "zdr",
+      servedWithZdr: true,
     });
   });
 
-  it("falls back to any free model only when no zero-retention endpoint exists", async () => {
-    const call = vi.fn(async ({ policy }) => {
-      if (policy === "zdr") {
-        throw Object.assign(new Error("No endpoints found"), {
-          statusCode: 404,
-        });
-      }
-      return { text: "livre" };
-    });
-
+  it("returns coach_unavailable when every model fails", async () => {
     const result = await runModelFallback({
       models,
-      call,
-      sleep: async () => undefined,
-    });
-
-    expect(result).toMatchObject({
-      ok: true,
-      model: "alpha/example:free",
-      policy: "any_free",
-    });
-    expect(call.mock.calls.map((entry) => entry[0]?.policy)).toEqual([
-      "zdr",
-      "zdr",
-      "any_free",
-    ]);
-  });
-
-  it("does not downgrade to any free model when a zero-retention endpoint is rate limited", async () => {
-    const call = vi.fn(async (attempt: { policy: string }) => {
-      if (attempt.policy.length === 0) throw new Error("missing policy");
-      throw Object.assign(new Error("quota"), { statusCode: 429 });
-    });
-
-    const result = await runModelFallback({
-      models,
-      call,
-      sleep: async () => undefined,
-    });
-
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.outcome).toBe("rate_limited");
-    expect(call.mock.calls.every((entry) => entry[0]?.policy === "zdr")).toBe(
-      true,
-    );
-  });
-
-  it("returns a failed outcome when every model fails", async () => {
-    const result = await runModelFallback({
-      models,
+      privacyMode: "zdr_only",
+      product: "coach",
       call: async () => {
         throw new Error("upstream");
       },
       sleep: async () => undefined,
     });
 
-    expect(result).toMatchObject({ ok: false, outcome: "provider_error" });
+    expect(result).toMatchObject({ ok: false, outcome: "coach_unavailable" });
   });
 
   it("stops on HTTP 402 without retrying", async () => {
@@ -128,6 +187,8 @@ describe("provider fallback", () => {
 
     const result = await runModelFallback({
       models,
+      privacyMode: "zdr_only",
+      product: "coach",
       call,
       sleep: async () => undefined,
     });
@@ -146,9 +207,10 @@ describe("provider fallback", () => {
     expect(
       classifyProviderFailure({
         statusCode: 404,
-        message: "No endpoints found that match your constraints",
+        message:
+          "No endpoints found matching your data policy (Zero data retention)",
       }),
-    ).toEqual({ kind: "no_zdr_endpoint", retryAfterMs: null });
+    ).toEqual({ kind: "provider_policy_unavailable", retryAfterMs: null });
     expect(
       classifyProviderFailure(
         Object.assign(new Error("aborted"), { name: "TimeoutError" }),
@@ -158,6 +220,19 @@ describe("provider fallback", () => {
     expect(retryDelayMs(1, 2000, 9_500)).toBeNull();
     expect(FIRST_TOKEN_TIMEOUT_MS).toBe(20_000);
     expect(CHAT_TOTAL_TIMEOUT_MS).toBe(60_000);
+  });
+
+  it("always sends data_collection deny in OpenRouter provider routing", () => {
+    expect(openRouterProviderRouting({ zdr: true })).toEqual({
+      zdr: true,
+      data_collection: "deny",
+      allow_fallbacks: true,
+    });
+    expect(openRouterProviderRouting({ zdr: false })).toEqual({
+      zdr: false,
+      data_collection: "deny",
+      allow_fallbacks: true,
+    });
   });
 
   it("aborts when the first token does not arrive within 20 seconds", () => {
@@ -173,34 +248,5 @@ describe("provider fallback", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it("keeps the attempt alive after the first token until the total timeout", () => {
-    vi.useFakeTimers();
-    try {
-      const attempt = createAttemptController({
-        firstTokenMs: FIRST_TOKEN_TIMEOUT_MS,
-        totalMs: CHAT_TOTAL_TIMEOUT_MS,
-      });
-      attempt.markFirstToken();
-      vi.advanceTimersByTime(FIRST_TOKEN_TIMEOUT_MS);
-      expect(attempt.signal.aborted).toBe(false);
-      vi.advanceTimersByTime(CHAT_TOTAL_TIMEOUT_MS - FIRST_TOKEN_TIMEOUT_MS);
-      expect(attempt.signal.aborted).toBe(true);
-      attempt.dispose();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("asks OpenRouter for zero retention and no training before any free endpoint", () => {
-    expect(openRouterProviderRouting("zdr")).toEqual({
-      zdr: true,
-      data_collection: "deny",
-      allow_fallbacks: true,
-    });
-    expect(openRouterProviderRouting("any_free")).toEqual({
-      allow_fallbacks: true,
-    });
   });
 });

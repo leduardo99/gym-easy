@@ -51,6 +51,7 @@ describe("readServerEnv", () => {
       OPENROUTER_API_KEY: null,
       COACH_MODELS: [],
       PLAN_MODELS: [],
+      OPENROUTER_PRIVACY_MODE: "zdr_only",
     });
   });
 
@@ -544,6 +545,35 @@ describe("readServerEnv", () => {
         NEXT_PUBLIC_OPENROUTER_API_KEY: "or-test-key",
       }),
     ).toThrow(/NEXT_PUBLIC_/);
+  });
+
+  it("defaults OpenRouter privacy mode to zdr_only and accepts zdr_then_fallback", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+      }).OPENROUTER_PRIVACY_MODE,
+    ).toBe("zdr_only");
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_PRIVACY_MODE: "zdr_then_fallback",
+      }).OPENROUTER_PRIVACY_MODE,
+    ).toBe("zdr_then_fallback");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_PRIVACY_MODE: "open_training",
+      }),
+    ).toThrow();
   });
 
   it("uses a non-secret consent key placeholder during next build", () => {

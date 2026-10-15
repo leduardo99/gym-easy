@@ -4,7 +4,6 @@ import {
 } from "@openrouter/ai-sdk-provider";
 
 import { openRouterProviderRouting } from "./fallback";
-import type { DataPolicy } from "./schemas";
 
 export function createGymOpenRouter(apiKey: string): OpenRouterProvider {
   return createOpenRouter({
@@ -18,11 +17,11 @@ export function createGymOpenRouter(apiKey: string): OpenRouterProvider {
 export function openRouterChatModel(
   provider: OpenRouterProvider,
   modelId: string,
-  policy: DataPolicy,
+  zdr: boolean,
 ) {
   return provider.chat(modelId, {
     usage: { include: true },
     structuredOutputs: { strict: false },
-    provider: openRouterProviderRouting(policy),
+    provider: openRouterProviderRouting({ zdr }),
   });
 }

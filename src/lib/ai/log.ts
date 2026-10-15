@@ -17,6 +17,7 @@ export function toAiLogRecord(input: AiLogRecord): AiLogRecord {
     tokens_in: input.tokens_in,
     tokens_out: input.tokens_out,
     outcome: input.outcome,
+    served_with_zdr: input.served_with_zdr ?? null,
   });
 }
 

@@ -1,4 +1,5 @@
 import type { RateLimiter } from "@/features/auth/rate-limit";
+import type { OpenRouterPrivacyMode } from "@/lib/env";
 
 import { classifyChatRisk, type ChatRisk } from "./classify-chat-risk";
 import {
@@ -15,6 +16,10 @@ import {
   UNDER_AGE_RESPONSE,
   isPromptInjection,
 } from "./copy";
+import {
+  COACH_TEMPORARILY_UNAVAILABLE_MESSAGE,
+  isAllModelsUnavailableOutcome,
+} from "./unavailable";
 import {
   buildCoachContext,
   coachConsentStatus,
@@ -82,6 +87,7 @@ export type CoachTurnInput = {
   limiter: RateLimiter;
   locks: RedFlagLockStore;
   models: string[];
+  privacyMode: OpenRouterPrivacyMode;
   callModel: (request: CoachModelRequest) => Promise<{ text: string }>;
   log: (record: AiLogRecord) => void;
   sleep: (ms: number) => Promise<void>;
@@ -323,6 +329,8 @@ export async function handleCoachTurn(
 
   const generated = await runModelFallback({
     models: input.models,
+    privacyMode: input.privacyMode,
+    product: "coach",
     sleep: input.sleep,
     call: (attempt) =>
       input.callModel({
@@ -335,15 +343,18 @@ export async function handleCoachTurn(
   });
 
   if (!generated.ok) {
+    const text = isAllModelsUnavailableOutcome(generated.outcome)
+      ? COACH_TEMPORARILY_UNAVAILABLE_MESSAGE
+      : UNAVAILABLE_RESPONSE;
     return finish(input, {
       requestId,
       startedAt,
       status: "unavailable",
       httpStatus: 200,
-      text: UNAVAILABLE_RESPONSE,
+      text,
       outcome: generated.outcome,
       model: generated.attempts.at(-1)?.model ?? null,
-      policy: generated.attempts.at(-1)?.policy ?? null,
+      policy: generated.attempts.at(-1)?.dataPolicy ?? null,
       risk: assessed.risk,
       modelCalls: generated.attempts.length,
     });
@@ -358,7 +369,7 @@ export async function handleCoachTurn(
     text: safe.text,
     outcome: "ok",
     model: generated.model,
-    policy: generated.policy,
+    policy: generated.dataPolicy,
     risk: assessed.risk,
     modelCalls: generated.attempts.length,
   });

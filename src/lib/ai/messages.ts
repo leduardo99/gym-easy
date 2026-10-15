@@ -118,6 +118,7 @@ export async function insertAiGenerationLog(
     tokensIn: record.tokens_in,
     tokensOut: record.tokens_out,
     outcome: record.outcome,
+    servedWithZdr: record.served_with_zdr ?? null,
   });
 }
 
