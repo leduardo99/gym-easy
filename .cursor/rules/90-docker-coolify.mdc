@@ -4,7 +4,7 @@ globs: Dockerfile,docker/**,docker-compose.yml,next.config.ts
 alwaysApply: false
 ---
 
-- Alvo: Coolify em **arm64** (linux/arm64). Os binários nativos (`@node-rs/argon2`) têm de ser incluídos para a arquitetura da imagem.
+- Coolify em **arm64** (`linux/arm64`). A imagem inclui `@node-rs/argon2` para **linux-x64-gnu** e **linux-arm64-gnu** (CI verifica ambos no build docker).
 - Imagem standalone, utilizador non-root, `HEALTHCHECK` em `/api/health`, base fixada por digest.
 - `RUN_MIGRATIONS=true` em produção, com `DATABASE_URL_MIGRATOR` (`gym_easy_migrator`).
 - Nada de configuração específica da Vercel.

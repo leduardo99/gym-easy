@@ -6,7 +6,8 @@ Só utilitários sem domínio:
 - `app-url.ts`: o host e a origem canónicos a partir de `APP_URL`.
 - `http/`: `assertSameOriginMutation()` e respostas de erro (**alvo; ainda não existe**).
 - `logger.ts`: logger JSON com redação (**alvo; ainda não existe**).
-- `cron-auth.ts` (**alvo; ainda não existe**), `security-headers.ts`, `utils.ts`.
-- `ai/` (**alvo; ainda não existe**): **só o adaptador do AI SDK** (provider OpenRouter, seleção de modelos, zero retention, chamada estruturada e streaming). Prompts e regras do coach ficam em `features/coach` (**alvo; ainda não existe**).
+- `cron-auth.ts`: `unauthorizedCron` e comparação segura do bearer dos crons.
+- `security-headers.ts`, `utils.ts`.
+- `ai/`: coach — adaptador AI SDK/OpenRouter, prompts, tools, risco e histórico (ver `ai/README.md`). Só este diretório importa `ai` e `@openrouter/ai-sdk-provider`. Extrair domínio para `features/coach` é **alvo**.
 
-`lib` não importa de `features` nem de `app`.
+`lib` não importa de `features` nem de `app` (exceção temporária: o coach em `ai/` acede a consentimento/sessão via APIs públicas das features).

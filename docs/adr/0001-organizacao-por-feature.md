@@ -13,4 +13,4 @@ Uma pasta por domínio em `src/features`, rotas finas em `src/app`, utilitários
 
 ## Consequências
 
-Coesão por domínio e menos acoplamento. Obriga a mover `src/consent` e o código de domínio de `src/lib/ai` (**alvo; ainda não existe**).
+Coesão por domínio e menos acoplamento. O coach vive hoje em `src/lib/ai`; mover para `features/coach` é **alvo**.

@@ -8,14 +8,14 @@ App de registo de treinos. Next.js 16 (App Router, Cache Components), React 19, 
 
 ## Mapa
 
-| Pasta              | Papel                                                        | Guia                       |
-| ------------------ | ------------------------------------------------------------ | -------------------------- |
-| `src/app`          | Rotas finas que só compõem features                          | `src/app/AGENTS.md`        |
-| `src/features/<f>` | Domínio: actions, schemas, casos de uso, repositório         | `src/features/AGENTS.md`   |
-| `src/db`           | Schema, migrações, seeds, cliente                            | `src/db/AGENTS.md`         |
-| `src/lib`          | Utilitários sem domínio (env; `http/`, `logger`, `ai/` alvo) | `src/lib/AGENTS.md`        |
-| `src/components`   | `ui/` (shadcn) e composição                                  | `src/components/AGENTS.md` |
-| `tests`            | e2e Playwright                                               | `tests/AGENTS.md`          |
+| Pasta              | Papel                                                            | Guia                       |
+| ------------------ | ---------------------------------------------------------------- | -------------------------- |
+| `src/app`          | Rotas finas que só compõem features                              | `src/app/AGENTS.md`        |
+| `src/features/<f>` | Domínio: actions, schemas, casos de uso, repositório             | `src/features/AGENTS.md`   |
+| `src/db`           | Schema, migrações, seeds, cliente                                | `src/db/AGENTS.md`         |
+| `src/lib`          | Utilitários (`cron-auth`, `ai/` coach, …); `http/`/`logger` alvo | `src/lib/AGENTS.md`        |
+| `src/components`   | `ui/` (shadcn) e composição                                      | `src/components/AGENTS.md` |
+| `tests`            | e2e Playwright                                                   | `tests/AGENTS.md`          |
 
 Os imports seguem uma direção: `app → features → (db | lib)` e `components → lib`. Uma feature não importa outra feature: o que é partilhado sobe para `lib` ou passa por uma interface pública (`index.ts`).
 

@@ -9,8 +9,8 @@ O coach precisa de vários modelos, fallback e privacidade.
 
 ## Decisão
 
-AI SDK com o provider OpenRouter, pedindo zero retention/no-training. Adaptador em `lib/ai` (**alvo; ainda não existe**); prompts e regras em `features/coach` (**alvo; ainda não existe**).
+AI SDK com o provider OpenRouter, pedindo zero retention/no-training. Implementação em `lib/ai` (provider, prompts, tools e histórico). Extrair `features/coach` é **alvo** para alinhar com a organização por feature.
 
 ## Consequências
 
-É possível trocar de modelo sem mexer no domínio. Os logs nunca levam conteúdo.
+É possível trocar de modelo sem mexer no domínio de treino. Os logs nunca levam conteúdo.

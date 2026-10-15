@@ -7,5 +7,5 @@
 5. Smoke test: login, perfil e treino.
 6. **Reconsentimento:** após a migração para o Postgres partilhado, executar o fluxo de reconsentimento com o texto da **versão -15b (LED-45)** (sem depender do Neon nem de Frankfurt).
 7. Manter o Neon como **fallback** até a QA (Sigma) validar em `https://app.gaffer.pt`. Depois: **pausar** o projeto Neon (não apagar), **rodar as credenciais** do Neon (condição LED-63). Rollback até à validação: repor as URLs para o Neon.
-8. Verificar permissões: `\dp consent_log` — a role `gym_easy_app` só tem `SELECT`/`INSERT` (após a migração `0010_consent_hardening`).
+8. Deploy com migrações: a `0010_consent_hardening` valida os roles do bootstrap antes de aplicar GRANTs. Confirmar com `\dp consent_log` que `gym_easy_app` só tem `SELECT`/`INSERT`.
 9. Depois do cutover estável: entra o PR do host canónico (`APP_URL`, ADR 0006).
