@@ -14,7 +14,7 @@ O identificador da app no OpenRouter é `https://app.gaffer.pt`.
 
 `POST /api/ai/coach` exige sessão, `content-type: application/json` e `Origin` com o mesmo host do pedido. O `AbortSignal` do pedido cancela a geração.
 
-Antes do modelo: Zod, `classifyChatRisk` (interino, a LED-35 substitui), consentimento vigente e orçamentos. O chat só segue com `body_data`, `coach_health` e `coach_chat` na versão publicada. `coach_health` e `coach_chat` são `…-2026-10-15a` (dois checkboxes, RGPD art. 49(1)(a)). Um grant `-14c` devolve `reconsent_required` e não chama o modelo. O texto de uma mensagem `red_flag` não é gravado.
+Antes do modelo: Zod, `classifyChatRisk` (interino, a LED-35 substitui), consentimento vigente e orçamentos. O chat só segue com `body_data`, `coach_health` e `coach_chat` na versão publicada (`…-2026-10-15b`). `coach_health` e `coach_chat` exigem dois checkboxes (RGPD art. 49(1)(a)). Um grant de versão antiga devolve `reconsent_required` e não chama o modelo. O texto de uma mensagem `red_flag` não é gravado.
 
 Limites: 20 mensagens por usuário por dia UTC, 50 pedidos OpenRouter por dia para a app, 3 tool calls e 800 tokens de saída. Timeouts: 20 s até ao primeiro token e 60 s no total.
 

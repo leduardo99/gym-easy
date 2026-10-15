@@ -1,5 +1,11 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/consentimento",
@@ -11,8 +17,12 @@ import { RECONSENT_COPY } from "./reconsent";
 import { ReconsentScreen } from "./reconsent-screen";
 
 describe("ReconsentScreen", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("shows the current title, body and checkbox", () => {
-    render(
+    const { container } = render(
       <ReconsentScreen
         copy={CONSENT_TEXTS.body_data}
         scope="body_data"
@@ -25,16 +35,21 @@ describe("ReconsentScreen", () => {
       screen.getByRole("heading", { name: CONSENT_TEXTS.body_data.title }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/só os usamos se você autorizar/i),
+      within(container).getAllByText(/só os usamos se você autorizar/i).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(container).getByText(/Ler o texto completo/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("checkbox", { name: CONSENT_TEXTS.body_data.checkbox }),
+      within(container).getByRole("checkbox", {
+        name: CONSENT_TEXTS.body_data.checkbox,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: RECONSENT_COPY.accept }),
+      within(container).getByRole("button", { name: RECONSENT_COPY.accept }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: RECONSENT_COPY.refuse }),
+      within(container).getByRole("button", { name: RECONSENT_COPY.refuse }),
     ).toBeInTheDocument();
   });
 
@@ -66,5 +81,36 @@ describe("ReconsentScreen", () => {
         name: CONSENT_TEXTS.coach_chat.transferCheckbox,
       }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps authorize disabled until both coach checkboxes are checked", () => {
+    const { container } = render(
+      <ReconsentScreen
+        copy={CONSENT_TEXTS.coach_chat}
+        scope="coach_chat"
+        nextPath="/perfil"
+        notice={null}
+      />,
+    );
+
+    const submit = within(container).getByRole("button", {
+      name: RECONSENT_COPY.accept,
+    });
+    expect(submit).toHaveAttribute("type", "submit");
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(
+      within(container).getByRole("checkbox", {
+        name: CONSENT_TEXTS.coach_chat.checkbox,
+      }),
+    );
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(
+      within(container).getByRole("checkbox", {
+        name: CONSENT_TEXTS.coach_chat.transferCheckbox,
+      }),
+    );
+    expect(submit).toBeEnabled();
   });
 });

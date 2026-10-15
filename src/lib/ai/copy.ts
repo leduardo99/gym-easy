@@ -9,7 +9,7 @@ export const UNAVAILABLE_RESPONSE =
   "O coach está indisponível agora. Seu treino não é afetado.";
 
 export const RATE_LIMIT_RESPONSE =
-  "Você atingiu o limite diário de mensagens do coach. O treino continua disponível.";
+  "Você usou as mensagens do coach de hoje. Volta amanhã.";
 
 export const CONSENT_RESPONSE =
   "O chat do coach precisa das autorizações vigentes de dados do corpo, de saúde e do chat.";

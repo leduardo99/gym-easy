@@ -31,20 +31,26 @@ describe("consentInputSchema", () => {
 });
 
 describe("consent texts", () => {
-  it("fixa as versões publicadas, com coach na -15a", () => {
-    expect(CONSENT_TEXTS.body_data.version).toBe("body_data-pt-BR-2026-10-14c");
+  it("fixa as versões publicadas na -15b (LED-45)", () => {
+    expect(CONSENT_TEXTS.body_data.version).toBe("body_data-pt-BR-2026-10-15b");
     expect(CONSENT_TEXTS.coach_health.version).toBe(
-      "coach_health-pt-BR-2026-10-15a",
+      "coach_health-pt-BR-2026-10-15b",
     );
     expect(CONSENT_TEXTS.coach_chat.version).toBe(
-      "coach_chat-pt-BR-2026-10-15a",
+      "coach_chat-pt-BR-2026-10-15b",
     );
-    expect(CONSENT_TEXTS.analytics.version).toBe("analytics-pt-BR-2026-10-14c");
+    expect(CONSENT_TEXTS.analytics.version).toBe("analytics-pt-BR-2026-10-15b");
+    expect(consentTextSha256("body_data")).toBe(
+      "5df4e14e0c7d5126112a2158c8a4559ecb8b8b12f95b2318de7bb9b3b715f052",
+    );
     expect(consentTextSha256("coach_health")).toBe(
-      "9e02990187a9d2238716816dcec5bf2016818da83e27580d75ea10ce7b42821d",
+      "dbae5392ac91d477f71c5776c19dab7b8ada7b55338f0128b21620465fe5fece",
     );
     expect(consentTextSha256("coach_chat")).toBe(
-      "f819b9d9d13289ff66a0d1db09fe8fd7e32d85016678d28313cc8aa0278fa9b7",
+      "1dc468b4177fa51d916f401f30a3c6e114eefdf55a8bd98cc5d3df55a5d219dc",
+    );
+    expect(consentTextSha256("analytics")).toBe(
+      "3f7e46dc6a382c68570c7b31ed81ea852508f128ca5dda4c7f923e0b78f2ec27",
     );
   });
 });

@@ -42,10 +42,10 @@ describe("textos publicados", () => {
         const text = CONSENT_TEXTS[purpose];
         const canonical = canonicalConsentText(text);
         const versions = {
-          body_data: "body_data-pt-BR-2026-10-14c",
-          coach_health: "coach_health-pt-BR-2026-10-15a",
-          coach_chat: "coach_chat-pt-BR-2026-10-15a",
-          analytics: "analytics-pt-BR-2026-10-14c",
+          body_data: "body_data-pt-BR-2026-10-15b",
+          coach_health: "coach_health-pt-BR-2026-10-15b",
+          coach_chat: "coach_chat-pt-BR-2026-10-15b",
+          analytics: "analytics-pt-BR-2026-10-15b",
         } as const;
         expect(text.version).toBe(versions[purpose]);
         expect(text.locale).toBe("pt-BR");
