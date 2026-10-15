@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   LOGIN_ACCOUNT_LIMIT,
+  SIGNUP_IP_LIMIT,
   applyRateLimit,
   createMemoryRateLimiter,
+  resolveSignupIpLimit,
 } from "./rate-limit";
 
 describe("applyRateLimit", () => {
@@ -38,6 +40,28 @@ describe("applyRateLimit", () => {
     );
     expect(reset.allowed).toBe(true);
     expect(reset.state.hits).toBe(1);
+  });
+});
+
+describe("resolveSignupIpLimit", () => {
+  it("usa o limite padrão sem override", () => {
+    const previous = process.env.AUTH_SIGNUP_IP_LIMIT;
+    delete process.env.AUTH_SIGNUP_IP_LIMIT;
+    expect(resolveSignupIpLimit()).toBe(SIGNUP_IP_LIMIT);
+    if (previous !== undefined) {
+      process.env.AUTH_SIGNUP_IP_LIMIT = previous;
+    }
+  });
+
+  it("aceita override numérico", () => {
+    const previous = process.env.AUTH_SIGNUP_IP_LIMIT;
+    process.env.AUTH_SIGNUP_IP_LIMIT = "200";
+    expect(resolveSignupIpLimit()).toBe(200);
+    if (previous === undefined) {
+      delete process.env.AUTH_SIGNUP_IP_LIMIT;
+    } else {
+      process.env.AUTH_SIGNUP_IP_LIMIT = previous;
+    }
   });
 });
 

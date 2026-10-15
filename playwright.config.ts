@@ -26,6 +26,7 @@ export default defineConfig({
       CONFIRM_EMAIL_SECRET:
         process.env.CONFIRM_EMAIL_SECRET ??
         "confirm-email-secret-for-e2e-only-00",
+      AUTH_SIGNUP_IP_LIMIT: "200",
     },
   },
   projects: [
