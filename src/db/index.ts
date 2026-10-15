@@ -49,6 +49,13 @@ export function createDb(databaseUrl: string) {
 
 export type AppDatabase = ReturnType<typeof createDb>;
 
+export type DbTransaction = Parameters<
+  Parameters<AppDatabase["transaction"]>[0]
+>[0];
+
+/** Database or an open transaction — pass through to repositories and deletes. */
+export type DbClient = AppDatabase | DbTransaction;
+
 let database: AppDatabase | undefined;
 
 export function getDb(): AppDatabase {
