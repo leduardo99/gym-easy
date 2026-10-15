@@ -3,7 +3,11 @@ import { desc, eq } from "drizzle-orm";
 import type { DbClient } from "@/db";
 import type { ConsentAction, ConsentPurpose, ConsentSource } from "@/db/domain";
 import { consentLog } from "@/db/schema";
-import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
+import {
+  CONSENT_TEXTS,
+  consentTextSha256,
+  isValidBodyDataConsentGrant,
+} from "@/consent/texts";
 
 import { consentInputSchema } from "./schemas";
 
@@ -14,6 +18,9 @@ export function isCurrentConsent(event: {
   version: string;
   textSha256: string;
 }): boolean {
+  if (event.purpose === "body_data") {
+    return isValidBodyDataConsentGrant(event);
+  }
   const published = CONSENT_TEXTS[event.purpose];
   return (
     event.action === "granted" &&

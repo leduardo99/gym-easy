@@ -6,10 +6,12 @@ export function ProfilePerfilFields({
   profile,
   birthYearInvalid = false,
   birthYearErrorId,
+  bodyDataGranted = true,
 }: {
   profile: ProfileFormValues | null | undefined;
   birthYearInvalid?: boolean;
   birthYearErrorId?: string;
+  bodyDataGranted?: boolean;
 }) {
   const values = profile ?? {
     birthYear: null,
@@ -29,7 +31,10 @@ export function ProfilePerfilFields({
         invalid={birthYearInvalid}
         errorMessageId={birthYearErrorId}
       />
-      <ProfileOptionalCoachFields profile={values} />
+      <ProfileOptionalCoachFields
+        profile={values}
+        bodyDataGranted={bodyDataGranted}
+      />
     </>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { ProfileBirthYearFocus } from "@/features/profile/profile-birth-year-focus";
 import { ProfileHeightField } from "@/features/profile/profile-height-field";
 import { ProfilePerfilFields } from "@/features/profile/profile-perfil-fields";
+import { createConsentRepository } from "@/features/consent/repository";
 import { saveProfileAction } from "@/features/training/actions";
 import { createTrainingRepository } from "@/features/training/repository";
 
@@ -26,7 +27,10 @@ export default async function ProfilePage({
   searchParams: Promise<{ guardado?: string; erro?: string }>;
 }) {
   const user = await requireUser("/perfil");
-  const profile = await createTrainingRepository(getDb()).getProfile(user.id);
+  const db = getDb();
+  const profile = await createTrainingRepository(db).getProfile(user.id);
+  const consents = await createConsentRepository(db).currentConsent(user.id);
+  const bodyDataGranted = Boolean(consents.body_data);
   const params = await searchParams;
   const notice =
     params.guardado === "1"
@@ -70,9 +74,13 @@ export default async function ProfilePage({
       </nav>
       <ProfileBirthYearFocus />
       <form action={saveProfileAction} className="mt-8 flex flex-col gap-4">
-        <ProfileHeightField heightCm={profile?.heightCm} />
+        <ProfileHeightField
+          heightCm={profile?.heightCm}
+          disabled={!bodyDataGranted}
+        />
         <ProfilePerfilFields
           profile={profile}
+          bodyDataGranted={bodyDataGranted}
           birthYearInvalid={params.erro === "nascimento"}
           birthYearErrorId={
             params.erro === "nascimento" ? "birthYear-error" : undefined

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 
 /**
- * Textos publicados da LED-45 (pt-BR).
- * `body_data`, `coach_health`, `coach_chat` e `analytics` estão em 2026-10-15b.
+ * Textos publicados (pt-BR).
+ * `body_data` está em 2026-10-15c (LED-146); demais finalidades em 2026-10-15b.
  * `coach_health` e `coach_chat` incluem o segundo checkbox da transferência
  * para fora da UE (RGPD art. 49(1)(a)).
  * Uma vírgula nova exige outro id de versão: o hash é da forma canónica.
@@ -56,11 +56,12 @@ export const CONSENT_TEXTS_BY_LOCALE = {
       "body_data",
       "Seus dados do corpo",
       [
-        "Peso, altura e sexo ajudam o Gym Easy a mostrar sua evolução e ajustar sugestões. Usamos também o ano de nascimento para calcular a faixa etária. Esses dados são considerados dados de saúde, por isso só os usamos se você autorizar, e só para personalizar o app para você: não vendemos nem usamos para publicidade.",
+        "Peso, altura e sexo ajudam o Gym Easy a mostrar sua evolução e ajustar sugestões. Esses dados são considerados dados de saúde, por isso só os usamos se você autorizar, e só para personalizar o app para você: não vendemos nem usamos para publicidade.",
         "Quem trata: o Gym Easy é o responsável (contato: contacto@gaffer.pt). Os dados ficam num banco de dados PostgreSQL gerido pela equipe do Gym Easy no seu próprio servidor na Oracle Cloud Infrastructure, região eu-madrid-1 (Madrid, Espanha, UE), no mesmo servidor onde o app é hospedado, com conexões criptografadas; o acesso administrativo ao banco de dados é feito só pela rede privada (tailnet) (a rede privada Tailscale é usada só para acesso administrativo, sem dados dos usuários); as cópias de segurança (backups) são diárias, criptografadas e guardadas no próprio servidor e em armazenamento privado da Oracle Cloud Infrastructure na mesma região (Madrid, Espanha, UE), sem sair da UE; dados apagados saem dos backups em até 8 dias.",
         "Por quanto tempo: enquanto sua conta existir ou até você retirar a autorização em Perfil > Privacidade; ao retirar, apagamos peso, altura, sexo e histórico de peso. Guardamos a prova desta autorização, pseudonimizada, por 3 anos após a exclusão da conta.",
       ],
-      "Autorizo o Gym Easy a guardar e usar meu peso, altura, sexo e ano de nascimento para calcular a faixa etária, para personalizar o app.",
+      "Autorizo o Gym Easy a guardar e usar meu peso, altura e sexo para personalizar o app.",
+      { version: "body_data-pt-BR-2026-10-15c" },
     ),
     coach_health: copy(
       "coach_health",
@@ -137,4 +138,29 @@ export function consentTextSha256(purpose: ConsentTextPurpose): string {
   return createHash("sha256")
     .update(canonicalConsentText(CONSENT_TEXTS[purpose]), "utf8")
     .digest("hex");
+}
+
+/** Hash canónico do texto body_data-pt-BR-2026-10-15b (LED-45); ainda vigente sem reconsentimento (LED-146). */
+export const BODY_DATA_CONSENT_TEXT_SHA256_15B =
+  "5df4e14e0c7d5126112a2158c8a4559ecb8b8b12f95b2318de7bb9b3b715f052";
+
+const BODY_DATA_CONSENT_VERSION_15B = "body_data-pt-BR-2026-10-15b";
+
+/** Grants body_data válidos após o estreitamento do texto (LED-146). */
+export function isValidBodyDataConsentGrant(event: {
+  action: "granted" | "revoked";
+  version: string;
+  textSha256: string;
+}): boolean {
+  if (event.action !== "granted") return false;
+  if (
+    event.version === CONSENT_TEXTS.body_data.version &&
+    event.textSha256 === consentTextSha256("body_data")
+  ) {
+    return true;
+  }
+  return (
+    event.version === BODY_DATA_CONSENT_VERSION_15B &&
+    event.textSha256 === BODY_DATA_CONSENT_TEXT_SHA256_15B
+  );
 }

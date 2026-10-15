@@ -2,11 +2,8 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID,
   PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID,
-  PRIVACY_POLICY_BODY_DATA_GATE_ID,
   PRIVACY_POLICY_MINIMUM_AGE_ID,
-  privacyPolicyBirthYearAgeBandSentence,
   privacyPolicyText,
 } from "@/features/consent/privacy-policy";
 import { MINIMUM_AGE_YEARS } from "@/features/profile/age";
@@ -87,8 +84,7 @@ describe("PrivacyPage", () => {
     expect(profileBody).toHaveTextContent("Dados do corpo");
     expect(profileBody).toHaveTextContent("consentimento body_data");
     expect(profileBody).toHaveTextContent("Conservados após revogar");
-    expect(profileBody).toHaveTextContent(/Nota técnica temporária/);
-    expect(profileBody).toHaveTextContent(/limitação de implementação/);
+    expect(profileBody).not.toHaveTextContent(/Nota técnica temporária/);
     expect(profileBody).toHaveTextContent("birthYear");
     expect(profileBody).toHaveTextContent("trainingPlace");
     expect(profileBody).toHaveTextContent("heightCm");
@@ -117,23 +113,11 @@ describe("PrivacyPage", () => {
       /ano de nascimento \(birthYear\)/,
     );
     expect(
-      document.getElementById(PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID),
-    ).toHaveTextContent(privacyPolicyBirthYearAgeBandSentence());
-    expect(profileBody).toHaveTextContent(/sem mudança de base/);
-    expect(profileBody).toHaveTextContent(/LED-146/);
-
-    expect(
       document.getElementById(PRIVACY_POLICY_MINIMUM_AGE_ID),
     ).toHaveTextContent(minimumAgeSentence);
     expect(
       document.getElementById(PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID),
     ).toHaveTextContent(new RegExp(`pelo menos ${MINIMUM_AGE_YEARS} anos`));
-    expect(
-      document.getElementById(PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID),
-    ).toHaveTextContent(privacyPolicyBirthYearAgeBandSentence());
-    expect(
-      document.getElementById(PRIVACY_POLICY_BODY_DATA_GATE_ID),
-    ).toHaveTextContent(/interruptor «Dados do corpo» precisa estar ligado/);
     expect(profileBody).toHaveTextContent(
       /art\. 6\.º, n\.º 1, alíneas b\) e c\)/,
     );
@@ -162,10 +146,8 @@ describe("PrivacyPage", () => {
     expect(privacyPolicyText()).toContain("daysPerWeek");
     expect(privacyPolicyText()).toContain("coach_health");
     expect(privacyPolicyText()).toContain(minimumAgeSentence);
-    expect(privacyPolicyText()).toContain(
-      privacyPolicyBirthYearAgeBandSentence(),
-    );
     expect(privacyPolicyText()).not.toContain("medidas corporais");
+    expect(privacyPolicyText()).not.toContain("LED-146");
   });
 
   it("inclui a retirada do consentimento e a reclamação à CNPD", () => {

@@ -11,6 +11,17 @@ import { refuseReconsentWithConfirm } from "./helpers/reconsent";
 const bodyDataSwitch = (page: import("@playwright/test").Page) =>
   page.getByRole("switch", { name: "Dados do corpo" });
 
+test("guarda o perfil contratual com o switch de dados do corpo desligado", async ({
+  page,
+}) => {
+  await signedIn(page, "body-data-profile-no-consent");
+  await birthYearField(page).fill(SAVED_BIRTH_YEAR);
+  await page.getByLabel("Objetivo").selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Perfil guardado.")).toBeVisible();
+  await expect(heightField(page)).toBeDisabled();
+});
+
 test("retirar dados do corpo no switch e voltar ao reconsentimento ao guardar altura", async ({
   page,
 }) => {

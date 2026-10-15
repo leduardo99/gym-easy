@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
+import {
+  BODY_DATA_CONSENT_TEXT_SHA256_15B,
+  CONSENT_TEXTS,
+  consentTextSha256,
+  isValidBodyDataConsentGrant,
+} from "@/consent/texts";
 
 import { isCurrentConsent } from "./repository";
 import { consentInputSchema } from "./schemas";
@@ -31,8 +36,8 @@ describe("consentInputSchema", () => {
 });
 
 describe("consent texts", () => {
-  it("fixa as versões publicadas na -15b (LED-45)", () => {
-    expect(CONSENT_TEXTS.body_data.version).toBe("body_data-pt-BR-2026-10-15b");
+  it("fixa as versões publicadas (body_data -15c; demais -15b)", () => {
+    expect(CONSENT_TEXTS.body_data.version).toBe("body_data-pt-BR-2026-10-15c");
     expect(CONSENT_TEXTS.coach_health.version).toBe(
       "coach_health-pt-BR-2026-10-15b",
     );
@@ -40,9 +45,6 @@ describe("consent texts", () => {
       "coach_chat-pt-BR-2026-10-15b",
     );
     expect(CONSENT_TEXTS.analytics.version).toBe("analytics-pt-BR-2026-10-15b");
-    expect(consentTextSha256("body_data")).toBe(
-      "5df4e14e0c7d5126112a2158c8a4559ecb8b8b12f95b2318de7bb9b3b715f052",
-    );
     expect(consentTextSha256("coach_health")).toBe(
       "dbae5392ac91d477f71c5776c19dab7b8ada7b55338f0128b21620465fe5fece",
     );
@@ -63,8 +65,23 @@ describe("isCurrentConsent", () => {
     textSha256: consentTextSha256("body_data"),
   };
 
-  it("aceita só a versão e o hash publicados", () => {
+  it("aceita a versão publicada e o grant -15b sem reconsentimento", () => {
     expect(isCurrentConsent(current)).toBe(true);
+    expect(
+      isValidBodyDataConsentGrant({
+        action: "granted",
+        version: "body_data-pt-BR-2026-10-15b",
+        textSha256: BODY_DATA_CONSENT_TEXT_SHA256_15B,
+      }),
+    ).toBe(true);
+    expect(
+      isCurrentConsent({
+        purpose: "body_data",
+        action: "granted",
+        version: "body_data-pt-BR-2026-10-15b",
+        textSha256: BODY_DATA_CONSENT_TEXT_SHA256_15B,
+      }),
+    ).toBe(true);
     expect(
       isCurrentConsent({ ...current, version: "body_data-2026-10-14" }),
     ).toBe(false);

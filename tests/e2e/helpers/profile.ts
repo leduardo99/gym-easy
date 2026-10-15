@@ -1,7 +1,5 @@
 import { expect, type Page } from "@playwright/test";
 
-import { grantConsent } from "./auth";
-
 /** Evita colisão com o checkbox de consentimento que menciona «ano de nascimento». */
 export function birthYearField(page: Page) {
   return page.getByLabel("Ano de nascimento", { exact: true });
@@ -30,7 +28,6 @@ export async function saveBirthYearOnPerfil(
   year = SAVED_BIRTH_YEAR,
 ) {
   await page.goto("/perfil");
-  await grantConsent(page, "body_data");
   await birthYearField(page).fill(year);
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Perfil guardado.")).toBeVisible({

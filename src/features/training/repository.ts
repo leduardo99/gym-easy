@@ -255,6 +255,21 @@ export function createTrainingRepository(db: DbClient) {
     return isCurrentConsent({ purpose: "body_data", ...row });
   }
 
+  function bodyProfileFieldsRequested(data: ProfileInput): boolean {
+    return (
+      (data.sex !== undefined && data.sex !== null) ||
+      (data.heightCm !== undefined && data.heightCm !== null)
+    );
+  }
+
+  function profileInputWithoutBodyFields(data: ProfileInput): ProfileInput {
+    return {
+      ...data,
+      sex: undefined,
+      heightCm: undefined,
+    };
+  }
+
   const api = {
     async saveProfile(
       userId: string,
@@ -262,8 +277,32 @@ export function createTrainingRepository(db: DbClient) {
     ): Promise<RepoResult<ProfileRecord>> {
       const parsed = createProfileInputSchema(new Date()).safeParse(input);
       if (!parsed.success) return invalid();
-      if (!(await hasActiveBodyDataConsent(userId))) return consentRequired();
-      const data = parsed.data;
+      const hasConsent = await hasActiveBodyDataConsent(userId);
+      const requestedBody = bodyProfileFieldsRequested(parsed.data);
+      if (!hasConsent && requestedBody) {
+        const stripped = profileInputWithoutBodyFields(parsed.data);
+        const columns = profileColumns(stripped);
+        const hasNonBodyUpdates = Object.keys(columns).length > 0;
+        if (hasNonBodyUpdates) {
+          const existing = await db
+            .select({ userId: userProfiles.userId })
+            .from(userProfiles)
+            .where(eq(userProfiles.userId, userId))
+            .limit(1);
+          if (existing.length === 0) {
+            await db.insert(userProfiles).values({ userId, ...columns });
+          } else {
+            await db
+              .update(userProfiles)
+              .set({ ...columns, updatedAt: new Date() })
+              .where(eq(userProfiles.userId, userId));
+          }
+        }
+        return consentRequired();
+      }
+      const data = hasConsent
+        ? parsed.data
+        : profileInputWithoutBodyFields(parsed.data);
       const existing = await db
         .select({ userId: userProfiles.userId })
         .from(userProfiles)

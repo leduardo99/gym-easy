@@ -3,7 +3,7 @@
 exports[`textos publicados > fixa o sha256 de cada versão publicada 1`] = `
 {
   "analytics-pt-BR-2026-10-15b": "3f7e46dc6a382c68570c7b31ed81ea852508f128ca5dda4c7f923e0b78f2ec27",
-  "body_data-pt-BR-2026-10-15b": "5df4e14e0c7d5126112a2158c8a4559ecb8b8b12f95b2318de7bb9b3b715f052",
+  "body_data-pt-BR-2026-10-15c": "3b1f04d9f4858788613ef5c6df7ec1ca40cdd979320a7e698e2b78789c0e71d2",
   "coach_chat-pt-BR-2026-10-15b": "1dc468b4177fa51d916f401f30a3c6e114eefdf55a8bd98cc5d3df55a5d219dc",
   "coach_health-pt-BR-2026-10-15b": "dbae5392ac91d477f71c5776c19dab7b8ada7b55338f0128b21620465fe5fece",
 }
