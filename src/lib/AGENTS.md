@@ -4,7 +4,8 @@ Só utilitários sem domínio:
 
 - `env.ts`: o único ponto de leitura de `process.env` (Zod). Rejeita segredos com `NEXT_PUBLIC_`.
 - `app-url.ts`: o host e a origem canónicos a partir de `APP_URL`.
-- `http/`: `assertSameOriginMutation()` e respostas de erro (**alvo; ainda não existe**).
+- `allowed-origin.ts`: `isAllowedOrigin` / `isAllowedOriginFromHeaders` — compara só `Origin` ou `Referer` (fallback) com `getServerEnv().APP_URL`; nunca usa `Host` nem `X-Forwarded-*`.
+- `http/`: respostas de erro HTTP partilhadas (**alvo; ainda não existe**).
 - `logger.ts`: logger JSON com redação (**alvo; ainda não existe**).
 - `cron-auth.ts`: `unauthorizedCron` e comparação segura do bearer dos crons.
 - `security-headers.ts`, `utils.ts`.

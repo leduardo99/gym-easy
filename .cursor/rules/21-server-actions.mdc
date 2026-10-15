@@ -4,7 +4,7 @@ globs: src/**/actions.ts
 alwaysApply: false
 ---
 
-Ordem fixa: `assertSameOriginMutation()` (contra `APP_URL`) → `requireUser`/sessão → `schema.safeParse` → caso de uso → `ActionResult`.
+Ordem fixa: `isAllowedOriginFromHeaders()` (via `headers()`; só `Origin`/`Referer` contra `APP_URL`, nunca `Host`) → `requireUser`/sessão → `schema.safeParse` → caso de uso → `ActionResult`. Em rotas Route Handler, `isAllowedOrigin(request)`.
 
 - Sem SQL nem lógica de domínio na action.
 - Nunca confiar num `userId` vindo do cliente.
