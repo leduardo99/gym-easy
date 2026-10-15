@@ -194,7 +194,7 @@ node /app/scripts/purge-consent.mjs
 
 Esse ficheiro é o bundle esbuild (as dependências vão dentro do ficheiro; não usa `node_modules`). O script faz `POST` a `http://localhost:${PORT}/api/cron/purge-consent-proofs` com `Authorization: Bearer` e `CRON_SECRET`. Não usa `curl`. Se o pedido falhar, sai com código 1 e não imprime o segredo.
 
-O Coolify também pode agendar o purge do coach (mensagens e `ai_generation_logs` com mais de **90 dias**). Sugestão: diariamente às **03:30** (`Europe/Lisbon`). A Scheduled Task corre no contentor da app:
+O Coolify também pode agendar o purge do coach (mensagens e `ai_generation_logs` com mais de **90 dias**). A Scheduled Task corre às 03:45 UTC (`45 3 * * *`) no contentor da app:
 
 ```bash
 node scripts/purge-coach-messages.mjs
