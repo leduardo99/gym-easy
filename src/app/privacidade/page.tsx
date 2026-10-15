@@ -32,11 +32,11 @@ export default function PrivacyPage() {
         <div className="flex flex-col gap-3">
           <div>
             <h3 className="text-sm font-semibold">
-              {PRIVACY_POLICY.profileBodyData.trainingProfile.heading} (
-              {PRIVACY_POLICY.profileBodyData.trainingProfile.basis})
+              {PRIVACY_POLICY.profileBodyData.bodyDataConsent.heading} (
+              {PRIVACY_POLICY.profileBodyData.bodyDataConsent.basis})
             </h3>
             <ul className="mt-1 list-disc pl-5 text-sm leading-6 text-muted-foreground">
-              {PRIVACY_POLICY.profileBodyData.trainingProfile.fields.map(
+              {PRIVACY_POLICY.profileBodyData.bodyDataConsent.fields.map(
                 (field) => (
                   <li key={field}>{field}</li>
                 ),
@@ -45,13 +45,15 @@ export default function PrivacyPage() {
           </div>
           <div>
             <h3 className="text-sm font-semibold">
-              {PRIVACY_POLICY.profileBodyData.bodyData.heading} (
-              {PRIVACY_POLICY.profileBodyData.bodyData.basis})
+              {PRIVACY_POLICY.profileBodyData.retainedAfterRevoke.heading} (
+              {PRIVACY_POLICY.profileBodyData.retainedAfterRevoke.basis})
             </h3>
             <ul className="mt-1 list-disc pl-5 text-sm leading-6 text-muted-foreground">
-              {PRIVACY_POLICY.profileBodyData.bodyData.fields.map((field) => (
-                <li key={field}>{field}</li>
-              ))}
+              {PRIVACY_POLICY.profileBodyData.retainedAfterRevoke.fields.map(
+                (field) => (
+                  <li key={field}>{field}</li>
+                ),
+              )}
             </ul>
           </div>
         </div>

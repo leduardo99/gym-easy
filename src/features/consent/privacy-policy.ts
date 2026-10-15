@@ -15,9 +15,9 @@ export function privacyPolicyMinimumAgeSentence(
 function buildProfileBodyDataParagraphs(minimumAgeYears: number) {
   return {
     intro:
-      "Guardamos o perfil de treino para executar o contrato consigo e personalizar planos. Com a autorização «Dados do corpo», guardamos peso, altura e sexo, alinhado ao texto de consentimento publicado. O ano de nascimento fica no perfil de treino para calcular a faixa etária e verificar elegibilidade.",
+      "Com a autorização «Dados do corpo» (consentimento body_data), recolhemos e guardamos todos os campos do perfil listados abaixo — ano de nascimento, objetivo, nível, dias por semana, duração da sessão, local de treino, sexo, altura e registos de peso. Sem essa autorização ativa, a app não grava alterações ao perfil nem registos de peso.",
     minimumAge: privacyPolicyMinimumAgeSentence(minimumAgeYears),
-    revoke: `Se você retirar a autorização «Dados do corpo», apagamos altura, sexo e os registos de peso. O ano de nascimento permanece na conta para executar o contrato consigo, demonstrar que você tem pelo menos ${minimumAgeYears} anos e respeitar o art. 8.º do RGPD (idade mínima no serviço da sociedade da informação). Essa conservação apoia-se no art. 6.º, n.º 1, alíneas b) e c), do RGPD (execução do contrato e obrigação legal). O ano de nascimento só é apagado quando você apaga a conta.`,
+    revoke: `Se você retirar a autorização «Dados do corpo», apagamos sexo, altura e os registos de peso. O ano de nascimento e o resto do perfil de treino (objetivo, nível, dias por semana, duração da sessão e local) permanecem na conta para executar o contrato consigo, demonstrar que você tem pelo menos ${minimumAgeYears} anos e respeitar o art. 8.º do RGPD (idade mínima no serviço da sociedade da informação). Essa conservação apoia-se no art. 6.º, n.º 1, alíneas b) e c), do RGPD (execução do contrato e obrigação legal). O ano de nascimento só é apagado quando você apaga a conta.`,
     coachHealth:
       "O Coach só usa dados de saúde ou do corpo no chat quando você tem a autorização «Saúde no Coach» (coach_health) ativa. Sem essa autorização, o Coach não trata esses dados, mesmo que outros campos do perfil existam.",
     aiLogs:
@@ -35,9 +35,9 @@ export const PRIVACY_POLICY = {
     id: "dados-do-perfil-e-corpo",
     heading: "Dados do perfil e do corpo",
     minimumAgeYears: MINIMUM_AGE_YEARS,
-    trainingProfile: {
-      heading: "Perfil de treino",
-      basis: "execução do contrato",
+    bodyDataConsent: {
+      heading: "Recolhidos com «Dados do corpo»",
+      basis: "consentimento body_data",
       fields: [
         "ano de nascimento (birthYear)",
         "objetivo de treino (goal)",
@@ -45,15 +45,22 @@ export const PRIVACY_POLICY = {
         "dias de treino por semana (daysPerWeek)",
         "duração da sessão em minutos (sessionMinutes)",
         "local de treino (trainingPlace)",
-      ],
-    },
-    bodyData: {
-      heading: "Dados do corpo",
-      basis: "consentimento body_data",
-      fields: [
         "sexo (sex)",
         "altura em centímetros (heightCm)",
         "registos de peso (weight_kg)",
+      ],
+    },
+    retainedAfterRevoke: {
+      heading: "Conservados após revogar «Dados do corpo»",
+      basis:
+        "execução do contrato e obrigações legais (art. 6.º(1)(b)(c) e art. 8.º)",
+      fields: [
+        "ano de nascimento (birthYear)",
+        "objetivo de treino (goal)",
+        "nível de treino (level)",
+        "dias de treino por semana (daysPerWeek)",
+        "duração da sessão em minutos (sessionMinutes)",
+        "local de treino (trainingPlace)",
       ],
     },
     paragraphs: profileBodyDataParagraphs,
@@ -148,8 +155,8 @@ export function privacyPolicyText(): string {
   return [
     ...PRIVACY_POLICY.paragraphs,
     profileBodyData.heading,
-    ...profileFieldGroupText(profileBodyData.trainingProfile),
-    ...profileFieldGroupText(profileBodyData.bodyData),
+    ...profileFieldGroupText(profileBodyData.bodyDataConsent),
+    ...profileFieldGroupText(profileBodyData.retainedAfterRevoke),
     ...profileBodyDataParagraphList(),
     PRIVACY_POLICY.rights.heading,
     ...PRIVACY_POLICY.rights.paragraphs,
