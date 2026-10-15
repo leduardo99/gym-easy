@@ -5,6 +5,10 @@ const CONTACT_EMAIL = "contacto@gaffer.pt";
 export const PRIVACY_POLICY_MINIMUM_AGE_ID = "privacy-policy-minimum-age";
 export const PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID =
   "privacy-policy-birth-year-minimum-age";
+export const PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID =
+  "privacy-policy-birth-year-age-band";
+export const PRIVACY_POLICY_BODY_DATA_GATE_ID =
+  "privacy-policy-body-data-technical-gate";
 
 export function privacyPolicyMinimumAgeSentence(
   minimumAgeYears: number = MINIMUM_AGE_YEARS,
@@ -12,10 +16,20 @@ export function privacyPolicyMinimumAgeSentence(
   return `A idade mínima para usar o Gym Easy é ${minimumAgeYears} anos.`;
 }
 
+export function privacyPolicyBirthYearAgeBandSentence(): string {
+  return "O ano de nascimento também serve para calcular a faixa etária usada com os dados do corpo, como no texto de consentimento publicado (body_data, versão 2026-10-15b).";
+}
+
+export function privacyPolicyBodyDataTechnicalGateSentence(): string {
+  return "Nota técnica temporária: nesta versão da app, o interruptor «Dados do corpo» precisa estar ligado para guardar qualquer alteração ao perfil ou registo de peso. É uma limitação de implementação que estamos a remover; não altera as bases legais descritas acima.";
+}
+
 function buildProfileBodyDataParagraphs(minimumAgeYears: number) {
   return {
     intro:
-      "Com a autorização «Dados do corpo» (consentimento body_data), recolhemos e guardamos todos os campos do perfil listados abaixo — ano de nascimento, objetivo, nível, dias por semana, duração da sessão, local de treino, sexo, altura e registos de peso. Sem essa autorização ativa, a app não grava alterações ao perfil nem registos de peso.",
+      "O perfil de treino e o ano de nascimento tratam-se desde o início para executar o contrato consigo (art. 6.º, n.º 1, alínea b), do RGPD). O ano de nascimento tem ainda fundamento legal para verificar a idade mínima (art. 8.º). Sexo, altura e registos de peso dependem da autorização «Dados do corpo» (consentimento body_data).",
+    birthYearAgeBand: privacyPolicyBirthYearAgeBandSentence(),
+    technicalGate: privacyPolicyBodyDataTechnicalGateSentence(),
     minimumAge: privacyPolicyMinimumAgeSentence(minimumAgeYears),
     revoke: `Se você retirar a autorização «Dados do corpo», apagamos sexo, altura e os registos de peso. O ano de nascimento e o resto do perfil de treino (objetivo, nível, dias por semana, duração da sessão e local) permanecem na conta para executar o contrato consigo, demonstrar que você tem pelo menos ${minimumAgeYears} anos e respeitar o art. 8.º do RGPD (idade mínima no serviço da sociedade da informação). Essa conservação apoia-se no art. 6.º, n.º 1, alíneas b) e c), do RGPD (execução do contrato e obrigação legal). O ano de nascimento só é apagado quando você apaga a conta.`,
     coachHealth:
@@ -35,9 +49,10 @@ export const PRIVACY_POLICY = {
     id: "dados-do-perfil-e-corpo",
     heading: "Dados do perfil e do corpo",
     minimumAgeYears: MINIMUM_AGE_YEARS,
-    bodyDataConsent: {
-      heading: "Recolhidos com «Dados do corpo»",
-      basis: "consentimento body_data",
+    contractualProfile: {
+      heading: "Perfil de treino e ano de nascimento",
+      basis:
+        "execução do contrato (ano de nascimento também art. 8.º para idade mínima)",
       fields: [
         "ano de nascimento (birthYear)",
         "objetivo de treino (goal)",
@@ -45,6 +60,12 @@ export const PRIVACY_POLICY = {
         "dias de treino por semana (daysPerWeek)",
         "duração da sessão em minutos (sessionMinutes)",
         "local de treino (trainingPlace)",
+      ],
+    },
+    bodyDataConsent: {
+      heading: "Dados do corpo",
+      basis: "consentimento body_data",
+      fields: [
         "sexo (sex)",
         "altura em centímetros (heightCm)",
         "registos de peso (weight_kg)",
@@ -143,6 +164,8 @@ export function profileBodyDataParagraphList(
   const paragraphs = buildProfileBodyDataParagraphs(minimumAgeYears);
   return [
     paragraphs.intro,
+    paragraphs.birthYearAgeBand,
+    paragraphs.technicalGate,
     paragraphs.minimumAge,
     paragraphs.revoke,
     paragraphs.coachHealth,
@@ -155,6 +178,7 @@ export function privacyPolicyText(): string {
   return [
     ...PRIVACY_POLICY.paragraphs,
     profileBodyData.heading,
+    ...profileFieldGroupText(profileBodyData.contractualProfile),
     ...profileFieldGroupText(profileBodyData.bodyDataConsent),
     ...profileFieldGroupText(profileBodyData.retainedAfterRevoke),
     ...profileBodyDataParagraphList(),

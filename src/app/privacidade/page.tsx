@@ -2,7 +2,9 @@ import Link from "next/link";
 
 import {
   PRIVACY_POLICY,
+  PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID,
   PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID,
+  PRIVACY_POLICY_BODY_DATA_GATE_ID,
   PRIVACY_POLICY_MINIMUM_AGE_ID,
   processorText,
 } from "@/features/consent/privacy-policy";
@@ -32,6 +34,19 @@ export default function PrivacyPage() {
         <div className="flex flex-col gap-3">
           <div>
             <h3 className="text-sm font-semibold">
+              {PRIVACY_POLICY.profileBodyData.contractualProfile.heading} (
+              {PRIVACY_POLICY.profileBodyData.contractualProfile.basis})
+            </h3>
+            <ul className="mt-1 list-disc pl-5 text-sm leading-6 text-muted-foreground">
+              {PRIVACY_POLICY.profileBodyData.contractualProfile.fields.map(
+                (field) => (
+                  <li key={field}>{field}</li>
+                ),
+              )}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">
               {PRIVACY_POLICY.profileBodyData.bodyDataConsent.heading} (
               {PRIVACY_POLICY.profileBodyData.bodyDataConsent.basis})
             </h3>
@@ -59,6 +74,18 @@ export default function PrivacyPage() {
         </div>
         <p className="text-sm leading-6 text-muted-foreground">
           {PRIVACY_POLICY.profileBodyData.paragraphs.intro}
+        </p>
+        <p
+          id={PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID}
+          className="text-sm leading-6 text-muted-foreground"
+        >
+          {PRIVACY_POLICY.profileBodyData.paragraphs.birthYearAgeBand}
+        </p>
+        <p
+          id={PRIVACY_POLICY_BODY_DATA_GATE_ID}
+          className="text-sm leading-6 text-muted-foreground"
+        >
+          {PRIVACY_POLICY.profileBodyData.paragraphs.technicalGate}
         </p>
         <p
           id={PRIVACY_POLICY_MINIMUM_AGE_ID}

@@ -136,6 +136,7 @@ export function BodyDataPrivacySection({
         }}
       >
         <Label
+          data-testid="body-data-switch-label"
           htmlFor={BODY_DATA_CONSENT_SWITCH_ID}
           className="min-h-11 flex-1 cursor-pointer py-2 text-sm font-medium"
         >

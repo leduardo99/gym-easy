@@ -2,14 +2,18 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID,
   PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID,
+  PRIVACY_POLICY_BODY_DATA_GATE_ID,
   PRIVACY_POLICY_MINIMUM_AGE_ID,
-  privacyPolicyMinimumAgeSentence,
+  privacyPolicyBirthYearAgeBandSentence,
   privacyPolicyText,
 } from "@/features/consent/privacy-policy";
 import { MINIMUM_AGE_YEARS } from "@/features/profile/age";
 
 import PrivacyPage from "./page";
+
+const minimumAgeSentence = `A idade mínima para usar o Gym Easy é ${MINIMUM_AGE_YEARS} anos.`;
 
 afterEach(() => {
   cleanup();
@@ -76,20 +80,20 @@ describe("PrivacyPage", () => {
     const profileBody = screen.getByRole("region", {
       name: "Dados do perfil e do corpo",
     });
-    expect(profileBody).toHaveTextContent("Recolhidos com «Dados do corpo»");
+    expect(profileBody).toHaveTextContent(
+      "Perfil de treino e ano de nascimento",
+    );
+    expect(profileBody).toHaveTextContent("execução do contrato");
+    expect(profileBody).toHaveTextContent("Dados do corpo");
     expect(profileBody).toHaveTextContent("consentimento body_data");
     expect(profileBody).toHaveTextContent("Conservados após revogar");
-    expect(profileBody).toHaveTextContent(/art\. 6\.º\(1\)\(b\)\(c\)/);
-    expect(profileBody).not.toHaveTextContent("Perfil de treino");
-    expect(profileBody).not.toHaveTextContent("execução do contrato):");
+    expect(profileBody).toHaveTextContent(/Nota técnica temporária/);
+    expect(profileBody).toHaveTextContent(/limitação de implementação/);
     expect(profileBody).toHaveTextContent("birthYear");
     expect(profileBody).toHaveTextContent("trainingPlace");
     expect(profileBody).toHaveTextContent("heightCm");
     expect(profileBody).toHaveTextContent("weight_kg");
     expect(profileBody).toHaveTextContent("coach_health");
-    expect(profileBody).toHaveTextContent(
-      /Sem essa autorização ativa, a app não grava alterações ao perfil/,
-    );
     expect(profileBody).toHaveTextContent(/metadados técnicos/i);
     expect(profileBody).toHaveTextContent(/indicação ZDR/);
     expect(profileBody).not.toHaveTextContent(/só pseudónimo/i);
@@ -98,20 +102,24 @@ describe("PrivacyPage", () => {
     const lists = within(profileBody).getAllByRole("list");
     expect(lists[0]).toHaveTextContent("birthYear");
     expect(lists[0]).toHaveTextContent("goal");
-    expect(lists[0]).toHaveTextContent("heightCm");
-    expect(lists[0]).toHaveTextContent("weight_kg");
-    expect(lists[1]).toHaveTextContent("birthYear");
-    expect(lists[1]).toHaveTextContent("goal");
-    expect(lists[1]).not.toHaveTextContent("heightCm");
-    expect(lists[1]).not.toHaveTextContent("weight_kg");
-    expect(lists[1]).not.toHaveTextContent("sexo (sex)");
+    expect(lists[0]).not.toHaveTextContent("heightCm");
+    expect(lists[1]).toHaveTextContent("heightCm");
+    expect(lists[1]).toHaveTextContent("weight_kg");
+    expect(lists[1]).not.toHaveTextContent("birthYear");
+    expect(lists[1]).not.toHaveTextContent("goal");
 
     expect(
       document.getElementById(PRIVACY_POLICY_MINIMUM_AGE_ID),
-    ).toHaveTextContent(privacyPolicyMinimumAgeSentence(MINIMUM_AGE_YEARS));
+    ).toHaveTextContent(minimumAgeSentence);
     expect(
       document.getElementById(PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID),
     ).toHaveTextContent(new RegExp(`pelo menos ${MINIMUM_AGE_YEARS} anos`));
+    expect(
+      document.getElementById(PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID),
+    ).toHaveTextContent(privacyPolicyBirthYearAgeBandSentence());
+    expect(
+      document.getElementById(PRIVACY_POLICY_BODY_DATA_GATE_ID),
+    ).toHaveTextContent(/interruptor «Dados do corpo» precisa estar ligado/);
     expect(profileBody).toHaveTextContent(
       /art\. 6\.º, n\.º 1, alíneas b\) e c\)/,
     );
@@ -139,8 +147,9 @@ describe("PrivacyPage", () => {
     expect(privacyPolicyText()).toContain("Dados do perfil e do corpo");
     expect(privacyPolicyText()).toContain("daysPerWeek");
     expect(privacyPolicyText()).toContain("coach_health");
+    expect(privacyPolicyText()).toContain(minimumAgeSentence);
     expect(privacyPolicyText()).toContain(
-      privacyPolicyMinimumAgeSentence(MINIMUM_AGE_YEARS),
+      privacyPolicyBirthYearAgeBandSentence(),
     );
     expect(privacyPolicyText()).not.toContain("medidas corporais");
   });

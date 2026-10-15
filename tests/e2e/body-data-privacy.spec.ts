@@ -27,10 +27,16 @@ test("retirar dados do corpo no switch e voltar ao reconsentimento ao guardar al
 
   const switchRow = page.getByTestId("body-data-switch-row");
   await expect(switchRow).toHaveClass(/min-h-11/);
-  const rowBox = await switchRow.boundingBox();
-  expect(rowBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  const switchLabel = page.getByTestId("body-data-switch-label");
+  await expect(switchLabel).toHaveClass(/min-h-11/);
+  const labelBox = await switchLabel.boundingBox();
+  expect(labelBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(labelBox?.height ?? 0).toBeGreaterThanOrEqual(44);
 
   const switchControl = bodyDataSwitch(page);
+  const switchBox = await switchControl.boundingBox();
+  expect(switchBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(switchBox?.height ?? 0).toBeGreaterThanOrEqual(44);
   await switchControl.focus();
   await page.keyboard.press(" ");
 
