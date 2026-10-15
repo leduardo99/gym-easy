@@ -28,10 +28,16 @@ async function coachReadyUser(prefix: string) {
   };
 }
 
-async function postCoach(page: import("@playwright/test").Page) {
+async function postCoach(
+  page: import("@playwright/test").Page,
+  origin: string,
+) {
   return page.request.post("/api/ai/coach", {
     data: { message: "como treinar hoje?" },
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      origin,
+    },
   });
 }
 
@@ -40,6 +46,7 @@ test.describe("revogação de saúde do coach", () => {
 
   test("retirar saúde em privacidade bloqueia o coach e mantém o histórico", async ({
     page,
+    baseURL,
   }) => {
     const setup = await coachReadyUser("coach-health-revoke");
     const email = await setup(page);
@@ -59,7 +66,7 @@ test.describe("revogação de saúde do coach", () => {
         .getByText("Autorização de saúde do Coach retirada."),
     ).toBeVisible();
 
-    const response = await postCoach(page);
+    const response = await postCoach(page, baseURL ?? "http://127.0.0.1:3000");
     expect(response.status()).toBe(403);
     const body = (await response.json()) as { error: string; code: string };
     expect(body.code).toBe("consent_missing");
@@ -69,6 +76,7 @@ test.describe("revogação de saúde do coach", () => {
 
   test("Agora não no reconsentimento de coach_health bloqueia o coach", async ({
     page,
+    baseURL,
   }) => {
     const setup = await coachReadyUser("coach-health-reconsent");
     await setup(page);
@@ -79,7 +87,7 @@ test.describe("revogação de saúde do coach", () => {
     await page.getByRole("button", { name: "Agora não" }).click();
     await expect(page).toHaveURL(/recusado=1/);
 
-    const response = await postCoach(page);
+    const response = await postCoach(page, baseURL ?? "http://127.0.0.1:3000");
     expect(response.status()).toBe(403);
     const body = (await response.json()) as { error: string };
     expect(body.error).toMatch(/falta autorização de saúde/);
@@ -87,6 +95,7 @@ test.describe("revogação de saúde do coach", () => {
 
   test("Agora não no reconsentimento de coach_chat revoga e apaga o histórico", async ({
     page,
+    baseURL,
   }) => {
     const setup = await coachReadyUser("coach-chat-reconsent");
     const email = await setup(page);
@@ -98,7 +107,7 @@ test.describe("revogação de saúde do coach", () => {
     await expect(page).toHaveURL(/recusado=1/);
     expect(await countCoachMessagesForEmail(email)).toBe(0);
 
-    const response = await postCoach(page);
+    const response = await postCoach(page, baseURL ?? "http://127.0.0.1:3000");
     expect(response.status()).toBe(403);
     const body = (await response.json()) as { error: string; code: string };
     expect(body.code).toBe("consent_missing");
