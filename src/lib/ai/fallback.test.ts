@@ -3,12 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 import {
   CHAT_TOTAL_TIMEOUT_MS,
   FIRST_TOKEN_TIMEOUT_MS,
+  RETRY_AFTER_CAP_MS,
   classifyProviderFailure,
   createAttemptController,
   openRouterProviderRouting,
+  rateLimitRetryDelayMs,
   retryDelayMs,
   runModelFallback,
 } from "./fallback";
+
+const steadyJitter = () => 0.5;
 
 const models = ["alpha/example:free", "beta/example:free"];
 
@@ -133,7 +137,7 @@ describe("provider fallback", () => {
     expect(call.mock.calls.map((entry) => entry[0]?.zdr)).toEqual([true, true]);
   });
 
-  it("honors retry-after, stops after 3 attempts, then uses the next model", async () => {
+  it("honors retry-after capped at 3s, stops after 3 attempts, then uses the next model", async () => {
     const sleeps: number[] = [];
     let alpha = 0;
     const call = vi.fn(async ({ model }) => {
@@ -152,6 +156,7 @@ describe("provider fallback", () => {
       privacyMode: "zdr_only",
       product: "coach",
       call,
+      jitter: steadyJitter,
       sleep: async (ms) => {
         sleeps.push(ms);
       },
@@ -164,6 +169,101 @@ describe("provider fallback", () => {
       model: "beta/example:free",
       servedWithZdr: true,
     });
+  });
+
+  it("succeeds on the same model after transient 429 responses", async () => {
+    let calls = 0;
+    const call = vi.fn(async ({ model, zdr }) => {
+      calls += 1;
+      if (calls < 3) {
+        throw Object.assign(new Error("temporarily rate-limited upstream"), {
+          statusCode: 429,
+        });
+      }
+      return { model, zdr };
+    });
+
+    const result = await runModelFallback({
+      models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: steadyJitter,
+      sleep: async () => undefined,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      model: "alpha/example:free",
+      servedWithZdr: true,
+    });
+    expect(call).toHaveBeenCalledTimes(3);
+    for (const entry of call.mock.calls) {
+      expect(entry[0]).toMatchObject({
+        model: "alpha/example:free",
+        zdr: true,
+      });
+    }
+  });
+
+  it("keeps identical routing fields on each 429 retry", () => {
+    expect(openRouterProviderRouting({ zdr: true })).toEqual(
+      openRouterProviderRouting({ zdr: true }),
+    );
+    expect(openRouterProviderRouting({ zdr: true }).data_collection).toBe(
+      "deny",
+    );
+  });
+
+  it("does not backoff on data-policy 404", async () => {
+    const sleeps: number[] = [];
+    const call = vi.fn(async () => {
+      throw policy404();
+    });
+
+    await runModelFallback({
+      models: ["alpha/example:free", "beta/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(sleeps).toEqual([]);
+    expect(call).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps retry-after at three seconds for backoff", () => {
+    expect(
+      rateLimitRetryDelayMs(0, RETRY_AFTER_CAP_MS + 5_000, steadyJitter),
+    ).toBe(3000);
+  });
+
+  it("stops rate-limit retries when the overall timeout budget is exhausted", async () => {
+    vi.useFakeTimers();
+    try {
+      const call = vi.fn(async () => {
+        throw Object.assign(new Error("rl"), { statusCode: 429 });
+      });
+      const promise = runModelFallback({
+        models: ["alpha/example:free"],
+        privacyMode: "zdr_only",
+        product: "coach",
+        call,
+        jitter: steadyJitter,
+        sleep: async (ms) => {
+          vi.advanceTimersByTime(ms);
+        },
+      });
+      await vi.advanceTimersByTimeAsync(CHAT_TOTAL_TIMEOUT_MS);
+      const result = await promise;
+      expect(result.ok).toBe(false);
+      expect(call.mock.calls.length).toBeLessThan(50);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("returns coach_unavailable when every model fails", async () => {

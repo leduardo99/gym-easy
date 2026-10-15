@@ -6,7 +6,10 @@ import { unavailableOutcomeForProduct, type AiProduct } from "./unavailable";
 export const FIRST_TOKEN_TIMEOUT_MS = 20_000;
 export const CHAT_TOTAL_TIMEOUT_MS = 60_000;
 export const CHAT_BACKOFF_CAP_MS = 10_000;
-export const MAX_ATTEMPTS_PER_MODEL = 3;
+/** Up to two backoff retries after the first 429/5xx on the same model route. */
+export const RATE_LIMIT_MAX_RETRIES = 2;
+export const RATE_LIMIT_BACKOFF_MS = [800, 2_000] as const;
+export const RETRY_AFTER_CAP_MS = 3_000;
 
 const BACKOFF_MS = [1_000, 2_000, 4_000] as const;
 
@@ -167,10 +170,38 @@ export function classifyProviderFailure(error: unknown): ProviderFailure {
   if (like.statusCode === 404) {
     return { kind: "provider_error", retryAfterMs: null };
   }
+  if (
+    like.statusCode !== undefined &&
+    like.statusCode >= 500 &&
+    like.statusCode < 600
+  ) {
+    return { kind: "provider_error", retryAfterMs: null };
+  }
   if (/schema/i.test(message)) {
     return { kind: "schema_invalid", retryAfterMs: null };
   }
   return { kind: "provider_error", retryAfterMs: null };
+}
+
+function isBackoffRetryable(
+  failure: ProviderFailure,
+  statusCode: number | undefined,
+): boolean {
+  if (failure.kind === "rate_limited") return true;
+  return statusCode !== undefined && statusCode >= 500 && statusCode < 600;
+}
+
+export function rateLimitRetryDelayMs(
+  retryIndex: number,
+  retryAfterMs: number | null,
+  jitter: () => number = Math.random,
+): number {
+  const base = RATE_LIMIT_BACKOFF_MS[retryIndex] ?? 2_000;
+  const cappedHeader =
+    retryAfterMs === null ? 0 : Math.min(retryAfterMs, RETRY_AFTER_CAP_MS);
+  const ms = Math.max(base, cappedHeader);
+  const factor = 0.85 + jitter() * 0.3;
+  return Math.round(ms * factor);
 }
 
 export function attemptToLogOutcome(
@@ -226,15 +257,32 @@ async function tryModelRoute<T>(input: {
   zdr: boolean;
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
-  maxAttempts: number;
+  maxRateLimitRetries: number;
   attempts: FallbackAttempt[];
   waitedMs: { value: number };
+  deadlineMs: number;
   stopSignal?: AbortSignal;
+  jitter?: () => number;
 }): Promise<
   { ok: true; value: T } | { ok: false; failure: ProviderFailureKind }
 > {
   const dataPolicy = dataPolicyForZdr(input.zdr);
-  for (let attempt = 0; attempt < input.maxAttempts; attempt += 1) {
+  const jitter = input.jitter ?? Math.random;
+  let attempt = 0;
+  let backoffRetry = 0;
+
+  while (true) {
+    const remainingMs = input.deadlineMs - Date.now();
+    if (remainingMs <= 0) {
+      input.attempts.push({
+        model: input.model,
+        zdr: input.zdr,
+        dataPolicy,
+        outcome: "timeout",
+        attempt,
+      });
+      return { ok: false, failure: "timeout" };
+    }
     if (input.stopSignal?.aborted) {
       input.attempts.push({
         model: input.model,
@@ -246,8 +294,8 @@ async function tryModelRoute<T>(input: {
       return { ok: false, failure: "timeout" };
     }
     const controller = createAttemptController({
-      firstTokenMs: FIRST_TOKEN_TIMEOUT_MS,
-      totalMs: CHAT_TOTAL_TIMEOUT_MS,
+      firstTokenMs: Math.min(FIRST_TOKEN_TIMEOUT_MS, remainingMs),
+      totalMs: Math.min(CHAT_TOTAL_TIMEOUT_MS, remainingMs),
     });
     try {
       const value = await input.call({
@@ -276,6 +324,7 @@ async function tryModelRoute<T>(input: {
         });
         return { ok: false, failure: "timeout" };
       }
+      const like = asErrorLike(error);
       const failure = classifyProviderFailure(error);
       input.attempts.push({
         model: input.model,
@@ -284,28 +333,32 @@ async function tryModelRoute<T>(input: {
         outcome: failure.kind,
         attempt,
       });
+      attempt += 1;
       if (failure.kind === "payment_required") {
         return { ok: false, failure: failure.kind };
       }
-      if (failure.kind !== "rate_limited") {
+      if (
+        !isBackoffRetryable(failure, like.statusCode) ||
+        backoffRetry >= input.maxRateLimitRetries
+      ) {
         return { ok: false, failure: failure.kind };
       }
-      if (attempt >= input.maxAttempts - 1) {
-        return { ok: false, failure: failure.kind };
-      }
-      const delay = retryDelayMs(
-        attempt,
+      const requested = rateLimitRetryDelayMs(
+        backoffRetry,
         failure.retryAfterMs,
-        input.waitedMs.value,
+        jitter,
       );
-      if (delay === null) return { ok: false, failure: failure.kind };
+      const delay = Math.min(requested, input.deadlineMs - Date.now());
+      if (delay <= 0) {
+        return { ok: false, failure: failure.kind };
+      }
       await input.sleep(delay);
       input.waitedMs.value += delay;
+      backoffRetry += 1;
     } finally {
       controller.dispose();
     }
   }
-  return { ok: false, failure: "provider_error" };
 }
 
 export function linkAbortSignals(
@@ -330,12 +383,15 @@ export async function runModelFallback<T>(options: {
   product: AiProduct;
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
-  maxAttempts?: number;
+  maxRateLimitRetries?: number;
   stopSignal?: AbortSignal;
+  jitter?: () => number;
 }): Promise<FallbackResult<T>> {
   const attempts: FallbackAttempt[] = [];
   const waitedMs = { value: 0 };
-  const maxAttempts = options.maxAttempts ?? MAX_ATTEMPTS_PER_MODEL;
+  const maxRateLimitRetries =
+    options.maxRateLimitRetries ?? RATE_LIMIT_MAX_RETRIES;
+  const deadlineMs = Date.now() + CHAT_TOTAL_TIMEOUT_MS;
 
   if (options.models.length === 0) {
     return { ok: false, outcome: "internal", attempts };
@@ -347,10 +403,12 @@ export async function runModelFallback<T>(options: {
       zdr: true,
       call: options.call,
       sleep: options.sleep,
-      maxAttempts,
+      maxRateLimitRetries,
       attempts,
       waitedMs,
+      deadlineMs,
       stopSignal: options.stopSignal,
+      jitter: options.jitter,
     });
     if (zdrTry.ok) {
       return {
@@ -378,10 +436,12 @@ export async function runModelFallback<T>(options: {
         zdr: false,
         call: options.call,
         sleep: options.sleep,
-        maxAttempts,
+        maxRateLimitRetries,
         attempts,
         waitedMs,
+        deadlineMs,
         stopSignal: options.stopSignal,
+        jitter: options.jitter,
       });
       if (relaxed.ok) {
         return {
