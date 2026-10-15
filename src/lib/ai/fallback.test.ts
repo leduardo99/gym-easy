@@ -3,12 +3,17 @@ import { describe, expect, it, vi } from "vitest";
 import {
   CHAT_TOTAL_TIMEOUT_MS,
   FIRST_TOKEN_TIMEOUT_MS,
+  RETRY_AFTER_CAP_MS,
   classifyProviderFailure,
   createAttemptController,
   openRouterProviderRouting,
-  retryDelayMs,
+  isBackoffRetryable,
+  rateLimitRetryDelayMs,
   runModelFallback,
 } from "./fallback";
+
+const steadyJitter = () => 0.5;
+const minJitter = () => 0;
 
 const models = ["alpha/example:free", "beta/example:free"];
 
@@ -133,7 +138,7 @@ describe("provider fallback", () => {
     expect(call.mock.calls.map((entry) => entry[0]?.zdr)).toEqual([true, true]);
   });
 
-  it("honors retry-after, stops after 3 attempts, then uses the next model", async () => {
+  it("honors retry-after capped at 3s, stops after 3 attempts, then uses the next model", async () => {
     const sleeps: number[] = [];
     let alpha = 0;
     const call = vi.fn(async ({ model }) => {
@@ -152,6 +157,7 @@ describe("provider fallback", () => {
       privacyMode: "zdr_only",
       product: "coach",
       call,
+      jitter: steadyJitter,
       sleep: async (ms) => {
         sleeps.push(ms);
       },
@@ -164,6 +170,248 @@ describe("provider fallback", () => {
       model: "beta/example:free",
       servedWithZdr: true,
     });
+  });
+
+  it("succeeds on the same model after a transient 503", async () => {
+    const sleeps: number[] = [];
+    let calls = 0;
+    const call = vi.fn(async ({ model, zdr }) => {
+      calls += 1;
+      if (calls === 1) {
+        throw Object.assign(new Error("service unavailable"), {
+          statusCode: 503,
+        });
+      }
+      return { model, zdr };
+    });
+    const expectedDelay = rateLimitRetryDelayMs(0, null, minJitter);
+
+    const result = await runModelFallback({
+      models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: minJitter,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      model: "alpha/example:free",
+      servedWithZdr: true,
+    });
+    expect(call).toHaveBeenCalledTimes(2);
+    expect(sleeps).toEqual([expectedDelay]);
+    expect(call.mock.calls.every((entry) => entry[0]?.zdr === true)).toBe(true);
+  });
+
+  it("retries 500 up to two times on the same model then moves on", async () => {
+    const sleeps: number[] = [];
+    let alpha = 0;
+    const call = vi.fn(async ({ model }) => {
+      if (model.startsWith("alpha")) {
+        alpha += 1;
+        throw Object.assign(new Error("internal"), { statusCode: 500 });
+      }
+      return { text: "ok" };
+    });
+
+    const result = await runModelFallback({
+      models,
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: minJitter,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(alpha).toBe(3);
+    expect(sleeps).toEqual([
+      rateLimitRetryDelayMs(0, null, minJitter),
+      rateLimitRetryDelayMs(1, null, minJitter),
+    ]);
+    expect(result).toMatchObject({
+      ok: true,
+      model: "beta/example:free",
+      servedWithZdr: true,
+    });
+  });
+
+  it("does not retry HTTP 400 on the same model", async () => {
+    const sleeps: number[] = [];
+    const call = vi.fn(async ({ model }) => {
+      if (model.startsWith("alpha")) {
+        throw Object.assign(new Error("bad request"), { statusCode: 400 });
+      }
+      return { text: "ok" };
+    });
+
+    const result = await runModelFallback({
+      models,
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(sleeps).toEqual([]);
+    expect(call.mock.calls.map((entry) => entry[0]?.model)).toEqual([
+      "alpha/example:free",
+      "beta/example:free",
+    ]);
+    expect(result).toMatchObject({ ok: true, model: "beta/example:free" });
+  });
+
+  it("cancels backoff sleep immediately when stopSignal aborts", async () => {
+    const controller = new AbortController();
+    let sleepFinished = 0;
+    const call = vi.fn(async () => {
+      throw Object.assign(new Error("rl"), { statusCode: 429 });
+    });
+
+    const promise = runModelFallback({
+      models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: steadyJitter,
+      stopSignal: controller.signal,
+      sleep: async (ms) => {
+        await new Promise((resolve) => setTimeout(resolve, ms));
+        sleepFinished += 1;
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    controller.abort();
+    const result = await promise;
+
+    expect(result.ok).toBe(false);
+    expect(sleepFinished).toBe(0);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
+  it("succeeds on the same model after transient 429 responses", async () => {
+    let calls = 0;
+    const call = vi.fn(async ({ model, zdr }) => {
+      calls += 1;
+      if (calls < 3) {
+        throw Object.assign(new Error("temporarily rate-limited upstream"), {
+          statusCode: 429,
+        });
+      }
+      return { model, zdr };
+    });
+
+    const result = await runModelFallback({
+      models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      jitter: steadyJitter,
+      sleep: async () => undefined,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      model: "alpha/example:free",
+      servedWithZdr: true,
+    });
+    expect(call).toHaveBeenCalledTimes(3);
+    for (const entry of call.mock.calls) {
+      expect(entry[0]).toMatchObject({
+        model: "alpha/example:free",
+        zdr: true,
+      });
+    }
+  });
+
+  it("keeps identical routing fields on each 429 retry", () => {
+    expect(openRouterProviderRouting({ zdr: true })).toEqual(
+      openRouterProviderRouting({ zdr: true }),
+    );
+    expect(openRouterProviderRouting({ zdr: true }).data_collection).toBe(
+      "deny",
+    );
+  });
+
+  it("does not backoff on data-policy 404", async () => {
+    const sleeps: number[] = [];
+    const call = vi.fn(async () => {
+      throw policy404();
+    });
+
+    await runModelFallback({
+      models: ["alpha/example:free", "beta/example:free"],
+      privacyMode: "zdr_only",
+      product: "coach",
+      call,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(sleeps).toEqual([]);
+    expect(call).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps retry-after at three seconds for backoff", () => {
+    expect(
+      rateLimitRetryDelayMs(0, RETRY_AFTER_CAP_MS + 5_000, steadyJitter),
+    ).toBe(3000);
+  });
+
+  it("computes backoff delay from an injected jitter source", () => {
+    expect(rateLimitRetryDelayMs(0, null, minJitter)).toBe(680);
+    expect(rateLimitRetryDelayMs(0, null, () => 1)).toBe(920);
+    expect(rateLimitRetryDelayMs(1, null, minJitter)).toBe(1700);
+    expect(rateLimitRetryDelayMs(1, null, steadyJitter)).toBe(2000);
+  });
+
+  it("marks 5xx responses as backoff-retryable but not 4xx", () => {
+    expect(
+      isBackoffRetryable({ kind: "provider_error", retryAfterMs: null }, 503),
+    ).toBe(true);
+    expect(
+      isBackoffRetryable({ kind: "provider_error", retryAfterMs: null }, 500),
+    ).toBe(true);
+    expect(
+      isBackoffRetryable({ kind: "provider_error", retryAfterMs: null }, 400),
+    ).toBe(false);
+    expect(
+      isBackoffRetryable({ kind: "rate_limited", retryAfterMs: 1000 }, 429),
+    ).toBe(true);
+  });
+
+  it("stops rate-limit retries when the overall timeout budget is exhausted", async () => {
+    vi.useFakeTimers();
+    try {
+      const call = vi.fn(async () => {
+        throw Object.assign(new Error("rl"), { statusCode: 429 });
+      });
+      const promise = runModelFallback({
+        models: ["alpha/example:free"],
+        privacyMode: "zdr_only",
+        product: "coach",
+        call,
+        jitter: steadyJitter,
+        sleep: async (ms) => {
+          vi.advanceTimersByTime(ms);
+        },
+      });
+      await vi.advanceTimersByTimeAsync(CHAT_TOTAL_TIMEOUT_MS);
+      const result = await promise;
+      expect(result.ok).toBe(false);
+      expect(call.mock.calls.length).toBeLessThan(50);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("returns coach_unavailable when every model fails", async () => {
@@ -197,7 +445,7 @@ describe("provider fallback", () => {
     expect(result).toMatchObject({ ok: false, outcome: "provider_error" });
   });
 
-  it("classifies provider failures and caps the chat backoff at 10 seconds", () => {
+  it("classifies provider failures", () => {
     expect(
       classifyProviderFailure({
         statusCode: 429,
@@ -216,8 +464,11 @@ describe("provider fallback", () => {
         Object.assign(new Error("aborted"), { name: "TimeoutError" }),
       ),
     ).toEqual({ kind: "timeout", retryAfterMs: null });
-    expect(retryDelayMs(0, 500, 0)).toBe(1000);
-    expect(retryDelayMs(1, 2000, 9_500)).toBeNull();
+    expect(
+      classifyProviderFailure(
+        Object.assign(new Error("upstream"), { statusCode: 503 }),
+      ),
+    ).toEqual({ kind: "provider_error", retryAfterMs: null });
     expect(FIRST_TOKEN_TIMEOUT_MS).toBe(20_000);
     expect(CHAT_TOTAL_TIMEOUT_MS).toBe(60_000);
   });
