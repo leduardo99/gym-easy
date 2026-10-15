@@ -7,14 +7,20 @@ export const COACH_PRIVACY_COPY = {
   deleteHistoryDescription:
     "Remove todas as mensagens guardadas do Coach na sua conta. Esta ação não pode ser desfeita.",
   deleteHistoryConfirm: "Apagar histórico",
-  withdrawConsent: "Retirar consentimento",
-  withdrawTitle: "Retirar consentimento do Coach?",
-  withdrawDescription:
-    "O chat é desligado, o histórico é apagado e nada mais é enviado ao OpenRouter. O seu plano continua funcionando. Para voltar a usar o Coach, autorize de novo.",
-  withdrawConfirm: "Retirar consentimento",
+  withdrawHealth: "Retirar autorização de saúde",
+  withdrawHealthTitle: "Retirar autorização de saúde do Coach?",
+  withdrawHealthDescription:
+    "O Coach é desativado e deixamos de enviar dados de saúde à IA. Apagamos as sugestões de plano pendentes do Coach. O histórico do chat e a autorização do chat continuam; para o Coach voltar a responder, autorize saúde de novo.",
+  withdrawHealthConfirm: "Retirar autorização de saúde",
+  withdrawChat: "Retirar autorização do chat",
+  withdrawChatTitle: "Retirar autorização do chat?",
+  withdrawChatDescription:
+    "O chat é desligado, o histórico é apagado e nada mais é enviado ao OpenRouter. A autorização de saúde e o plano continuam. Para voltar a conversar, autorize o chat de novo.",
+  withdrawChatConfirm: "Retirar autorização do chat",
   cancel: "Cancelar",
   deleteSuccess: "Histórico do chat apagado.",
-  withdrawSuccess: "Consentimento do Coach retirado.",
+  withdrawHealthSuccess: "Autorização de saúde do Coach retirada.",
+  withdrawChatSuccess: "Autorização do chat do Coach retirada.",
   originError: "Não foi possível guardar. Atualize a página e tente de novo.",
   unauthorized: "Inicie sessão para continuar.",
   rateLimit: "Muitas tentativas. Aguarde um momento e tente de novo.",

@@ -20,7 +20,10 @@ async function latestEmail(email: string) {
     );
 }
 
-export async function signedIn(page: Page, prefix = "profile-flow") {
+export async function signedIn(
+  page: Page,
+  prefix = "profile-flow",
+): Promise<string> {
   const email = `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
   await page.goto("/cadastro");
   await page.getByLabel("Nome").fill("Ana Souza");
@@ -36,6 +39,7 @@ export async function signedIn(page: Page, prefix = "profile-flow") {
   const confirmation = await latestEmail(email);
   await page.goto(confirmation?.confirmUrl ?? "/");
   await page.waitForURL("**/onboarding");
+  return email;
 }
 
 export async function grantConsent(

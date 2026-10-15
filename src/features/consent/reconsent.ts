@@ -4,6 +4,11 @@ import { isAllowedNext } from "@/features/auth/destination";
 
 import { CONSENT_TEXTS } from "@/consent/texts";
 
+import {
+  revokeCoachChatConsent,
+  revokeCoachHealthConsent,
+} from "@/features/coach";
+
 import type { ConsentEvent } from "./repository";
 import { createConsentRepository } from "./repository";
 
@@ -89,7 +94,17 @@ export async function submitReconsent(
 ): Promise<ReconsentSubmissionResult> {
   const scope = parseReconsentScope(input.scope);
   if (!scope) return { status: "invalid_scope" };
-  if (input.intent === "refuse") return { status: "refused" };
+  if (input.intent === "refuse") {
+    if (scope === "coach_health") {
+      const revoked = await revokeCoachHealthConsent(db, userId, "reconsent");
+      if (!revoked.ok) return { status: "invalid" };
+    }
+    if (scope === "coach_chat") {
+      const revoked = await revokeCoachChatConsent(db, userId, "reconsent");
+      if (!revoked.ok) return { status: "invalid" };
+    }
+    return { status: "refused" };
+  }
   if (!input.accepted) return { status: "needs_checkbox" };
   if (CONSENT_TEXTS[scope].transferCheckbox && !input.transferAccepted) {
     return { status: "needs_checkbox" };

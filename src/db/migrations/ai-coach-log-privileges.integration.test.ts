@@ -90,6 +90,37 @@ describe.skipIf(!runIntegration)("0012 ai coach log privileges", () => {
 
     await sql`delete from "users" where "id" = ${userId}::uuid`;
   });
+
+  it("permite DELETE em plan_change_proposals à gym_easy_app", async () => {
+    const userId = crypto.randomUUID();
+    await sql`
+      insert into "users" ("id", "name", "email", "password_hash")
+      values (
+        ${userId}::uuid,
+        'Propostas',
+        ${`${userId}@example.com`},
+        'hash'
+      )
+    `;
+
+    await sql`set role gym_easy_app`;
+    const inserted = await sql`
+      insert into "plan_change_proposals" ("user_id", "status", "payload")
+      values (
+        ${userId}::uuid,
+        'rejected',
+        ${JSON.stringify({ type: "deload", rationale: "teste" })}::jsonb
+      )
+      returning "id"
+    `;
+    const proposalId = inserted[0]?.id;
+    expect(proposalId).toBeTruthy();
+
+    await sql`delete from "plan_change_proposals" where "id" = ${proposalId}`;
+    await sql`reset role`;
+
+    await sql`delete from "users" where "id" = ${userId}::uuid`;
+  });
 });
 
 function isInsufficientPrivilege(error: unknown): boolean {

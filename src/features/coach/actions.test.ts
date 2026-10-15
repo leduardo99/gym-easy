@@ -1,14 +1,14 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { lookupSession, deleteHistory, revokeConsent, rateHit } = vi.hoisted(
-  () => ({
+const { lookupSession, deleteHistory, revokeHealth, revokeChat, rateHit } =
+  vi.hoisted(() => ({
     lookupSession: vi.fn(),
     deleteHistory: vi.fn(),
-    revokeConsent: vi.fn(),
+    revokeHealth: vi.fn(),
+    revokeChat: vi.fn(),
     rateHit: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock("next/headers", () => ({
   headers: vi.fn(async () => new Headers({ origin: "http://127.0.0.1:3000" })),
@@ -35,19 +35,22 @@ vi.mock("./delete-chat-history", () => ({
 }));
 
 vi.mock("./revoke-consent", () => ({
-  revokeCoachConsent: revokeConsent,
+  revokeCoachHealthConsent: revokeHealth,
+  revokeCoachChatConsent: revokeChat,
 }));
 
 import {
   deleteCoachChatHistoryAction,
-  revokeCoachConsentAction,
+  revokeCoachChatConsentAction,
+  revokeCoachHealthConsentAction,
 } from "./actions";
 
 describe("coach privacy actions", () => {
   beforeEach(() => {
     lookupSession.mockReset();
     deleteHistory.mockReset();
-    revokeConsent.mockReset();
+    revokeHealth.mockReset();
+    revokeChat.mockReset();
     rateHit.mockReset();
     rateHit.mockResolvedValue({ allowed: true, retryAfterSeconds: 0, hits: 1 });
     lookupSession.mockResolvedValue({
@@ -69,11 +72,18 @@ describe("coach privacy actions", () => {
     expect(deleteHistory).toHaveBeenCalledWith({}, "user-1");
   });
 
-  it("regista revogação com sessão e origem válidas", async () => {
-    revokeConsent.mockResolvedValue({ ok: true, deletedMessages: 2 });
-    const result = await revokeCoachConsentAction();
+  it("revoga saúde com sessão e origem válidas", async () => {
+    revokeHealth.mockResolvedValue({ ok: true, deletedProposals: 1 });
+    const result = await revokeCoachHealthConsentAction();
+    expect(result).toEqual({ ok: true, deletedCount: 1 });
+    expect(revokeHealth).toHaveBeenCalledWith({}, "user-1", "profile");
+  });
+
+  it("revoga chat com sessão e origem válidas", async () => {
+    revokeChat.mockResolvedValue({ ok: true, deletedMessages: 2 });
+    const result = await revokeCoachChatConsentAction();
     expect(result).toEqual({ ok: true, deletedCount: 2 });
-    expect(revokeConsent).toHaveBeenCalledWith({}, "user-1");
+    expect(revokeChat).toHaveBeenCalledWith({}, "user-1", "profile");
   });
 
   it("recusa sem sessão", async () => {
@@ -89,9 +99,9 @@ describe("coach privacy actions", () => {
     vi.mocked(headers).mockResolvedValueOnce(
       new Headers({ origin: "https://evil.example" }),
     );
-    const result = await revokeCoachConsentAction();
+    const result = await revokeCoachHealthConsentAction();
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.formError.code).toBe("origin");
-    expect(revokeConsent).not.toHaveBeenCalled();
+    expect(revokeHealth).not.toHaveBeenCalled();
   });
 });
