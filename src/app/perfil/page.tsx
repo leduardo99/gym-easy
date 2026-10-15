@@ -8,6 +8,10 @@ import { getDb } from "@/db";
 import { logoutAction } from "@/features/auth/actions";
 import { requireUser } from "@/features/auth/require-user";
 import { RECONSENT_COPY } from "@/features/consent/reconsent";
+import {
+  PROFILE_BIRTH_YEAR_ERROR_MESSAGE,
+  PROFILE_SAVE_RATE_LIMIT_MESSAGE,
+} from "@/features/profile/profile-copy";
 import { ProfileBirthYearFocus } from "@/features/profile/profile-birth-year-focus";
 import { ProfilePerfilFields } from "@/features/profile/profile-perfil-fields";
 import { saveProfileAction } from "@/features/training/actions";
@@ -29,12 +33,14 @@ export default async function ProfilePage({
       : params.erro === "altura"
         ? "Informe uma altura entre 100 e 250 cm."
         : params.erro === "nascimento"
-          ? "Informe um ano de nascimento válido. O Gym Easy é para maiores de 16 anos."
+          ? PROFILE_BIRTH_YEAR_ERROR_MESSAGE
           : params.erro === "perfil"
             ? "Revise os dados do perfil e tente de novo."
             : params.erro === "origem"
               ? RECONSENT_COPY.origin
-              : null;
+              : params.erro === "limite"
+                ? PROFILE_SAVE_RATE_LIMIT_MESSAGE
+                : null;
 
   return (
     <AppShell>
@@ -46,7 +52,11 @@ export default async function ProfilePage({
           className="mt-6"
           variant={params.guardado === "1" ? "default" : "destructive"}
         >
-          <AlertDescription>{notice}</AlertDescription>
+          <AlertDescription
+            id={params.erro === "nascimento" ? "birthYear-error" : undefined}
+          >
+            {notice}
+          </AlertDescription>
         </Alert>
       ) : null}
       <nav aria-label="Definições do perfil" className="mt-8">
@@ -59,7 +69,13 @@ export default async function ProfilePage({
       </nav>
       <ProfileBirthYearFocus />
       <form action={saveProfileAction} className="mt-8 flex flex-col gap-4">
-        <ProfilePerfilFields profile={profile} />
+        <ProfilePerfilFields
+          profile={profile}
+          birthYearInvalid={params.erro === "nascimento"}
+          birthYearErrorId={
+            params.erro === "nascimento" ? "birthYear-error" : undefined
+          }
+        />
         <Button type="submit" size="lg" className="w-full">
           Guardar
         </Button>

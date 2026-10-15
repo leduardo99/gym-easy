@@ -83,3 +83,12 @@ export function sessionMinuteOptions() {
 export const PROFILE_FORM_EMPTY_OPTION = "Não informado";
 
 export const PROFILE_COACH_OPTIONAL_HINT = "ajuda o coach a personalizar";
+
+export const PROFILE_BIRTH_YEAR_ERROR_MESSAGE =
+  "Informe um ano de nascimento válido com 4 dígitos. O Gym Easy é para maiores de 16 anos.";
+
+export const PROFILE_ONBOARDING_BIRTH_YEAR_ERROR_MESSAGE =
+  "Informe o ano de nascimento. É obrigatório para continuar, ou use Pular se preferir não informar agora.";
+
+export const PROFILE_SAVE_RATE_LIMIT_MESSAGE =
+  "Muitas alterações em pouco tempo. Aguarde um minuto e tente de novo.";

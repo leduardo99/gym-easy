@@ -30,7 +30,7 @@ function mapUser(row: typeof users.$inferSelect): StoredUser {
   };
 }
 
-export function createDrizzleUserStore(db: DbExecutor): UserStore {
+export function createDrizzleUserStore(db: DbClient): UserStore {
   return {
     async insertUser(user) {
       const rows = await db

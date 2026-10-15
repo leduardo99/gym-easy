@@ -8,6 +8,7 @@ import {
   loginRedirectPath,
   postAuthDestination,
 } from "@/features/auth/destination";
+import { createDrizzleRateLimiter } from "@/features/auth/drizzle-rate-limiter";
 import { createDrizzleUserStore } from "@/features/auth/drizzle-user-store";
 import { lookupSession } from "@/features/auth/lookup-session";
 import {
@@ -16,6 +17,11 @@ import {
   profileFormErrorFlag,
   type ProfileFormValidationError,
 } from "@/features/profile/parse-profile-form";
+import {
+  PROFILE_SAVE_LIMIT,
+  PROFILE_SAVE_WINDOW_MS,
+  profileSaveBucket,
+} from "@/features/profile/rate-limit";
 import { isAllowedOriginFromHeaders } from "@/lib/allowed-origin";
 import { reconsentPath } from "@/features/consent/reconsent";
 
@@ -25,7 +31,8 @@ import {
   createProfileInputSchema,
 } from "./schemas";
 
-type ProfileRedirectFlag = "guardado" | ProfileFormValidationError | "origem";
+type ProfileRedirectFlag =
+  "guardado" | ProfileFormValidationError | "origem" | "limite";
 
 function redirectToProfile(flag: ProfileRedirectFlag): never {
   if (flag === "guardado") redirect("/perfil?guardado=1");
@@ -35,6 +42,21 @@ function redirectToProfile(flag: ProfileRedirectFlag): never {
 function redirectToOnboarding(flag: ProfileRedirectFlag): never {
   if (flag === "guardado") redirect("/onboarding?guardado=1");
   redirect(`/onboarding?erro=${flag}`);
+}
+
+async function enforceProfileSaveRateLimit(
+  userId: string,
+  target: "perfil" | "onboarding",
+): Promise<void> {
+  const limited = await createDrizzleRateLimiter(getDb()).hit(
+    profileSaveBucket(userId),
+    PROFILE_SAVE_LIMIT,
+    PROFILE_SAVE_WINDOW_MS,
+  );
+  if (!limited.allowed) {
+    if (target === "perfil") redirectToProfile("limite");
+    redirectToOnboarding("limite");
+  }
 }
 
 async function saveProfileFromForm(
@@ -76,6 +98,8 @@ export async function saveProfileAction(formData: FormData) {
     redirect(loginRedirectPath(session.status, "/perfil"));
   }
 
+  await enforceProfileSaveRateLimit(session.user.id, "perfil");
+
   const saved = await saveProfileFromForm(formData, session.user.id);
   if (!saved.ok && saved.error === "consent_required") {
     redirect(reconsentPath("body_data", "/perfil"));
@@ -93,6 +117,8 @@ export async function saveOnboardingProfileAction(formData: FormData) {
   if (session.status !== "ok") {
     redirect(loginRedirectPath(session.status, "/onboarding"));
   }
+
+  await enforceProfileSaveRateLimit(session.user.id, "onboarding");
 
   const now = new Date();
   const parsed = createOnboardingBirthYearInputSchema(now).safeParse(

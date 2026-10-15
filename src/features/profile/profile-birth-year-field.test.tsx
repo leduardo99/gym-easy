@@ -20,6 +20,23 @@ describe("ProfileBirthYearField", () => {
     render(<ProfileBirthYearField birthYear={null} />);
     expect(screen.getByLabelText("Ano de nascimento")).toHaveValue("");
   });
+
+  it("expõe aria-invalid e aria-describedby quando inválido", () => {
+    render(
+      <ProfileBirthYearField
+        birthYear={null}
+        invalid
+        errorMessageId="birthYear-error"
+      />,
+    );
+
+    const input = screen.getByLabelText("Ano de nascimento");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAttribute(
+      "aria-describedby",
+      "birthYear-error birthYear-hint",
+    );
+  });
 });
 
 describe("formatProfileBirthYear", () => {

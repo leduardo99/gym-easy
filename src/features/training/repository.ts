@@ -217,7 +217,7 @@ function mapExercise(row: typeof exercises.$inferSelect): ExerciseRecord {
   };
 }
 
-export function createTrainingRepository(db: DbExecutor) {
+export function createTrainingRepository(db: DbClient) {
   async function ownedExerciseIds(
     userId: string,
     exerciseIds: readonly string[],

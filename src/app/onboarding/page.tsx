@@ -5,6 +5,10 @@ import { getDb } from "@/db";
 import { skipOnboardingAction, logoutAction } from "@/features/auth/actions";
 import { requireUser } from "@/features/auth/require-user";
 import { RECONSENT_COPY } from "@/features/consent/reconsent";
+import {
+  PROFILE_ONBOARDING_BIRTH_YEAR_ERROR_MESSAGE,
+  PROFILE_SAVE_RATE_LIMIT_MESSAGE,
+} from "@/features/profile/profile-copy";
 import { ProfileBirthYearField } from "@/features/profile/profile-birth-year-field";
 import { saveOnboardingProfileAction } from "@/features/training/actions";
 import { createTrainingRepository } from "@/features/training/repository";
@@ -19,13 +23,15 @@ export default async function OnboardingPage({
   const user = await requireUser("/onboarding");
   const profile = await createTrainingRepository(getDb()).getProfile(user.id);
   const params = await searchParams;
-  const notice =
-    params.erro === "nascimento"
-      ? "Informe um ano de nascimento válido. O Gym Easy é para maiores de 16 anos."
-      : params.erro === "perfil"
-        ? "Revise os dados e tente de novo."
-        : params.erro === "origem"
-          ? RECONSENT_COPY.origin
+  const birthYearInvalid = params.erro === "nascimento";
+  const notice = birthYearInvalid
+    ? PROFILE_ONBOARDING_BIRTH_YEAR_ERROR_MESSAGE
+    : params.erro === "perfil"
+      ? "Revise os dados e tente de novo."
+      : params.erro === "origem"
+        ? RECONSENT_COPY.origin
+        : params.erro === "limite"
+          ? PROFILE_SAVE_RATE_LIMIT_MESSAGE
           : null;
 
   return (
@@ -37,14 +43,19 @@ export default async function OnboardingPage({
       </p>
       {notice ? (
         <Alert className="mt-6" variant="destructive">
-          <AlertDescription>{notice}</AlertDescription>
+          <AlertDescription id="birthYear-error">{notice}</AlertDescription>
         </Alert>
       ) : null}
       <form
         action={saveOnboardingProfileAction}
         className="mt-8 flex flex-col gap-4"
       >
-        <ProfileBirthYearField birthYear={profile?.birthYear} required />
+        <ProfileBirthYearField
+          birthYear={profile?.birthYear}
+          required
+          invalid={birthYearInvalid}
+          errorMessageId={birthYearInvalid ? "birthYear-error" : undefined}
+        />
         <Button type="submit" size="lg" className="w-full">
           Guardar e continuar
         </Button>

@@ -47,6 +47,12 @@ vi.mock("@/db", () => ({
   getDb: () => db,
 }));
 
+vi.mock("@/features/auth/drizzle-rate-limiter", () => ({
+  createDrizzleRateLimiter: () => ({
+    hit: vi.fn(async () => ({ allowed: true, retryAfterSeconds: 0 })),
+  }),
+}));
+
 const saveProfile = vi.fn();
 const markOnboardingComplete = vi.fn();
 
