@@ -41,10 +41,10 @@ export const RECONSENT_COPY = {
   refusedCoachChat:
     "A autorização do chat foi retirada e o histórico de conversas foi apagado. O Coach não envia mais mensagens ao OpenRouter até você autorizar o chat de novo.",
   refusedBodyData:
-    "A autorização dos dados do corpo foi retirada. Apagamos altura, sexo e o histórico de peso. O ano de nascimento no perfil foi mantido. Para guardar altura ou peso de novo, autorize quando pedirmos.",
+    "A autorização dos dados do corpo foi retirada. Apagamos altura, sexo e os registos de peso. O ano de nascimento no perfil foi mantido. Para guardar altura ou peso de novo, autorize quando pedirmos.",
   refuseConfirmTitle: "Recusar autorização?",
   refuseConfirmBodyData:
-    "Apagamos altura, sexo e todo o histórico de peso da sua conta. O ano de nascimento no perfil não é alterado.",
+    "Apagamos altura, sexo e os registos de peso da sua conta. O ano de nascimento no perfil não é alterado.",
   refuseConfirmCoachHealth:
     "O coach fica desligado e as sugestões de plano do coach são apagadas.",
   refuseConfirmCoachChat:

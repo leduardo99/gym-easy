@@ -47,7 +47,7 @@ describe.skipIf(!runIntegration)(
       await client.end({ timeout: 5 });
     });
 
-    it("apaga perfil/medidas mas mensagens do coach e logs técnicos da IA permanecem", async () => {
+    it("apaga dados do corpo mas mensagens do coach e logs técnicos da IA permanecem", async () => {
       const id = crypto.randomUUID();
       await db.insert(users).values({
         id,

@@ -33,6 +33,15 @@ describe("BodyDataPrivacySection", () => {
     vi.clearAllMocks();
   });
 
+  it("mantém alvo de toque da linha do switch com pelo menos 44px (min-h-11)", () => {
+    render(
+      <BodyDataPrivacySection bodyDataGranted grantHref="/consentimento" />,
+    );
+    const row = screen.getByTestId("body-data-switch-row");
+    expect(row).toHaveClass("min-h-11");
+    expect(row.className).toMatch(/min-h-11/);
+  });
+
   it("liga o switch à descrição com aria-describedby", () => {
     render(
       <BodyDataPrivacySection bodyDataGranted grantHref="/consentimento" />,

@@ -127,6 +127,7 @@ export function BodyDataPrivacySection({
         </Alert>
       ) : null}
       <div
+        data-testid="body-data-switch-row"
         className="flex min-h-11 items-center justify-between gap-4 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10"
         onClick={(event) => {
           if (event.target === event.currentTarget) {

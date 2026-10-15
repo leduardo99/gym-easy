@@ -25,6 +25,11 @@ test("retirar dados do corpo no switch e voltar ao reconsentimento ao guardar al
   await page.goto("/perfil/privacidade");
   await expect(bodyDataSwitch(page)).toBeChecked();
 
+  const switchRow = page.getByTestId("body-data-switch-row");
+  await expect(switchRow).toHaveClass(/min-h-11/);
+  const rowBox = await switchRow.boundingBox();
+  expect(rowBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
   const switchControl = bodyDataSwitch(page);
   await switchControl.focus();
   await page.keyboard.press(" ");
@@ -67,7 +72,7 @@ test("Agora não no reconsentimento de body_data pede confirmação e apaga altu
   await page.goto("/consentimento?scope=body_data&next=/perfil");
   await refuseReconsentWithConfirm(
     page,
-    /Apagamos altura, sexo e todo o histórico de peso/i,
+    /Apagamos altura, sexo e os registos de peso/i,
   );
   await expect(page).toHaveURL(/recusado=corpo/);
   await expect(page.getByTestId("reconsent-notice")).toContainText(

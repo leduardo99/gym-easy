@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import {
   PRIVACY_POLICY,
+  PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID,
+  PRIVACY_POLICY_MINIMUM_AGE_ID,
   processorText,
 } from "@/features/consent/privacy-policy";
 
@@ -53,14 +55,27 @@ export default function PrivacyPage() {
             </ul>
           </div>
         </div>
-        {PRIVACY_POLICY.profileBodyData.paragraphs.map((paragraph) => (
-          <p
-            key={paragraph}
-            className="text-sm leading-6 text-muted-foreground"
-          >
-            {paragraph}
-          </p>
-        ))}
+        <p className="text-sm leading-6 text-muted-foreground">
+          {PRIVACY_POLICY.profileBodyData.paragraphs.intro}
+        </p>
+        <p
+          id={PRIVACY_POLICY_MINIMUM_AGE_ID}
+          className="text-sm leading-6 text-muted-foreground"
+        >
+          {PRIVACY_POLICY.profileBodyData.paragraphs.minimumAge}
+        </p>
+        <p
+          id={PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID}
+          className="text-sm leading-6 text-muted-foreground"
+        >
+          {PRIVACY_POLICY.profileBodyData.paragraphs.revoke}
+        </p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {PRIVACY_POLICY.profileBodyData.paragraphs.coachHealth}
+        </p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {PRIVACY_POLICY.profileBodyData.paragraphs.aiLogs}
+        </p>
       </section>
       <section
         aria-labelledby={PRIVACY_POLICY.rights.id}

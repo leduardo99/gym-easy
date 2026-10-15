@@ -1,7 +1,13 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { privacyPolicyText } from "@/features/consent/privacy-policy";
+import {
+  PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID,
+  PRIVACY_POLICY_MINIMUM_AGE_ID,
+  privacyPolicyMinimumAgeSentence,
+  privacyPolicyText,
+} from "@/features/consent/privacy-policy";
+import { MINIMUM_AGE_YEARS } from "@/features/profile/age";
 
 import PrivacyPage from "./page";
 
@@ -77,11 +83,27 @@ describe("PrivacyPage", () => {
     expect(profileBody).toHaveTextContent("Dados do corpo");
     expect(profileBody).toHaveTextContent("consentimento body_data");
     expect(profileBody).toHaveTextContent("heightCm");
+    expect(profileBody).toHaveTextContent("weight_kg");
     expect(profileBody).toHaveTextContent("coach_health");
     expect(profileBody).toHaveTextContent(/metadados técnicos/i);
     expect(profileBody).toHaveTextContent(/indicação ZDR/);
     expect(profileBody).not.toHaveTextContent(/só pseudónimo/i);
-    expect(profileBody).toHaveTextContent(/idade mínima.*16 anos/i);
+    expect(profileBody).not.toHaveTextContent(/medidas corporais/i);
+
+    const lists = within(profileBody).getAllByRole("list");
+    expect(lists[0]).toHaveTextContent("birthYear");
+    expect(lists[0]).not.toHaveTextContent("heightCm");
+    expect(lists[1]).toHaveTextContent("heightCm");
+    expect(lists[1]).not.toHaveTextContent("birthYear");
+    expect(lists[1]).not.toHaveTextContent("goal");
+    expect(lists[1]).not.toHaveTextContent("trainingPlace");
+
+    expect(
+      document.getElementById(PRIVACY_POLICY_MINIMUM_AGE_ID),
+    ).toHaveTextContent(privacyPolicyMinimumAgeSentence(MINIMUM_AGE_YEARS));
+    expect(
+      document.getElementById(PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID),
+    ).toHaveTextContent(new RegExp(`pelo menos ${MINIMUM_AGE_YEARS} anos`));
     expect(profileBody).toHaveTextContent(
       /art\. 6\.º, n\.º 1, alíneas b\) e c\)/,
     );
@@ -109,7 +131,10 @@ describe("PrivacyPage", () => {
     expect(privacyPolicyText()).toContain("Dados do perfil e do corpo");
     expect(privacyPolicyText()).toContain("daysPerWeek");
     expect(privacyPolicyText()).toContain("coach_health");
-    expect(privacyPolicyText()).toMatch(/16 anos/);
+    expect(privacyPolicyText()).toContain(
+      privacyPolicyMinimumAgeSentence(MINIMUM_AGE_YEARS),
+    );
+    expect(privacyPolicyText()).not.toContain("medidas corporais");
   });
 
   it("inclui a retirada do consentimento e a reclamação à CNPD", () => {
