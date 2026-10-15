@@ -2,10 +2,7 @@ import type { OpenRouterPrivacyMode } from "@/lib/env";
 
 import { runModelFallback, type ModelAttempt } from "./fallback";
 import type { AiOutcome } from "./schemas";
-import {
-  PLAN_TEMPORARILY_UNAVAILABLE_MESSAGE,
-  isAllModelsUnavailableOutcome,
-} from "./unavailable";
+import { PLAN_TEMPORARILY_UNAVAILABLE_MESSAGE } from "./unavailable";
 
 export type PlanGenerationResult<T> =
   | { ok: true; value: T; model: string; servedWithZdr: boolean }
@@ -37,8 +34,6 @@ export async function runPlanModelFallback<T>(options: {
   return {
     ok: false,
     outcome: generated.outcome,
-    message: isAllModelsUnavailableOutcome(generated.outcome)
-      ? PLAN_TEMPORARILY_UNAVAILABLE_MESSAGE
-      : PLAN_TEMPORARILY_UNAVAILABLE_MESSAGE,
+    message: PLAN_TEMPORARILY_UNAVAILABLE_MESSAGE,
   };
 }

@@ -565,6 +565,15 @@ describe("readServerEnv", () => {
         OPENROUTER_PRIVACY_MODE: "zdr_then_fallback",
       }).OPENROUTER_PRIVACY_MODE,
     ).toBe("zdr_then_fallback");
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_PRIVACY_MODE: "open_training",
+      }),
+    ).toThrow();
   });
 
   it("uses a non-secret consent key placeholder during next build", () => {
