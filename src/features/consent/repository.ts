@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 
-import type { AppDatabase } from "@/db";
+import type { DbClient } from "@/db";
 import type { ConsentAction, ConsentPurpose, ConsentSource } from "@/db/domain";
 import { consentLog } from "@/db/schema";
 import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
@@ -56,7 +56,7 @@ function mapEvent(row: typeof consentLog.$inferSelect): ConsentEvent {
   };
 }
 
-export function createConsentRepository(db: AppDatabase) {
+export function createConsentRepository(db: DbClient) {
   const api = {
     async recordConsent(
       userId: string,

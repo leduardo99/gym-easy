@@ -1,6 +1,6 @@
 import { eq, lt } from "drizzle-orm";
 
-import type { AppDatabase } from "@/db";
+import type { AppDatabase, DbClient } from "@/db";
 import {
   aiGenerationLogs,
   coachMessages,
@@ -123,7 +123,7 @@ export async function insertAiGenerationLog(
 
 /** Apaga o histórico de chat do próprio usuário. A LED-53 liga isto à UI. */
 export async function deleteCoachChatHistory(
-  db: AppDatabase,
+  db: DbClient,
   userId: string,
 ): Promise<number> {
   const rows = await db

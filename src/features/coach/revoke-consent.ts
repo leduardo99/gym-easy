@@ -3,7 +3,8 @@ import { createConsentRepository } from "@/features/consent/repository";
 import { deleteCoachChatHistory } from "@/lib/ai/messages";
 
 export type RevokeCoachConsentResult =
-  { ok: true; deletedMessages: number } | { ok: false; error: "invalid" };
+  | { ok: true; deletedMessages: number }
+  | { ok: false; error: "invalid" | "transaction_failed" };
 
 const COACH_PURPOSES = ["coach_health", "coach_chat"] as const;
 
@@ -11,15 +12,26 @@ export async function revokeCoachConsent(
   db: AppDatabase,
   userId: string,
 ): Promise<RevokeCoachConsentResult> {
-  const consents = createConsentRepository(db);
-  for (const purpose of COACH_PURPOSES) {
-    const saved = await consents.recordConsent(userId, {
-      purpose,
-      action: "revoked",
-      source: "profile",
+  try {
+    return await db.transaction(async (tx) => {
+      const consents = createConsentRepository(tx);
+      for (const purpose of COACH_PURPOSES) {
+        const saved = await consents.recordConsent(userId, {
+          purpose,
+          action: "revoked",
+          source: "profile",
+        });
+        if (!saved.ok) {
+          throw new Error("consent_invalid");
+        }
+      }
+      const deletedMessages = await deleteCoachChatHistory(tx, userId);
+      return { ok: true, deletedMessages };
     });
-    if (!saved.ok) return { ok: false, error: "invalid" };
+  } catch (error) {
+    if (error instanceof Error && error.message === "consent_invalid") {
+      return { ok: false, error: "invalid" };
+    }
+    return { ok: false, error: "transaction_failed" };
   }
-  const deletedMessages = await deleteCoachChatHistory(db, userId);
-  return { ok: true, deletedMessages };
 }

@@ -1,7 +1,7 @@
 export const COACH_PRIVACY_COPY = {
   sectionTitle: "Coach de IA",
   sectionDescription:
-    "Controle o histórico do chat e as autorizações do Coach. Mais opções de memória virão aqui.",
+    "Controle o histórico do chat e as autorizações do Coach.",
   deleteHistory: "Apagar histórico",
   deleteHistoryTitle: "Apagar histórico do chat?",
   deleteHistoryDescription:
