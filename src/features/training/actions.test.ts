@@ -101,7 +101,7 @@ describe("saveOnboardingProfileAction", () => {
 
     await expect(saveOnboardingProfileAction(formData)).rejects.toMatchObject({
       message: "NEXT_REDIRECT",
-      url: "/inicio",
+      url: "/perfil",
     });
 
     expect(transaction).toHaveBeenCalledTimes(1);
@@ -124,7 +124,7 @@ describe("saveOnboardingProfileAction", () => {
 
   it("rejeita menor de 16 anos", async () => {
     const formData = new FormData();
-    formData.set("birthYear", "2010");
+    formData.set("birthYear", String(new Date().getUTCFullYear() - 15));
 
     await expect(saveOnboardingProfileAction(formData)).rejects.toMatchObject({
       message: "NEXT_REDIRECT",
@@ -165,7 +165,7 @@ describe("saveProfileAction", () => {
 
   it("rejeita menor de 16 anos", async () => {
     const formData = new FormData();
-    formData.set("birthYear", "2010");
+    formData.set("birthYear", "2011");
 
     await expect(saveProfileAction(formData)).rejects.toMatchObject({
       message: "NEXT_REDIRECT",

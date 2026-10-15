@@ -6,8 +6,8 @@ import type { PasswordHasher } from "./password";
 import {
   RESEND_COOLDOWN_LIMIT,
   RESEND_COOLDOWN_WINDOW_MS,
+  SIGNUP_IP_LIMIT,
   SIGNUP_IP_WINDOW_MS,
-  resolveSignupIpLimit,
   resendCooldownBucket,
   signupIpBucket,
   type RateLimiter,
@@ -62,7 +62,7 @@ export async function registerAccount(
   if (input.ip) {
     const limit = await deps.rateLimiter.hit(
       signupIpBucket(input.ip),
-      resolveSignupIpLimit(),
+      SIGNUP_IP_LIMIT,
       SIGNUP_IP_WINDOW_MS,
     );
     if (!limit.allowed) {

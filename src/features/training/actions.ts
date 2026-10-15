@@ -145,6 +145,6 @@ export async function saveOnboardingProfileAction(formData: FormData) {
     );
   });
   redirect(
-    postAuthDestination({ onboardingCompletedAt: completedAt }, "/inicio"),
+    postAuthDestination({ onboardingCompletedAt: completedAt }, "/perfil"),
   );
 }

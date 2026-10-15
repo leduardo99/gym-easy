@@ -21,7 +21,10 @@ describe("validação de perfil no servidor (integração de schema)", () => {
   it("rejeita menor de 16 no perfil e no onboarding", () => {
     const profileSchema = createProfileInputSchema(now);
     const onboardingSchema = createOnboardingBirthYearInputSchema(now);
-    const input = parseOnboardingBirthYearForm(form({ birthYear: "2010" }));
+    const underAgeYear = String(now.getUTCFullYear() - 15);
+    const input = parseOnboardingBirthYearForm(
+      form({ birthYear: underAgeYear }),
+    );
 
     expect(profileSchema.safeParse(input).success).toBe(false);
     expect(onboardingSchema.safeParse(input).success).toBe(false);

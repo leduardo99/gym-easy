@@ -6,15 +6,6 @@ export const LOGIN_IP_LIMIT = 20;
 export const LOGIN_IP_WINDOW_MS = 60_000;
 export const SIGNUP_IP_LIMIT = 10;
 export const SIGNUP_IP_WINDOW_MS = 60 * 60_000;
-
-/** Optional override for e2e (many signups from one runner IP). */
-export function resolveSignupIpLimit(): number {
-  const raw = process.env.AUTH_SIGNUP_IP_LIMIT;
-  if (!raw) return SIGNUP_IP_LIMIT;
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed < 1) return SIGNUP_IP_LIMIT;
-  return Math.floor(parsed);
-}
 export const RESEND_COOLDOWN_LIMIT = 1;
 export const RESEND_COOLDOWN_WINDOW_MS = 60_000;
 export const RESEND_HOUR_LIMIT = 5;
