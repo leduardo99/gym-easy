@@ -3,6 +3,27 @@ set -euo pipefail
 
 image="${1:?image tag}"
 
+smoke_cron_http() {
+  local path="$1"
+  docker exec gym-easy-boot node --input-type=module -e "
+const url = 'http://127.0.0.1:3000${path}';
+const secret = process.env.CRON_SECRET ?? '';
+const unauth = await fetch(url, { method: 'POST' });
+if (unauth.status !== 401) {
+  console.error('cron smoke: expected 401 without bearer, got', unauth.status);
+  process.exit(1);
+}
+const auth = await fetch(url, {
+  method: 'POST',
+  headers: { authorization: 'Bearer ' + secret },
+});
+if (auth.status !== 200) {
+  console.error('cron smoke: expected 200 with bearer, got', auth.status);
+  process.exit(2);
+}
+"
+}
+
 cleanup() {
   docker rm -f gym-easy-boot >/dev/null 2>&1 || true
 }
@@ -66,5 +87,7 @@ fi
 
 docker logs gym-easy-boot >/tmp/gym-easy-boot.log 2>&1
 grep -q 'migrate-on-deploy: applied' /tmp/gym-easy-boot.log
+smoke_cron_http /api/cron/purge-consent-proofs
 docker exec gym-easy-boot node /app/scripts/purge-consent.mjs
+smoke_cron_http /api/cron/purge-coach-messages
 docker exec gym-easy-boot node /app/scripts/purge-coach-messages.mjs
