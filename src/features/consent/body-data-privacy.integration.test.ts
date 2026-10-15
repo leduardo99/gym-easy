@@ -23,7 +23,7 @@ import {
 } from "@/features/consent/repository";
 
 import { submitReconsent } from "./reconsent";
-import * as revokeBodyData from "./revoke-body-data";
+import * as purgeBodyData from "./purge-body-data";
 import { revokeBodyDataConsent } from "./revoke-body-data";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
@@ -212,7 +212,7 @@ describe.skipIf(!runIntegration)("body_data privacy integration", () => {
       weightKg: "65.0",
     });
 
-    vi.spyOn(revokeBodyData, "purgeBodyDataRows").mockRejectedValueOnce(
+    vi.spyOn(purgeBodyData, "purgeBodyDataRows").mockRejectedValueOnce(
       new Error("purge_failed"),
     );
 

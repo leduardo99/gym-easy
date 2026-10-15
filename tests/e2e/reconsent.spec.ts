@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { signedIn } from "./helpers/auth";
 import { birthYearField, heightField } from "./helpers/profile";
+import { refuseReconsentWithConfirm } from "./helpers/reconsent";
 
 test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   page,
@@ -39,13 +40,14 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
 test("recusar o reconsentimento não libera a ação", async ({ page }) => {
   await signedIn(page);
   await page.goto("/consentimento?scope=body_data&next=/perfil");
-  await page.getByRole("button", { name: "Agora não" }).click();
-  await expect(
-    page.getByText(
-      "Nada foi gravado. Sem esta autorização, a ação continua bloqueada.",
-    ),
-  ).toBeVisible();
-  await expect(page).toHaveURL(/\/consentimento\?/);
+  await refuseReconsentWithConfirm(
+    page,
+    /Apagamos altura, sexo e todo o histórico de peso/i,
+  );
+  await expect(page.getByTestId("reconsent-notice")).toContainText(
+    /ano de nascimento no perfil foi mantido/i,
+  );
+  await expect(page).toHaveURL(/recusado=corpo/);
 
   await page.goto("/perfil");
   await heightField(page).fill("170");

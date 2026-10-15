@@ -33,7 +33,9 @@ export async function saveBirthYearOnPerfil(
   await grantConsent(page, "body_data");
   await birthYearField(page).fill(year);
   await page.getByRole("button", { name: "Guardar" }).click();
-  await page.waitForURL(/\/perfil(\?|$)/);
+  await expect(page.getByText("Perfil guardado.")).toBeVisible({
+    timeout: 15_000,
+  });
   await page.reload();
   await expect(birthYearField(page)).toHaveValue(year);
 }
