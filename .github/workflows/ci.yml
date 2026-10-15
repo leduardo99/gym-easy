@@ -154,8 +154,8 @@ jobs:
       - name: Audit all dependencies (high or critical)
         run: pnpm audit --audit-level high
 
-      - name: Audit production dependencies (high or critical)
-        run: pnpm audit --prod --audit-level high
+      - name: Audit production dependencies
+        run: pnpm audit --prod
 
   test:
     name: test
