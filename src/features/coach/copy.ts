@@ -10,7 +10,7 @@ export const COACH_PRIVACY_COPY = {
   withdrawHealth: "Retirar autorização de saúde",
   withdrawHealthTitle: "Retirar autorização de saúde do Coach?",
   withdrawHealthDescription:
-    "O Coach é desativado e deixamos de enviar dados de saúde à IA. Apagamos as sugestões de plano pendentes do Coach. O histórico do chat e a autorização do chat continuam; para o Coach voltar a responder, autorize saúde de novo.",
+    "O Coach é desativado e deixamos de enviar dados de saúde à IA. Apagamos todas as sugestões de plano do Coach. O histórico do chat e a autorização do chat continuam; para o Coach voltar a responder, autorize saúde de novo.",
   withdrawHealthConfirm: "Retirar autorização de saúde",
   withdrawChat: "Retirar autorização do chat",
   withdrawChatTitle: "Retirar autorização do chat?",

@@ -12,6 +12,7 @@ import {
   RECONSENT_FALLBACK,
   parseReconsentScope,
   reconsentPath,
+  reconsentRefuseNoticeForScope,
   safeReconsentNext,
   submitReconsent,
 } from "./reconsent";
@@ -80,5 +81,7 @@ export async function refuseReconsentAction(formData: FormData) {
     accepted: false,
   });
   if (!scope) redirect(RECONSENT_FALLBACK);
-  redirect(reconsentPath(scope, nextPath, "refused"));
+  redirect(
+    reconsentPath(scope, nextPath, reconsentRefuseNoticeForScope(scope)),
+  );
 }

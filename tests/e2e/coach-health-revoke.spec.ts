@@ -41,6 +41,23 @@ async function postCoach(
   });
 }
 
+async function refuseReconsentWithConfirm(
+  page: import("@playwright/test").Page,
+  warning: RegExp,
+) {
+  await page.getByRole("button", { name: "Agora não" }).click();
+  const dialog = page.getByTestId("reconsent-refuse-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(warning);
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page).not.toHaveURL(/recusado=/);
+
+  await page.getByRole("button", { name: "Agora não" }).click();
+  await expect(dialog).toBeVisible();
+  await page.getByRole("button", { name: "Recusar autorização" }).click();
+}
+
 test.describe("revogação de saúde do coach", () => {
   test.skip(!hasDatabase, "DATABASE_URL necessário para validar histórico");
 
@@ -84,8 +101,17 @@ test.describe("revogação de saúde do coach", () => {
     await page.goto(
       "/consentimento?scope=coach_health&next=/perfil/privacidade",
     );
-    await page.getByRole("button", { name: "Agora não" }).click();
-    await expect(page).toHaveURL(/recusado=1/);
+    await refuseReconsentWithConfirm(
+      page,
+      /sugestões de plano do coach são apagadas/i,
+    );
+    await expect(page).toHaveURL(/recusado=saude/);
+    await expect(page.getByTestId("reconsent-notice")).toContainText(
+      /sugestões de plano do Coach foram apagadas/i,
+    );
+    await expect(
+      page.getByText("Nada foi gravado. Sem esta autorização"),
+    ).toHaveCount(0);
 
     const response = await postCoach(page, baseURL ?? "http://127.0.0.1:3000");
     expect(response.status()).toBe(403);
@@ -103,8 +129,14 @@ test.describe("revogação de saúde do coach", () => {
     expect(await countCoachMessagesForEmail(email)).toBe(1);
 
     await page.goto("/consentimento?scope=coach_chat&next=/perfil/privacidade");
-    await page.getByRole("button", { name: "Agora não" }).click();
-    await expect(page).toHaveURL(/recusado=1/);
+    await refuseReconsentWithConfirm(page, /histórico de conversas é apagado/i);
+    await expect(page).toHaveURL(/recusado=chat/);
+    await expect(page.getByTestId("reconsent-notice")).toContainText(
+      /histórico de conversas foi apagado/i,
+    );
+    await expect(
+      page.getByText("Nada foi gravado. Sem esta autorização"),
+    ).toHaveCount(0);
     expect(await countCoachMessagesForEmail(email)).toBe(0);
 
     const response = await postCoach(page, baseURL ?? "http://127.0.0.1:3000");

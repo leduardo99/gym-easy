@@ -70,6 +70,28 @@ describe("ReconsentScreen", () => {
     expect(screen.getByText(RECONSENT_COPY.refused)).toBeInTheDocument();
   });
 
+  it.each([
+    ["coach_health", "refused_coach_health", RECONSENT_COPY.refusedCoachHealth],
+    ["coach_chat", "refused_coach_chat", RECONSENT_COPY.refusedCoachChat],
+  ] as const)(
+    "mostra aviso específico após recusar %s no reconsentimento",
+    (scope, notice, message) => {
+      render(
+        <ReconsentScreen
+          copy={CONSENT_TEXTS[scope]}
+          scope={scope}
+          nextPath="/perfil"
+          notice={notice}
+        />,
+      );
+
+      expect(screen.getByTestId("reconsent-notice")).toHaveTextContent(message);
+      expect(
+        screen.queryByText(RECONSENT_COPY.refused),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it.each(["coach_health", "coach_chat"] as const)(
     "shows transfer risks before checkbox 2 without opening details (%s)",
     (scope) => {

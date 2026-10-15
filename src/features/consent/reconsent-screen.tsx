@@ -4,7 +4,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { ConsentCopy } from "@/consent/texts";
 
 import { ReconsentConsentForm } from "./reconsent-consent-form";
-import { RECONSENT_COPY, type ReconsentScope } from "./reconsent";
+import {
+  RECONSENT_COPY,
+  type ReconsentNotice,
+  type ReconsentScope,
+  reconsentNoticeMessage,
+} from "./reconsent";
 
 export function ReconsentScreen({
   copy,
@@ -15,16 +20,9 @@ export function ReconsentScreen({
   copy: ConsentCopy;
   scope: ReconsentScope;
   nextPath: string;
-  notice: "refused" | "checkbox" | "origin" | null;
+  notice: ReconsentNotice | null;
 }) {
-  const noticeText =
-    notice === "refused"
-      ? RECONSENT_COPY.refused
-      : notice === "checkbox"
-        ? RECONSENT_COPY.checkbox
-        : notice === "origin"
-          ? RECONSENT_COPY.origin
-          : null;
+  const noticeText = notice ? reconsentNoticeMessage(notice) : null;
 
   return (
     <AppShell>
@@ -32,7 +30,12 @@ export function ReconsentScreen({
       {noticeText ? (
         <Alert
           className="mt-4"
-          variant={notice === "refused" ? "default" : "destructive"}
+          variant={
+            notice === "checkbox" || notice === "origin"
+              ? "destructive"
+              : "default"
+          }
+          data-testid="reconsent-notice"
         >
           <AlertDescription>{noticeText}</AlertDescription>
         </Alert>

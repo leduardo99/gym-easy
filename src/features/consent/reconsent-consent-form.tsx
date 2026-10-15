@@ -1,7 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import type { ConsentCopy } from "@/consent/texts";
@@ -12,6 +23,7 @@ import {
   COACH_TRANSFER_RISK_LINE,
   RECONSENT_COPY,
   type ReconsentScope,
+  reconsentRefuseRequiresConfirmation,
 } from "./reconsent";
 
 function summaryParagraphs(
@@ -21,6 +33,12 @@ function summaryParagraphs(
   const paragraphs = body.split("\n").filter((line) => line.length > 0);
   const count = hasTransferCheckbox ? Math.min(3, paragraphs.length) : 1;
   return paragraphs.slice(0, count);
+}
+
+function refuseConfirmDescription(scope: ReconsentScope): string {
+  if (scope === "coach_health") return RECONSENT_COPY.refuseConfirmCoachHealth;
+  if (scope === "coach_chat") return RECONSENT_COPY.refuseConfirmCoachChat;
+  return RECONSENT_COPY.refused;
 }
 
 export function ReconsentConsentForm({
@@ -34,9 +52,11 @@ export function ReconsentConsentForm({
 }) {
   const [accepted, setAccepted] = useState(false);
   const [transferAccepted, setTransferAccepted] = useState(false);
+  const refuseFormId = useId();
   const requiresTransfer = Boolean(copy.transferCheckbox);
   const canSubmit = accepted && (!requiresTransfer || transferAccepted);
   const summary = summaryParagraphs(copy.body, requiresTransfer);
+  const refuseNeedsConfirm = reconsentRefuseRequiresConfirmation(scope);
 
   return (
     <>
@@ -124,13 +144,50 @@ export function ReconsentConsentForm({
           {RECONSENT_COPY.accept}
         </Button>
       </form>
-      <form action={refuseReconsentAction} className="mt-3">
-        <input type="hidden" name="scope" value={scope} />
-        <input type="hidden" name="next" value={nextPath} />
-        <Button type="submit" variant="outline" size="lg" className="w-full">
-          {RECONSENT_COPY.refuse}
-        </Button>
-      </form>
+      {refuseNeedsConfirm ? (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="mt-3 w-full"
+            >
+              {RECONSENT_COPY.refuse}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent data-testid="reconsent-refuse-dialog">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {RECONSENT_COPY.refuseConfirmTitle}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {refuseConfirmDescription(scope)}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <form id={refuseFormId} action={refuseReconsentAction}>
+              <input type="hidden" name="scope" value={scope} />
+              <input type="hidden" name="next" value={nextPath} />
+            </form>
+            <AlertDialogFooter>
+              <AlertDialogCancel>
+                {RECONSENT_COPY.refuseConfirmCancel}
+              </AlertDialogCancel>
+              <AlertDialogAction type="submit" form={refuseFormId}>
+                {RECONSENT_COPY.refuseConfirmAction}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : (
+        <form action={refuseReconsentAction} className="mt-3">
+          <input type="hidden" name="scope" value={scope} />
+          <input type="hidden" name="next" value={nextPath} />
+          <Button type="submit" variant="outline" size="lg" className="w-full">
+            {RECONSENT_COPY.refuse}
+          </Button>
+        </form>
+      )}
     </>
   );
 }
