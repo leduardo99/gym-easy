@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   coachModelsForPrivacyMode,
-  DEFAULT_COACH_MODELS_PAID,
   parseOpenRouterProviders,
   parsePaidModelList,
   planModelsForPrivacyMode,
@@ -10,18 +9,20 @@ import {
 
 describe("model lists", () => {
   it("rejects :free ids in paid model lists", () => {
-    expect(
-      parsePaidModelList("vendor/model:free", DEFAULT_COACH_MODELS_PAID),
-    ).toEqual({
+    expect(parsePaidModelList("vendor/model:free")).toEqual({
       ok: false,
       reason: "invalid_paid",
     });
   });
 
-  it("defaults paid coach models when unset", () => {
-    expect(parsePaidModelList(undefined, DEFAULT_COACH_MODELS_PAID)).toEqual({
-      ok: true,
-      models: [...DEFAULT_COACH_MODELS_PAID],
+  it("requires an explicit paid model list", () => {
+    expect(parsePaidModelList(undefined)).toEqual({
+      ok: false,
+      reason: "missing",
+    });
+    expect(parsePaidModelList("")).toEqual({
+      ok: false,
+      reason: "missing",
     });
   });
 

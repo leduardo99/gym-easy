@@ -126,6 +126,18 @@ function consentFreshness(
   return isCurrentConsent(event) ? "current" : "stale";
 }
 
+function grantedConsentVersion(
+  event:
+    | {
+        action: "granted" | "revoked";
+        version: string;
+      }
+    | undefined,
+): string | null {
+  if (!event || event.action !== "granted") return null;
+  return event.version;
+}
+
 export async function createCoachHttpResponse(input: {
   userId: string;
   body: unknown;
@@ -175,6 +187,11 @@ export async function createCoachHttpResponse(input: {
       coachHealth: consentFreshness(latestConsent("coach_health")),
       coachChat: consentFreshness(latestConsent("coach_chat")),
     },
+    coachConsentVersions: {
+      coachHealth: grantedConsentVersion(latestConsent("coach_health")),
+      coachChat: grantedConsentVersion(latestConsent("coach_chat")),
+    },
+    paidZdrConsentVersionSuffix: env.COACH_CONSENT_VERSION_PAID_ZDR,
     profile,
     weightKg: weightKg !== null && Number.isFinite(weightKg) ? weightKg : null,
     limiter: createDrizzleRateLimiter(db),

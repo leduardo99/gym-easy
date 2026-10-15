@@ -5,19 +5,6 @@ const FREE_SUFFIX = ":free";
 export type FreeModelList =
   { ok: true; models: string[] } | { ok: false; reason: "not_free" };
 
-export type PaidModelList =
-  { ok: true; models: string[] } | { ok: false; reason: "invalid_paid" };
-
-export const DEFAULT_COACH_MODELS_PAID = [
-  "google/gemma-4-31b-it",
-  "openai/gpt-oss-120b",
-] as const;
-
-export const DEFAULT_PLAN_MODELS_PAID = [
-  "google/gemma-4-31b-it",
-  "openai/gpt-oss-120b",
-] as const;
-
 /** Nomes de modelo vêm do ambiente. Só variantes `:free` entram na lista. */
 export function parseFreeModelList(value: string | undefined): FreeModelList {
   if (!value || value.trim() === "") return { ok: true, models: [] };
@@ -38,13 +25,14 @@ export function parseFreeModelList(value: string | undefined): FreeModelList {
   return { ok: true, models };
 }
 
+export type PaidModelList =
+  | { ok: true; models: string[] }
+  | { ok: false; reason: "invalid_paid" | "missing" };
+
 /** Modelos pagos sem sufixo `:free` (modo `paid_zdr` apenas). */
-export function parsePaidModelList(
-  value: string | undefined,
-  defaults: readonly string[],
-): PaidModelList {
+export function parsePaidModelList(value: string | undefined): PaidModelList {
   if (!value || value.trim() === "") {
-    return { ok: true, models: [...defaults] };
+    return { ok: false, reason: "missing" };
   }
   const models = value
     .split(",")

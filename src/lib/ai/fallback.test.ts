@@ -198,6 +198,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: minJitter,
@@ -230,6 +231,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: minJitter,
@@ -262,6 +264,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async (ms) => {
@@ -287,6 +290,7 @@ describe("provider fallback", () => {
     const promise = runModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: steadyJitter,

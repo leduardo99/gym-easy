@@ -26,6 +26,10 @@ import {
   type CoachConsents,
   type CoachProfileSource,
 } from "./context";
+import {
+  coachConsentVersionsMeetPaidZdr,
+  type CoachConsentVersions,
+} from "./paid-zdr-consent";
 import { isCooldownActive, type RedFlagLockStore } from "./cooldown";
 import { runModelFallback, type ModelAttempt } from "./fallback";
 import { hashUserId, toAiLogRecord } from "./log";
@@ -82,12 +86,14 @@ export type CoachTurnInput = {
   message: unknown;
   now: Date;
   consents: CoachConsents;
+  coachConsentVersions: CoachConsentVersions;
   profile: CoachProfileSource;
   weightKg: number | null;
   limiter: RateLimiter;
   locks: RedFlagLockStore;
   models: string[];
   privacyMode: OpenRouterPrivacyMode;
+  paidZdrConsentVersionSuffix: string | null;
   pinnedProviders: string[];
   callModel: (request: CoachModelRequest) => Promise<{ text: string }>;
   log: (record: AiLogRecord) => void;
@@ -195,6 +201,21 @@ export async function assessCoachTurn(
       "consent_missing",
       403,
       CONSENT_RESPONSE,
+      "validation_rejected",
+    );
+  }
+
+  if (
+    input.privacyMode === "paid_zdr" &&
+    !coachConsentVersionsMeetPaidZdr(
+      input.coachConsentVersions,
+      input.paidZdrConsentVersionSuffix,
+    )
+  ) {
+    return shell(
+      "reconsent_required",
+      403,
+      RECONSENT_RESPONSE,
       "validation_rejected",
     );
   }
