@@ -144,6 +144,32 @@ describe("coach risk gate", () => {
     expect(callModel).not.toHaveBeenCalled();
   });
 
+  it("explains missing coach health when chat consent is still active", async () => {
+    const callModel = vi.fn(async () => ({ text: "não" }));
+    const result = await handleCoachTurn({
+      userId: "user-1",
+      message: "qual treino eu faço?",
+      now: new Date("2026-10-14T12:00:00.000Z"),
+      consents: {
+        bodyData: "current",
+        coachHealth: "missing",
+        coachChat: "current",
+      },
+      profile,
+      weightKg: 64,
+      limiter: createMemoryRateLimiter(),
+      locks: createMemoryRedFlagLockStore(),
+      callModel,
+      log: () => undefined,
+      sleep: async () => undefined,
+      models: ["alpha/example:free"],
+    });
+
+    expect(result.status).toBe("consent_missing");
+    expect(result.text).toMatch(/falta autorização de saúde/);
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
   it("refuses to call the model without body and coach health consent", async () => {
     const callModel = vi.fn(async () => ({ text: "não" }));
     const result = await handleCoachTurn({

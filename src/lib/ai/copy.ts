@@ -14,6 +14,9 @@ export const RATE_LIMIT_RESPONSE =
 export const CONSENT_RESPONSE =
   "O chat do coach precisa das autorizações vigentes de dados do corpo, de saúde e do chat.";
 
+export const COACH_HEALTH_MISSING_RESPONSE =
+  "Coach desativado: falta autorização de saúde. Autorize em Perfil > Privacidade ou na página de consentimento.";
+
 export const RECONSENT_RESPONSE =
   "O texto da autorização do coach mudou. Confirme a versão atual para continuar.";
 

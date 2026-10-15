@@ -15,7 +15,10 @@ import {
   COACH_PRIVACY_WINDOW_MS,
   coachPrivacyBucket,
 } from "./rate-limit";
-import { revokeCoachConsent } from "./revoke-consent";
+import {
+  revokeCoachChatConsent,
+  revokeCoachHealthConsent,
+} from "./revoke-consent";
 import { coachPrivacyMutationSchema } from "./schemas";
 
 export type CoachPrivacyFormError = {
@@ -67,7 +70,11 @@ async function coachPrivacyContext(): Promise<
   return { ok: true, userId: session.user.id };
 }
 
-export async function deleteCoachChatHistoryAction(): Promise<CoachPrivacyActionResult> {
+async function runPrivacyMutation(
+  work: (
+    userId: string,
+  ) => Promise<{ ok: true; deletedCount: number } | { ok: false }>,
+): Promise<CoachPrivacyActionResult> {
   const context = await coachPrivacyContext();
   if (!context.ok) return context;
   const parsed = coachPrivacyMutationSchema.safeParse({});
@@ -78,11 +85,14 @@ export async function deleteCoachChatHistoryAction(): Promise<CoachPrivacyAction
     };
   }
   try {
-    const deletedCount = await deleteUserCoachChatHistory(
-      getDb(),
-      context.userId,
-    );
-    return { ok: true, deletedCount };
+    const result = await work(context.userId);
+    if (!result.ok) {
+      return {
+        ok: false,
+        formError: { code: "server", message: COACH_PRIVACY_COPY.serverError },
+      };
+    }
+    return { ok: true, deletedCount: result.deletedCount };
   } catch {
     return {
       ok: false,
@@ -91,29 +101,25 @@ export async function deleteCoachChatHistoryAction(): Promise<CoachPrivacyAction
   }
 }
 
-export async function revokeCoachConsentAction(): Promise<CoachPrivacyActionResult> {
-  const context = await coachPrivacyContext();
-  if (!context.ok) return context;
-  const parsed = coachPrivacyMutationSchema.safeParse({});
-  if (!parsed.success) {
-    return {
-      ok: false,
-      formError: { code: "server", message: COACH_PRIVACY_COPY.serverError },
-    };
-  }
-  try {
-    const result = await revokeCoachConsent(getDb(), context.userId);
-    if (!result.ok) {
-      return {
-        ok: false,
-        formError: { code: "server", message: COACH_PRIVACY_COPY.serverError },
-      };
-    }
+export async function deleteCoachChatHistoryAction(): Promise<CoachPrivacyActionResult> {
+  return runPrivacyMutation(async (userId) => {
+    const deletedCount = await deleteUserCoachChatHistory(getDb(), userId);
+    return { ok: true, deletedCount };
+  });
+}
+
+export async function revokeCoachHealthConsentAction(): Promise<CoachPrivacyActionResult> {
+  return runPrivacyMutation(async (userId) => {
+    const result = await revokeCoachHealthConsent(getDb(), userId, "profile");
+    if (!result.ok) return { ok: false };
+    return { ok: true, deletedCount: result.deletedProposals };
+  });
+}
+
+export async function revokeCoachChatConsentAction(): Promise<CoachPrivacyActionResult> {
+  return runPrivacyMutation(async (userId) => {
+    const result = await revokeCoachChatConsent(getDb(), userId, "profile");
+    if (!result.ok) return { ok: false };
     return { ok: true, deletedCount: result.deletedMessages };
-  } catch {
-    return {
-      ok: false,
-      formError: { code: "server", message: COACH_PRIVACY_COPY.serverError },
-    };
-  }
+  });
 }

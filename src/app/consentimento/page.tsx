@@ -9,6 +9,7 @@ import { ReconsentScreen } from "@/features/consent/reconsent-screen";
 import {
   RECONSENT_COPY,
   RECONSENT_FALLBACK,
+  parseReconsentNotice,
   parseReconsentScope,
   reconsentPath,
   safeReconsentNext,
@@ -42,14 +43,7 @@ export default async function ConsentPage({
     );
   }
 
-  const notice =
-    params.recusado === "1"
-      ? "refused"
-      : params.erro === "caixa"
-        ? "checkbox"
-        : params.erro === "origem"
-          ? "origin"
-          : null;
+  const notice = parseReconsentNotice(params.recusado, params.erro);
 
   return (
     <ReconsentScreen

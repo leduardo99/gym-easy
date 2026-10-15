@@ -2,6 +2,7 @@ import type { RateLimiter } from "@/features/auth/rate-limit";
 
 import { classifyChatRisk, type ChatRisk } from "./classify-chat-risk";
 import {
+  COACH_HEALTH_MISSING_RESPONSE,
   CONSENT_RESPONSE,
   INJECTION_RESPONSE,
   PROFILE_INCOMPLETE_CTA,
@@ -158,6 +159,19 @@ export async function assessCoachTurn(
     return shell("safety_block", 200, text, "safety_block", {
       risk: "red_flag",
     });
+  }
+
+  if (
+    input.consents.bodyData === "current" &&
+    input.consents.coachChat === "current" &&
+    input.consents.coachHealth === "missing"
+  ) {
+    return shell(
+      "consent_missing",
+      403,
+      COACH_HEALTH_MISSING_RESPONSE,
+      "validation_rejected",
+    );
   }
 
   const consent = coachConsentStatus(input.consents);

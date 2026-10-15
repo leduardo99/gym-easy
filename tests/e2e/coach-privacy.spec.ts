@@ -74,23 +74,25 @@ test("perfil privacidade mostra o Coach de IA e apaga histórico com confirmaç�
   ).toBeVisible();
 });
 
-test("retirar consentimento do Coach pede confirmação e mostra sucesso", async ({
+test("retirar autorização do chat pede confirmação e mostra sucesso", async ({
   page,
 }) => {
   await signedIn(page);
   await grantCoachChat(page);
-  await page.getByRole("button", { name: "Retirar consentimento" }).click();
+  await page
+    .getByRole("button", { name: "Retirar autorização do chat" })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "Retirar consentimento do Coach?" }),
+    page.getByRole("heading", { name: "Retirar autorização do chat?" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Retirar consentimento" })
+    .getByRole("button", { name: "Retirar autorização do chat" })
     .last()
     .click();
   await expect(
     page
       .getByTestId("coach-privacy-section")
-      .getByText("Consentimento do Coach retirado."),
+      .getByText("Autorização do chat do Coach retirada."),
   ).toBeVisible();
 });
 

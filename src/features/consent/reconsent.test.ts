@@ -4,8 +4,11 @@ import type { AppDatabase } from "@/db";
 
 import {
   RECONSENT_COPY,
+  parseReconsentNotice,
   parseReconsentScope,
+  reconsentNoticeMessage,
   reconsentPath,
+  reconsentRefuseNoticeForScope,
   safeReconsentNext,
   submitReconsent,
 } from "./reconsent";
@@ -28,6 +31,28 @@ describe("reconsent path", () => {
     expect(safeReconsentNext("/consentimento?scope=body_data")).toBe("/perfil");
     expect(reconsentPath("body_data", "https://evil.example")).toBe(
       "/consentimento?scope=body_data&next=%2Fperfil",
+    );
+  });
+
+  it("codifica avisos de recusa por finalidade do coach", () => {
+    expect(
+      reconsentPath("coach_health", "/perfil", "refused_coach_health"),
+    ).toBe("/consentimento?scope=coach_health&next=%2Fperfil&recusado=saude");
+    expect(reconsentPath("coach_chat", "/perfil", "refused_coach_chat")).toBe(
+      "/consentimento?scope=coach_chat&next=%2Fperfil&recusado=chat",
+    );
+    expect(parseReconsentNotice("saude", undefined)).toBe(
+      "refused_coach_health",
+    );
+    expect(parseReconsentNotice("chat", undefined)).toBe("refused_coach_chat");
+    expect(reconsentRefuseNoticeForScope("coach_health")).toBe(
+      "refused_coach_health",
+    );
+    expect(reconsentNoticeMessage("refused_coach_health")).toBe(
+      RECONSENT_COPY.refusedCoachHealth,
+    );
+    expect(reconsentNoticeMessage("refused_coach_chat")).toBe(
+      RECONSENT_COPY.refusedCoachChat,
     );
   });
 

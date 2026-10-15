@@ -4,6 +4,11 @@ import { isAllowedNext } from "@/features/auth/destination";
 
 import { CONSENT_TEXTS } from "@/consent/texts";
 
+import {
+  revokeCoachChatConsent,
+  revokeCoachHealthConsent,
+} from "@/features/coach";
+
 import type { ConsentEvent } from "./repository";
 import { createConsentRepository } from "./repository";
 
@@ -30,10 +35,69 @@ export const RECONSENT_COPY = {
   accept: "Autorizar",
   refuse: "Agora não",
   refused: "Nada foi gravado. Sem esta autorização, a ação continua bloqueada.",
+  refusedCoachHealth:
+    "A autorização de saúde foi retirada e as sugestões de plano do Coach foram apagadas. O histórico do chat foi mantido. O Coach não responde até você autorizar saúde de novo.",
+  refusedCoachChat:
+    "A autorização do chat foi retirada e o histórico de conversas foi apagado. O Coach não envia mais mensagens ao OpenRouter até você autorizar o chat de novo.",
+  refuseConfirmTitle: "Recusar autorização?",
+  refuseConfirmCoachHealth:
+    "O coach fica desligado e as sugestões de plano do coach são apagadas.",
+  refuseConfirmCoachChat:
+    "O coach fica desligado e o histórico de conversas é apagado.",
+  refuseConfirmAction: "Recusar autorização",
+  refuseConfirmCancel: "Voltar",
   checkbox: "Marque a autorização para continuar.",
   scope: "Esta finalidade não pode ser autorizada por aqui.",
   origin: "Não foi possível guardar. Atualize a página e tente de novo.",
 } as const;
+
+export type ReconsentNotice =
+  | "refused"
+  | "refused_coach_health"
+  | "refused_coach_chat"
+  | "checkbox"
+  | "origin";
+
+export function reconsentRefuseRequiresConfirmation(
+  scope: ReconsentScope,
+): boolean {
+  return scope === "coach_health" || scope === "coach_chat";
+}
+
+export function reconsentRefuseNoticeForScope(
+  scope: ReconsentScope,
+): ReconsentNotice {
+  if (scope === "coach_health") return "refused_coach_health";
+  if (scope === "coach_chat") return "refused_coach_chat";
+  return "refused";
+}
+
+export function reconsentNoticeMessage(notice: ReconsentNotice): string {
+  switch (notice) {
+    case "refused_coach_health":
+      return RECONSENT_COPY.refusedCoachHealth;
+    case "refused_coach_chat":
+      return RECONSENT_COPY.refusedCoachChat;
+    case "refused":
+      return RECONSENT_COPY.refused;
+    case "checkbox":
+      return RECONSENT_COPY.checkbox;
+    case "origin":
+      return RECONSENT_COPY.origin;
+  }
+}
+
+export function parseReconsentNotice(
+  recusado: string | undefined,
+  erro: string | undefined,
+): ReconsentNotice | null {
+  if (recusado === "saude") return "refused_coach_health";
+  if (recusado === "chat") return "refused_coach_chat";
+  if (recusado === "1") return "refused";
+  if (erro === "caixa") return "checkbox";
+  if (erro === "origem") return "origin";
+  return null;
+}
 
 export function parseReconsentScope(
   value: string | null | undefined,
@@ -57,12 +121,14 @@ export function safeReconsentNext(value: string | null | undefined): string {
 export function reconsentPath(
   scope: ReconsentScope,
   nextPath: string,
-  notice?: "refused" | "checkbox" | "origin",
+  notice?: ReconsentNotice,
 ): string {
   const params = new URLSearchParams();
   params.set("scope", scope);
   params.set("next", safeReconsentNext(nextPath));
   if (notice === "refused") params.set("recusado", "1");
+  if (notice === "refused_coach_health") params.set("recusado", "saude");
+  if (notice === "refused_coach_chat") params.set("recusado", "chat");
   if (notice === "checkbox") params.set("erro", "caixa");
   if (notice === "origin") params.set("erro", "origem");
   return `/consentimento?${params.toString()}`;
@@ -89,7 +155,17 @@ export async function submitReconsent(
 ): Promise<ReconsentSubmissionResult> {
   const scope = parseReconsentScope(input.scope);
   if (!scope) return { status: "invalid_scope" };
-  if (input.intent === "refuse") return { status: "refused" };
+  if (input.intent === "refuse") {
+    if (scope === "coach_health") {
+      const revoked = await revokeCoachHealthConsent(db, userId, "reconsent");
+      if (!revoked.ok) return { status: "invalid" };
+    }
+    if (scope === "coach_chat") {
+      const revoked = await revokeCoachChatConsent(db, userId, "reconsent");
+      if (!revoked.ok) return { status: "invalid" };
+    }
+    return { status: "refused" };
+  }
   if (!input.accepted) return { status: "needs_checkbox" };
   if (CONSENT_TEXTS[scope].transferCheckbox && !input.transferAccepted) {
     return { status: "needs_checkbox" };

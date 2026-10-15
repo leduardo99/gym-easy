@@ -18,11 +18,12 @@ import { Button } from "@/components/ui/button";
 
 import {
   deleteCoachChatHistoryAction,
-  revokeCoachConsentAction,
+  revokeCoachChatConsentAction,
+  revokeCoachHealthConsentAction,
 } from "../actions";
 import { COACH_PRIVACY_COPY } from "../copy";
 
-type DialogKind = "delete" | "withdraw" | null;
+type DialogKind = "delete" | "withdrawHealth" | "withdrawChat" | null;
 
 export function CoachPrivacySection() {
   const [dialog, setDialog] = useState<DialogKind>(null);
@@ -37,7 +38,9 @@ export function CoachPrivacySection() {
       const result =
         kind === "delete"
           ? await deleteCoachChatHistoryAction()
-          : await revokeCoachConsentAction();
+          : kind === "withdrawHealth"
+            ? await revokeCoachHealthConsentAction()
+            : await revokeCoachChatConsentAction();
       setDialog(null);
       if (!result.ok) {
         setBanner({
@@ -51,7 +54,9 @@ export function CoachPrivacySection() {
         message:
           kind === "delete"
             ? COACH_PRIVACY_COPY.deleteSuccess
-            : COACH_PRIVACY_COPY.withdrawSuccess,
+            : kind === "withdrawHealth"
+              ? COACH_PRIVACY_COPY.withdrawHealthSuccess
+              : COACH_PRIVACY_COPY.withdrawChatSuccess,
       });
     });
   }
@@ -117,8 +122,8 @@ export function CoachPrivacySection() {
         </AlertDialog>
 
         <AlertDialog
-          open={dialog === "withdraw"}
-          onOpenChange={(open) => setDialog(open ? "withdraw" : null)}
+          open={dialog === "withdrawHealth"}
+          onOpenChange={(open) => setDialog(open ? "withdrawHealth" : null)}
         >
           <AlertDialogTrigger asChild>
             <Button
@@ -127,16 +132,16 @@ export function CoachPrivacySection() {
               size="lg"
               className="w-full"
             >
-              {COACH_PRIVACY_COPY.withdrawConsent}
+              {COACH_PRIVACY_COPY.withdrawHealth}
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent aria-describedby="withdraw-consent-description">
+          <AlertDialogContent aria-describedby="withdraw-health-description">
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {COACH_PRIVACY_COPY.withdrawTitle}
+                {COACH_PRIVACY_COPY.withdrawHealthTitle}
               </AlertDialogTitle>
-              <AlertDialogDescription id="withdraw-consent-description">
-                {COACH_PRIVACY_COPY.withdrawDescription}
+              <AlertDialogDescription id="withdraw-health-description">
+                {COACH_PRIVACY_COPY.withdrawHealthDescription}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -148,10 +153,51 @@ export function CoachPrivacySection() {
                 disabled={pending}
                 onClick={(event) => {
                   event.preventDefault();
-                  runAction("withdraw");
+                  runAction("withdrawHealth");
                 }}
               >
-                {COACH_PRIVACY_COPY.withdrawConfirm}
+                {COACH_PRIVACY_COPY.withdrawHealthConfirm}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={dialog === "withdrawChat"}
+          onOpenChange={(open) => setDialog(open ? "withdrawChat" : null)}
+        >
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              className="w-full"
+            >
+              {COACH_PRIVACY_COPY.withdrawChat}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent aria-describedby="withdraw-chat-description">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {COACH_PRIVACY_COPY.withdrawChatTitle}
+              </AlertDialogTitle>
+              <AlertDialogDescription id="withdraw-chat-description">
+                {COACH_PRIVACY_COPY.withdrawChatDescription}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={pending}>
+                {COACH_PRIVACY_COPY.cancel}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={pending}
+                onClick={(event) => {
+                  event.preventDefault();
+                  runAction("withdrawChat");
+                }}
+              >
+                {COACH_PRIVACY_COPY.withdrawChatConfirm}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
