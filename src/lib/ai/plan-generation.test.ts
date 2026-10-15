@@ -8,6 +8,7 @@ describe("runPlanModelFallback", () => {
     const result = await runPlanModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: [],
       call: async () => {
         throw new Error("upstream");
       },
@@ -26,6 +27,7 @@ describe("runPlanModelFallback", () => {
     const result = await runPlanModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: [],
       call,
       sleep: async () => undefined,
     });

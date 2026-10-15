@@ -8,12 +8,19 @@ import {
 } from "@/db/database-tls.mjs";
 import { readDbPoolConfig } from "@/db/driver";
 
-import { parseFreeModelList } from "@/lib/ai/models";
+import {
+  parseFreeModelList,
+  parseOpenRouterProviders,
+  parsePaidModelList,
+  DEFAULT_COACH_MODELS_PAID,
+  DEFAULT_PLAN_MODELS_PAID,
+} from "@/lib/ai/models";
 import { strictAppUrlOrigin } from "./app-url";
 
 export const OPENROUTER_PRIVACY_MODES = [
   "zdr_only",
   "zdr_then_fallback",
+  "paid_zdr",
 ] as const;
 export type OpenRouterPrivacyMode = (typeof OPENROUTER_PRIVACY_MODES)[number];
 
@@ -199,6 +206,9 @@ export const serverEnvSchema = z
     OPENROUTER_API_KEY: z.string().min(1).optional(),
     COACH_MODELS: z.string().optional(),
     PLAN_MODELS: z.string().optional(),
+    COACH_MODELS_PAID: z.string().optional(),
+    PLAN_MODELS_PAID: z.string().optional(),
+    OPENROUTER_PROVIDERS: z.string().optional(),
     OPENROUTER_PRIVACY_MODE: z
       .enum(OPENROUTER_PRIVACY_MODES)
       .default("zdr_only"),
@@ -288,6 +298,9 @@ export type ServerEnv = {
   OPENROUTER_API_KEY: string | null;
   COACH_MODELS: string[];
   PLAN_MODELS: string[];
+  COACH_MODELS_PAID: string[];
+  PLAN_MODELS_PAID: string[];
+  OPENROUTER_PROVIDERS: string[];
   OPENROUTER_PRIVACY_MODE: OpenRouterPrivacyMode;
 };
 
@@ -340,6 +353,9 @@ export function readServerEnv(
     OPENROUTER_API_KEY: source.OPENROUTER_API_KEY || undefined,
     COACH_MODELS: source.COACH_MODELS || undefined,
     PLAN_MODELS: source.PLAN_MODELS || undefined,
+    COACH_MODELS_PAID: source.COACH_MODELS_PAID || undefined,
+    PLAN_MODELS_PAID: source.PLAN_MODELS_PAID || undefined,
+    OPENROUTER_PROVIDERS: source.OPENROUTER_PROVIDERS || undefined,
     OPENROUTER_PRIVACY_MODE: source.OPENROUTER_PRIVACY_MODE || undefined,
     NEXT_PUBLIC_DATABASE_URL: source.NEXT_PUBLIC_DATABASE_URL,
     NEXT_PUBLIC_RESEND_API_KEY: source.NEXT_PUBLIC_RESEND_API_KEY,
@@ -444,8 +460,20 @@ export function readServerEnv(
   });
   if (tlsWarning) console.warn(tlsWarning);
 
+  const privacyMode = parsed.data.OPENROUTER_PRIVACY_MODE;
   const coachModels = parseFreeModelList(parsed.data.COACH_MODELS);
   const planModels = parseFreeModelList(parsed.data.PLAN_MODELS);
+  const coachModelsPaid = parsePaidModelList(
+    parsed.data.COACH_MODELS_PAID,
+    DEFAULT_COACH_MODELS_PAID,
+  );
+  const planModelsPaid = parsePaidModelList(
+    parsed.data.PLAN_MODELS_PAID,
+    DEFAULT_PLAN_MODELS_PAID,
+  );
+  const openRouterProviders = parseOpenRouterProviders(
+    parsed.data.OPENROUTER_PROVIDERS,
+  );
   const modelIssues = [
     coachModels.ok
       ? null
@@ -453,8 +481,35 @@ export function readServerEnv(
     planModels.ok
       ? null
       : "PLAN_MODELS: must list only OpenRouter :free models",
+    coachModelsPaid.ok
+      ? null
+      : "COACH_MODELS_PAID: must list paid OpenRouter models without :free",
+    planModelsPaid.ok
+      ? null
+      : "PLAN_MODELS_PAID: must list paid OpenRouter models without :free",
+    openRouterProviders.ok
+      ? null
+      : "OPENROUTER_PROVIDERS: invalid provider pin list",
+    privacyMode !== "paid_zdr" &&
+    (parsed.data.COACH_MODELS_PAID?.trim() ||
+      parsed.data.PLAN_MODELS_PAID?.trim())
+      ? "COACH_MODELS_PAID/PLAN_MODELS_PAID: only allowed when OPENROUTER_PRIVACY_MODE=paid_zdr"
+      : null,
+    privacyMode === "paid_zdr" &&
+    coachModels.ok &&
+    planModels.ok &&
+    (coachModels.models.length > 0 || planModels.models.length > 0)
+      ? "COACH_MODELS/PLAN_MODELS: :free lists must be empty when OPENROUTER_PRIVACY_MODE=paid_zdr"
+      : null,
   ].filter((issue) => issue !== null);
-  if (!coachModels.ok || !planModels.ok) {
+  if (
+    !coachModels.ok ||
+    !planModels.ok ||
+    !coachModelsPaid.ok ||
+    !planModelsPaid.ok ||
+    !openRouterProviders.ok ||
+    modelIssues.length > 0
+  ) {
     throw new Error(
       `Invalid environment variables:\n${modelIssues.join("\n")}`,
     );
@@ -487,7 +542,10 @@ export function readServerEnv(
     OPENROUTER_API_KEY: parsed.data.OPENROUTER_API_KEY ?? null,
     COACH_MODELS: coachModels.models,
     PLAN_MODELS: planModels.models,
-    OPENROUTER_PRIVACY_MODE: parsed.data.OPENROUTER_PRIVACY_MODE,
+    COACH_MODELS_PAID: coachModelsPaid.models,
+    PLAN_MODELS_PAID: planModelsPaid.models,
+    OPENROUTER_PROVIDERS: openRouterProviders.providers,
+    OPENROUTER_PRIVACY_MODE: privacyMode,
   };
 }
 

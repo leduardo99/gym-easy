@@ -88,6 +88,7 @@ export type CoachTurnInput = {
   locks: RedFlagLockStore;
   models: string[];
   privacyMode: OpenRouterPrivacyMode;
+  pinnedProviders: string[];
   callModel: (request: CoachModelRequest) => Promise<{ text: string }>;
   log: (record: AiLogRecord) => void;
   sleep: (ms: number) => Promise<void>;
@@ -330,6 +331,7 @@ export async function handleCoachTurn(
   const generated = await runModelFallback({
     models: input.models,
     privacyMode: input.privacyMode,
+    pinnedProviders: input.pinnedProviders,
     product: "coach",
     sleep: input.sleep,
     call: (attempt) =>

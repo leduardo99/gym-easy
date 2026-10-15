@@ -43,6 +43,9 @@ function serverEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
     OPENROUTER_API_KEY: null,
     COACH_MODELS: [],
     PLAN_MODELS: [],
+    COACH_MODELS_PAID: [],
+    PLAN_MODELS_PAID: [],
+    OPENROUTER_PROVIDERS: ["deepinfra"],
     OPENROUTER_PRIVACY_MODE: "zdr_only",
     ...overrides,
   };

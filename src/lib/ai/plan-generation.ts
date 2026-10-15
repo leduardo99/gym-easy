@@ -11,6 +11,7 @@ export type PlanGenerationResult<T> =
 export async function runPlanModelFallback<T>(options: {
   models: string[];
   privacyMode: OpenRouterPrivacyMode;
+  pinnedProviders: string[];
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
   stopSignal?: AbortSignal;
@@ -18,6 +19,7 @@ export async function runPlanModelFallback<T>(options: {
   const generated = await runModelFallback({
     models: options.models,
     privacyMode: options.privacyMode,
+    pinnedProviders: options.pinnedProviders,
     product: "plan",
     call: options.call,
     sleep: options.sleep,

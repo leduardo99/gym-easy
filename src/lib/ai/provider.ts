@@ -3,7 +3,11 @@ import {
   type OpenRouterProvider,
 } from "@openrouter/ai-sdk-provider";
 
-import { openRouterProviderRouting } from "./fallback";
+import {
+  openRouterProviderRouting,
+  type ModelAttempt,
+  type OpenRouterProviderRouting,
+} from "./fallback";
 
 export function createGymOpenRouter(apiKey: string): OpenRouterProvider {
   return createOpenRouter({
@@ -14,14 +18,26 @@ export function createGymOpenRouter(apiKey: string): OpenRouterProvider {
   });
 }
 
+export function routingForAttempt(
+  attempt: Pick<ModelAttempt, "zdr" | "privacyMode" | "pinnedProviders">,
+): OpenRouterProviderRouting {
+  if (attempt.privacyMode === "paid_zdr") {
+    return openRouterProviderRouting({
+      mode: "paid_zdr",
+      providers: attempt.pinnedProviders,
+    });
+  }
+  return openRouterProviderRouting({ mode: "standard", zdr: attempt.zdr });
+}
+
 export function openRouterChatModel(
   provider: OpenRouterProvider,
   modelId: string,
-  zdr: boolean,
+  attempt: Pick<ModelAttempt, "zdr" | "privacyMode" | "pinnedProviders">,
 ) {
   return provider.chat(modelId, {
     usage: { include: true },
     structuredOutputs: { strict: false },
-    provider: openRouterProviderRouting({ zdr }),
+    provider: routingForAttempt(attempt),
   });
 }
