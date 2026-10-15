@@ -432,8 +432,9 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(rows[0]?.birthYear).toBeNull();
   });
 
-  it("refuses profile and weight writes unless body_data consent is active", async () => {
+  it("grava perfil contratual sem body_data; sexo/altura/peso exigem consentimento", async () => {
     const userId = await insertUser("Corpo");
+    const contractualInput = { birthYear: 1990, goal: "hypertrophy" as const };
     const profileInput = { birthYear: 1990, heightCm: 170 };
     const weightInput = {
       recordedOn: "2026-10-14",
@@ -441,22 +442,26 @@ describe.skipIf(!runIntegration)("training data access", () => {
       unit: "kg" as const,
     };
 
-    const missingProfile = await repository.saveProfile(userId, profileInput);
-    const missingWeight = await repository.recordWeight(userId, weightInput);
-    expect(missingProfile).toMatchObject({
-      ok: false,
-      error: "consent_required",
-    });
-    expect(missingWeight).toMatchObject({
-      ok: false,
-      error: "consent_required",
-    });
     expect(
-      await db
-        .select({ userId: userProfiles.userId })
-        .from(userProfiles)
-        .where(eq(userProfiles.userId, userId)),
-    ).toEqual([]);
+      await repository.saveProfile(userId, contractualInput),
+    ).toMatchObject({ ok: true });
+    expect(await repository.recordWeight(userId, weightInput)).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    const missingHeight = await repository.saveProfile(userId, profileInput);
+    expect(missingHeight).toMatchObject({
+      ok: false,
+      error: "consent_required",
+    });
+    const rowsAfterPartial = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId));
+    expect(rowsAfterPartial).toHaveLength(1);
+    expect(rowsAfterPartial[0]?.birthYear).toBe(1990);
+    expect(rowsAfterPartial[0]?.goal).toBe("hypertrophy");
+    expect(rowsAfterPartial[0]?.heightCm).toBeNull();
     expect(
       await db
         .select({ id: bodyMeasurements.id })
@@ -470,7 +475,10 @@ describe.skipIf(!runIntegration)("training data access", () => {
       action: "revoked",
       source: "profile",
     });
-    const revokedProfile = await repository.saveProfile(userId, profileInput);
+    const revokedProfile = await repository.saveProfile(userId, {
+      ...profileInput,
+      goal: "strength" as const,
+    });
     const revokedWeight = await repository.recordWeight(userId, weightInput);
     expect(revokedProfile).toMatchObject({
       ok: false,
@@ -480,18 +488,13 @@ describe.skipIf(!runIntegration)("training data access", () => {
       ok: false,
       error: "consent_required",
     });
-    expect(
-      await db
-        .select({ userId: userProfiles.userId })
-        .from(userProfiles)
-        .where(eq(userProfiles.userId, userId)),
-    ).toEqual([]);
-    expect(
-      await db
-        .select({ id: bodyMeasurements.id })
-        .from(bodyMeasurements)
-        .where(eq(bodyMeasurements.userId, userId)),
-    ).toEqual([]);
+    const rowsAfterRevoke = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId));
+    expect(rowsAfterRevoke).toHaveLength(1);
+    expect(rowsAfterRevoke[0]?.goal).toBe("strength");
+    expect(rowsAfterRevoke[0]?.heightCm).toBeNull();
 
     await grantBodyData(userId);
     const activeProfile = await repository.saveProfile(userId, profileInput);
@@ -501,10 +504,10 @@ describe.skipIf(!runIntegration)("training data access", () => {
 
     expect(
       await db
-        .select({ userId: userProfiles.userId })
+        .select({ heightCm: userProfiles.heightCm })
         .from(userProfiles)
         .where(eq(userProfiles.userId, userId)),
-    ).toHaveLength(1);
+    ).toMatchObject([{ heightCm: 170 }]);
     expect(
       await db
         .select({ id: bodyMeasurements.id })
@@ -513,7 +516,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
     ).toHaveLength(1);
   });
 
-  it("rejects profile and weight writes when the body_data grant is stale", async () => {
+  it("rejects body fields and weight when the body_data grant is stale", async () => {
     const profileInput = { birthYear: 1990, heightCm: 170 };
     const weightInput = {
       recordedOn: "2026-10-14",
@@ -536,6 +539,14 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(
       await repository.recordWeight(staleVersion, weightInput),
     ).toMatchObject({ ok: false, error: "consent_required" });
+    expect(
+      (
+        await db
+          .select({ birthYear: userProfiles.birthYear })
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, staleVersion))
+      )[0]?.birthYear,
+    ).toBe(1990);
 
     const staleHash = await insertUser("Hash antigo corpo");
     await db.insert(consentLog).values({
@@ -552,14 +563,16 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(await repository.recordWeight(staleHash, weightInput)).toMatchObject(
       { ok: false, error: "consent_required" },
     );
+    expect(
+      (
+        await db
+          .select({ birthYear: userProfiles.birthYear })
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, staleHash))
+      )[0]?.birthYear,
+    ).toBe(1990);
 
     for (const userId of [staleVersion, staleHash]) {
-      expect(
-        await db
-          .select({ userId: userProfiles.userId })
-          .from(userProfiles)
-          .where(eq(userProfiles.userId, userId)),
-      ).toEqual([]);
       expect(
         await db
           .select({ id: bodyMeasurements.id })
@@ -590,6 +603,14 @@ describe.skipIf(!runIntegration)("training data access", () => {
       ok: false,
       error: "consent_required",
     });
+    expect(
+      (
+        await db
+          .select({ birthYear: userProfiles.birthYear })
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, userId))
+      )[0]?.birthYear,
+    ).toBe(1990);
     expect(await repository.recordWeight(userId, weightInput)).toMatchObject({
       ok: false,
       error: "consent_required",
@@ -663,12 +684,13 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(profile).toMatchObject({ ok: false, error: "consent_required" });
     expect(weight).toMatchObject({ ok: false, error: "consent_required" });
 
-    expect(
-      await db
-        .select({ userId: userProfiles.userId })
-        .from(userProfiles)
-        .where(eq(userProfiles.userId, userB)),
-    ).toEqual([]);
+    const profileB = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userB));
+    expect(profileB).toHaveLength(1);
+    expect(profileB[0]?.birthYear).toBe(1991);
+    expect(profileB[0]?.heightCm).toBeNull();
     expect(
       await db
         .select({ id: bodyMeasurements.id })
@@ -704,12 +726,13 @@ describe.skipIf(!runIntegration)("training data access", () => {
         .from(bodyMeasurements)
         .where(eq(bodyMeasurements.userId, userA)),
     ).toHaveLength(1);
-    expect(
-      await db
-        .select({ userId: userProfiles.userId })
-        .from(userProfiles)
-        .where(eq(userProfiles.userId, userB)),
-    ).toEqual([]);
+    const profileBAfterA = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userB));
+    expect(profileBAfterA).toHaveLength(1);
+    expect(profileBAfterA[0]?.birthYear).toBe(1991);
+    expect(profileBAfterA[0]?.heightCm).toBeNull();
     expect(
       await db
         .select({ id: bodyMeasurements.id })
@@ -787,6 +810,24 @@ describe.skipIf(!runIntegration)("training data access", () => {
     await expect(
       db.delete(consentLog).where(eq(consentLog.subjectPseudonym, pseudonym)),
     ).rejects.toSatisfy(isConsentWriteRejected);
+  });
+
+  it("mantém body_data -15b como grant vigente sem reconsentimento", async () => {
+    const userId = await insertUser("Grant 15b");
+    await db.insert(consentLog).values({
+      userId,
+      purpose: "body_data",
+      action: "granted",
+      version: "body_data-pt-BR-2026-10-15b",
+      textSha256:
+        "5df4e14e0c7d5126112a2158c8a4559ecb8b8b12f95b2318de7bb9b3b715f052",
+      source: "onboarding",
+    });
+    const active = await consents.currentConsent(userId);
+    expect(active.body_data?.version).toBe("body_data-pt-BR-2026-10-15b");
+    expect((await repository.saveProfile(userId, { heightCm: 171 })).ok).toBe(
+      true,
+    );
   });
 
   it("counts only a grant of the current text version and hash", async () => {

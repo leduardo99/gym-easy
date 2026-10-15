@@ -5,31 +5,16 @@ const CONTACT_EMAIL = "contacto@gaffer.pt";
 export const PRIVACY_POLICY_MINIMUM_AGE_ID = "privacy-policy-minimum-age";
 export const PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID =
   "privacy-policy-birth-year-minimum-age";
-export const PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID =
-  "privacy-policy-birth-year-age-band";
-export const PRIVACY_POLICY_BODY_DATA_GATE_ID =
-  "privacy-policy-body-data-technical-gate";
-
 export function privacyPolicyMinimumAgeSentence(
   minimumAgeYears: number = MINIMUM_AGE_YEARS,
 ): string {
   return `A idade mínima para usar o Gym Easy é ${minimumAgeYears} anos.`;
 }
 
-export function privacyPolicyBirthYearAgeBandSentence(): string {
-  return "O texto de consentimento «Dados do corpo» em vigor (body_data, versão 2026-10-15b) também nomeia o ano de nascimento (birthYear) ao pedir autorização para peso, altura e sexo: com body_data ativo, usamos o birthYear já guardado no perfil, juntamente com sexo, altura e registos de peso, para calcular a faixa etária na análise dos dados do corpo. O birthYear continua a ser recolhido e conservado com base contratual e no art. 8.º, como acima — o consentimento não substitui essa base de armazenamento.";
-}
-
-export function privacyPolicyBodyDataTechnicalGateSentence(): string {
-  return "Nota técnica temporária: nesta versão da app, o interruptor «Dados do corpo» precisa estar ligado para guardar qualquer alteração ao perfil ou registo de peso. É uma limitação de implementação prevista para remoção (LED-146); não altera as bases legais descritas acima.";
-}
-
 function buildProfileBodyDataParagraphs(minimumAgeYears: number) {
   return {
     intro:
-      "O perfil de treino — ano de nascimento (birthYear), objetivo, nível, dias por semana, duração da sessão e local — recolhe-se desde o início com fundamento contratual (art. 6.º, n.º 1, alínea b), do RGPD), sem mudança de base. O birthYear tem ainda fundamento legal para a verificação de idade mínima (art. 8.º). Sexo, altura e registos de peso recolhem-se apenas com a autorização «Dados do corpo» (consentimento body_data).",
-    birthYearAgeBand: privacyPolicyBirthYearAgeBandSentence(),
-    technicalGate: privacyPolicyBodyDataTechnicalGateSentence(),
+      "O perfil de treino — ano de nascimento (birthYear), objetivo, nível, dias por semana, duração da sessão e local — recolhe-se desde o início com fundamento contratual (art. 6.º, n.º 1, alínea b), do RGPD). O birthYear tem ainda fundamento legal para a verificação de idade mínima (art. 8.º). Sexo, altura e registos de peso recolhem-se apenas com a autorização «Dados do corpo» (consentimento body_data).",
     minimumAge: privacyPolicyMinimumAgeSentence(minimumAgeYears),
     revoke: `Se você retirar a autorização «Dados do corpo», apagamos sexo, altura e os registos de peso. O ano de nascimento e o resto do perfil de treino (objetivo, nível, dias por semana, duração da sessão e local) permanecem na conta para executar o contrato consigo, demonstrar que você tem pelo menos ${minimumAgeYears} anos e respeitar o art. 8.º do RGPD (idade mínima no serviço da sociedade da informação). Essa conservação apoia-se no art. 6.º, n.º 1, alíneas b) e c), do RGPD (execução do contrato e obrigação legal). O ano de nascimento só é apagado quando você apaga a conta.`,
     coachHealth:
@@ -164,8 +149,6 @@ export function profileBodyDataParagraphList(
   const paragraphs = buildProfileBodyDataParagraphs(minimumAgeYears);
   return [
     paragraphs.intro,
-    paragraphs.birthYearAgeBand,
-    paragraphs.technicalGate,
     paragraphs.minimumAge,
     paragraphs.revoke,
     paragraphs.coachHealth,

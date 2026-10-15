@@ -22,6 +22,13 @@ describe("ProfileHeightField", () => {
 
     expect(screen.getByLabelText("Altura (cm)")).toHaveValue("");
   });
+
+  it("marca o campo como só leitura sem consentimento", () => {
+    render(<ProfileHeightField heightCm={175} disabled />);
+    const input = screen.getByLabelText("Altura (cm)");
+    expect(input).toHaveAttribute("readonly");
+    expect(input).toHaveAttribute("name", "heightCm");
+  });
 });
 
 describe("formatProfileHeightCm", () => {

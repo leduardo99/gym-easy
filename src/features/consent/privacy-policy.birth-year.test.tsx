@@ -1,11 +1,6 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID,
-  privacyPolicyBirthYearAgeBandSentence,
-} from "@/features/consent/privacy-policy";
-
 import PrivacyPage from "@/app/privacidade/page";
 
 afterEach(() => {
@@ -13,7 +8,7 @@ afterEach(() => {
 });
 
 describe("privacy policy birthYear contexts (opção A)", () => {
-  it("birthYear no perfil contratual; uso com body_data explicado no texto -15b, não na lista body_data", () => {
+  it("birthYear no perfil contratual; body_data lista só sexo, altura e peso", () => {
     render(<PrivacyPage />);
 
     const profileBody = screen.getByRole("region", {
@@ -35,14 +30,8 @@ describe("privacy policy birthYear contexts (opção A)", () => {
     expect(bodyDataList.textContent).not.toContain(
       "ano de nascimento (birthYear)",
     );
-
-    const ageBand = document.getElementById(
-      PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID,
-    );
-    expect(ageBand).toHaveTextContent(privacyPolicyBirthYearAgeBandSentence());
-    expect(ageBand).toHaveTextContent("2026-10-15b");
-    expect(ageBand).toHaveTextContent("birthYear");
-    expect(ageBand).toHaveTextContent(/faixa etária/);
-    expect(ageBand).toHaveTextContent(/base contratual/);
+    expect(profileBody).not.toHaveTextContent(/faixa etária/);
+    expect(profileBody).not.toHaveTextContent(/2026-10-15b/);
+    expect(profileBody).not.toHaveTextContent(/Nota técnica temporária/);
   });
 });

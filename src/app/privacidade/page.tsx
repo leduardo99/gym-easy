@@ -2,9 +2,7 @@ import Link from "next/link";
 
 import {
   PRIVACY_POLICY,
-  PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID,
   PRIVACY_POLICY_BIRTH_YEAR_MINIMUM_AGE_ID,
-  PRIVACY_POLICY_BODY_DATA_GATE_ID,
   PRIVACY_POLICY_MINIMUM_AGE_ID,
   processorText,
 } from "@/features/consent/privacy-policy";
@@ -74,18 +72,6 @@ export default function PrivacyPage() {
         </div>
         <p className="text-sm leading-6 text-muted-foreground">
           {PRIVACY_POLICY.profileBodyData.paragraphs.intro}
-        </p>
-        <p
-          id={PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID}
-          className="text-sm leading-6 text-muted-foreground"
-        >
-          {PRIVACY_POLICY.profileBodyData.paragraphs.birthYearAgeBand}
-        </p>
-        <p
-          id={PRIVACY_POLICY_BODY_DATA_GATE_ID}
-          className="text-sm leading-6 text-muted-foreground"
-        >
-          {PRIVACY_POLICY.profileBodyData.paragraphs.technicalGate}
         </p>
         <p
           id={PRIVACY_POLICY_MINIMUM_AGE_ID}

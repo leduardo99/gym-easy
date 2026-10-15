@@ -20,8 +20,10 @@ function formatDaysPerWeek(days: number | null | undefined): string {
 
 export function ProfileOptionalCoachFields({
   profile,
+  bodyDataGranted = true,
 }: {
   profile: Omit<ProfileFormValues, "birthYear"> | null | undefined;
+  bodyDataGranted?: boolean;
 }) {
   const values = profile ?? {
     sex: null,
@@ -39,13 +41,15 @@ export function ProfileOptionalCoachFields({
       <p className="text-sm text-muted-foreground">
         {PROFILE_COACH_OPTIONAL_HINT}
       </p>
-      <ProfileSelect
-        id="profile-sex"
-        name="sex"
-        label={PROFILE_FIELD_LABELS.sex}
-        defaultValue={values.sex ?? ""}
-        options={sexOptions()}
-      />
+      {bodyDataGranted ? (
+        <ProfileSelect
+          id="profile-sex"
+          name="sex"
+          label={PROFILE_FIELD_LABELS.sex}
+          defaultValue={values.sex ?? ""}
+          options={sexOptions()}
+        />
+      ) : null}
       <ProfileSelect
         id="profile-goal"
         name="goal"

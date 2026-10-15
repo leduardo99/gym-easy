@@ -1,7 +1,5 @@
 import { expect, type Page } from "@playwright/test";
 
-import { grantConsent } from "./auth";
-
 /** Evita colisão com o checkbox de consentimento que menciona «ano de nascimento». */
 export function birthYearField(page: Page) {
   return page.getByLabel("Ano de nascimento", { exact: true });
@@ -9,6 +7,18 @@ export function birthYearField(page: Page) {
 
 export function heightField(page: Page) {
   return page.getByLabel("Altura (cm)", { exact: true });
+}
+
+/** O campo de altura pode estar readOnly sem body_data; o servidor ainda valida o POST. */
+export async function fillHeightCm(page: Page, value: string) {
+  const field = heightField(page);
+  await field.evaluate((el, cm) => {
+    const input = el as HTMLInputElement;
+    input.readOnly = false;
+    input.value = cm;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
 }
 
 export const SAVED_BIRTH_YEAR = "1990";
@@ -30,7 +40,6 @@ export async function saveBirthYearOnPerfil(
   year = SAVED_BIRTH_YEAR,
 ) {
   await page.goto("/perfil");
-  await grantConsent(page, "body_data");
   await birthYearField(page).fill(year);
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Perfil guardado.")).toBeVisible({

@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { grantConsent, signedIn } from "./helpers/auth";
 import {
   birthYearField,
+  fillHeightCm,
   heightField,
   SAVED_BIRTH_YEAR,
 } from "./helpers/profile";
@@ -11,6 +12,18 @@ import { refuseReconsentWithConfirm } from "./helpers/reconsent";
 const bodyDataSwitch = (page: import("@playwright/test").Page) =>
   page.getByRole("switch", { name: "Dados do corpo" });
 
+test("guarda o perfil contratual com o switch de dados do corpo desligado", async ({
+  page,
+}) => {
+  await signedIn(page, "body-data-profile-no-consent");
+  await birthYearField(page).fill(SAVED_BIRTH_YEAR);
+  await page.getByRole("button", { name: "Guardar e continuar" }).click();
+  await page.waitForURL("**/perfil");
+  await expect(heightField(page)).toHaveAttribute("readonly", "");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Perfil guardado.")).toBeVisible();
+});
+
 test("retirar dados do corpo no switch e voltar ao reconsentimento ao guardar altura", async ({
   page,
 }) => {
@@ -18,7 +31,7 @@ test("retirar dados do corpo no switch e voltar ao reconsentimento ao guardar al
   await grantConsent(page, "body_data", "/perfil");
 
   await birthYearField(page).fill(SAVED_BIRTH_YEAR);
-  await heightField(page).fill("172");
+  await fillHeightCm(page, "172");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Perfil guardado.")).toBeVisible();
 
@@ -60,7 +73,7 @@ test("retirar dados do corpo no switch e voltar ao reconsentimento ao guardar al
   await expect(birthYearField(page)).toHaveValue(SAVED_BIRTH_YEAR);
   await expect(heightField(page)).toHaveValue("");
 
-  await heightField(page).fill("180");
+  await fillHeightCm(page, "180");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page).toHaveURL(/\/consentimento\?.*scope=body_data/);
 });
