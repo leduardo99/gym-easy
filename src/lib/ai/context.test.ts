@@ -33,6 +33,29 @@ describe("buildCoachContext", () => {
     expect(Object.keys(built.context)).not.toContain("birthYear");
   });
 
+  it("bloqueia o coach sem ano de nascimento", () => {
+    const built = buildCoachContext({
+      profile: {
+        birthYear: null,
+        sex: "female",
+        heightCm: 170,
+        goal: "health",
+        level: "beginner",
+        daysPerWeek: 3,
+        sessionMinutes: 45,
+        trainingPlace: "home",
+      },
+      weightKg: null,
+      consents: {
+        bodyData: "current",
+        coachHealth: "current",
+        coachChat: "current",
+      },
+      now: new Date("2026-10-14T00:00:00.000Z"),
+    });
+    expect(built).toEqual({ ok: false, reason: "profile_incomplete" });
+  });
+
   it("does not build context without both current consents", () => {
     const built = buildCoachContext({
       profile: {

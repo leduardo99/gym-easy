@@ -62,10 +62,12 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   await page.getByRole("button", { name: "Autorizar" }).click();
   await page.waitForURL("**/perfil");
 
+  await page.getByLabel("Ano de nascimento").fill("1990");
   await page.getByLabel("Altura (cm)").fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Altura guardada.")).toBeVisible();
+  await expect(page.getByText("Perfil guardado.")).toBeVisible();
   await page.goto("/perfil");
+  await expect(page.getByLabel("Ano de nascimento")).toHaveValue("1990");
   await expect(page.getByLabel("Altura (cm)")).toHaveValue("170");
 });
 
