@@ -16,7 +16,6 @@ test("guarda o perfil contratual com o switch de dados do corpo desligado", asyn
 }) => {
   await signedIn(page, "body-data-profile-no-consent");
   await birthYearField(page).fill(SAVED_BIRTH_YEAR);
-  await page.getByLabel("Objetivo").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Perfil guardado.")).toBeVisible();
   await expect(heightField(page)).toBeDisabled();
