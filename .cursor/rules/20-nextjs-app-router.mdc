@@ -1,0 +1,11 @@
+---
+description: 20-nextjs-app-router
+globs: src/app/**
+alwaysApply: false
+---
+
+- Server Components por omissão. `"use client"` só nas folhas.
+- Com `cacheComponents`: o que é dinâmico fica dentro de `<Suspense>`/`connection()`; o cache usa `"use cache"` + `cacheTag`/`cacheLife`.
+- `searchParams`/`params` são Promises: usar `await`.
+- Cada segmento de grupo tem `error.tsx`, `loading.tsx` e `not-found.tsx`. As páginas privadas ficam em `(app)`, com `requireUser` no layout.
+- `metadata` em todas as páginas. `robots: noindex` nas privadas.

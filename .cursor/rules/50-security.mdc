@@ -1,0 +1,12 @@
+---
+description: 50-security
+globs: src/**,next.config.ts,Dockerfile,.env.example
+alwaysApply: false
+---
+
+- O host e a origem vêm de `APP_URL`. Nunca de `host`/`x-forwarded-host`.
+- Segredos só via `getServerEnv()`. `NEXT_PUBLIC_` é proibido para segredos.
+- Cookies `HttpOnly`, `SameSite=Lax`, `Secure` em produção.
+- Comparação de segredos com `timingSafeEqual`.
+- Os logs não levam email, IP em claro, dados de saúde nem mensagens do coach.
+- Mudanças em auth, consent, env, headers ou Docker exigem revisão da Segurança (Delta).
