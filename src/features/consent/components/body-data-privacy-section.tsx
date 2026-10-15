@@ -47,13 +47,16 @@ export function BodyDataPrivacySection({
 
   useLayoutEffect(() => {
     if (revokeOpen) return;
-    if (focusAfterDialog === "status" && banner) {
-      statusRef.current?.focus();
-      return;
-    }
-    if (focusAfterDialog === "switch") {
-      switchRef.current?.focus();
-    }
+    const timer = window.setTimeout(() => {
+      if (focusAfterDialog === "status" && banner) {
+        statusRef.current?.focus();
+        return;
+      }
+      if (focusAfterDialog === "switch") {
+        switchRef.current?.focus();
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [revokeOpen, focusAfterDialog, banner]);
 
   function handleRevokeOpenChange(open: boolean) {
