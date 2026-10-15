@@ -70,6 +70,73 @@ describe("allowed-origin", () => {
     expect(isAllowedOriginFromHeaders(h({ origin: APP_URL }))).toBe(false);
   });
 
+  describe("rejects lookalikes (exact origin string match to APP_URL only)", () => {
+    const rejectViaOrigin = [
+      ["http scheme vs https APP_URL", "http://app.gaffer.pt"],
+      ["non-default port :8443", "https://app.gaffer.pt:8443"],
+      ["subdomain prefix", "https://evil.app.gaffer.pt"],
+      ["suffix domain", "https://app.gaffer.pt.evil.com"],
+      ["APP_URL as subdomain prefix", "https://app.gaffer.pt.evil.com"],
+      ["host suffix without dot", "https://app.gaffer.ptx"],
+      ["trailing slash on Origin (not normalized)", "https://app.gaffer.pt/"],
+      [
+        "uppercase Origin (byte-equal; no URL normalization on Origin)",
+        "HTTPS://APP.GAFFER.PT",
+      ],
+    ] as const;
+
+    it.each(rejectViaOrigin)("rejects Origin: %s", (_label, origin) => {
+      expect(isAllowedOriginFromHeaders(h({ origin }))).toBe(false);
+    });
+
+    const rejectViaReferer = [
+      ["http scheme vs https APP_URL", "http://app.gaffer.pt/treino"],
+      ["non-default port :8443", "https://app.gaffer.pt:8443/treino"],
+      ["subdomain prefix", "https://evil.app.gaffer.pt/treino"],
+      ["suffix domain", "https://app.gaffer.pt.evil.com/treino"],
+      ["APP_URL as subdomain prefix", "https://app.gaffer.pt.evil.com/treino"],
+      ["host suffix without dot", "https://app.gaffer.ptx/treino"],
+    ] as const;
+
+    it.each(rejectViaReferer)(
+      "rejects Referer fallback: %s",
+      (_label, referer) => {
+        expect(isAllowedOriginFromHeaders(h({ referer }))).toBe(false);
+      },
+    );
+
+    it("accepts Referer with uppercase host because URL parsing lowercases the origin", () => {
+      const referer = "https://APP.GAFFER.PT/perfil";
+      expect(declaredRequestOrigin(h({ referer }))).toBe(APP_URL);
+      expect(isAllowedOriginFromHeaders(h({ referer }))).toBe(true);
+    });
+  });
+
+  describe("never trusts Host or X-Forwarded-Host", () => {
+    it("rejects when only forged Host / X-Forwarded-Host match the app host", () => {
+      expect(
+        isAllowedOriginFromHeaders(
+          h({
+            host: "app.gaffer.pt",
+            "x-forwarded-host": "app.gaffer.pt",
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    it("rejects evil Origin even with forged Host headers for the app host", () => {
+      expect(
+        isAllowedOriginFromHeaders(
+          h({
+            origin: "https://evil.example",
+            host: "app.gaffer.pt",
+            "x-forwarded-host": "app.gaffer.pt",
+          }),
+        ),
+      ).toBe(false);
+    });
+  });
+
   it("isAllowedOrigin delegates to the request headers", () => {
     // undici's Request drops the forbidden `Origin` header, so build a
     // minimal Request-shaped object to exercise the delegation.
