@@ -823,7 +823,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
       userId: currentUser,
       purpose: "body_data",
       action: "granted",
-      version: "body_data-2026-10-14",
+      version: "body_data-pt-BR-2026-10-14c",
       textSha256: consentTextSha256("body_data"),
       source: "reconsent",
       createdAt: new Date("2099-01-01T00:00:00.000Z"),
