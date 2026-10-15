@@ -65,6 +65,8 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   await page.getByLabel("Altura (cm)").fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Altura guardada.")).toBeVisible();
+  await page.goto("/perfil");
+  await expect(page.getByLabel("Altura (cm)")).toHaveValue("170");
 });
 
 test("recusar o reconsentimento não libera a ação", async ({ page }) => {

@@ -2,12 +2,13 @@ import { AppShell } from "@/components/app/bottom-nav";
 import { PageHeader } from "@/components/app/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { getDb } from "@/db";
 import { logoutAction } from "@/features/auth/actions";
 import { requireUser } from "@/features/auth/require-user";
 import { RECONSENT_COPY } from "@/features/consent/reconsent";
+import { ProfileHeightField } from "@/features/profile/profile-height-field";
 import { saveProfileAction } from "@/features/training/actions";
+import { createTrainingRepository } from "@/features/training/repository";
 
 export const instant = false;
 
@@ -17,6 +18,7 @@ export default async function ProfilePage({
   searchParams: Promise<{ guardado?: string; erro?: string }>;
 }) {
   const user = await requireUser("/perfil");
+  const profile = await createTrainingRepository(getDb()).getProfile(user.id);
   const params = await searchParams;
   const notice =
     params.guardado === "1"
@@ -41,15 +43,7 @@ export default async function ProfilePage({
         </Alert>
       ) : null}
       <form action={saveProfileAction} className="mt-8 flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="profile-height">Altura (cm)</Label>
-          <Input
-            id="profile-height"
-            name="heightCm"
-            inputMode="numeric"
-            autoComplete="off"
-          />
-        </div>
+        <ProfileHeightField heightCm={profile?.heightCm} />
         <Button type="submit" size="lg" className="w-full">
           Guardar
         </Button>
