@@ -1,20 +1,51 @@
+-- Roles come from the Infra bootstrap. This migration must not create roles
+-- or grant one role to another. GRANT EXECUTE below is allowed because the
+-- migrator owns the functions. The three roles must exist and stay
+-- NOSUPERUSER, NOCREATEROLE and NOBYPASSRLS. gym_easy_purge must be NOLOGIN.
 DO $$
+DECLARE
+  "missing" text;
+  "unsafe" text;
 BEGIN
-  CREATE ROLE "gym_easy_app" NOLOGIN;
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
+  SELECT string_agg("role_name", ', ' ORDER BY "role_name")
+  INTO "missing"
+  FROM (
+    VALUES ('gym_easy_app'), ('gym_easy_migrator'), ('gym_easy_purge')
+  ) AS "required"("role_name")
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_roles
+    WHERE pg_catalog.pg_roles.rolname = "required"."role_name"
+  );
+
+  IF "missing" IS NOT NULL THEN
+    RAISE EXCEPTION '0010_consent_hardening: missing bootstrap role(s): %. Create gym_easy_app, gym_easy_migrator and gym_easy_purge before migrating', "missing";
+  END IF;
+
+  SELECT string_agg(format('%s (%s)', rolname, attrs), ', ' ORDER BY rolname)
+  INTO "unsafe"
+  FROM (
+    SELECT
+      rolname,
+      concat_ws(
+        ', ',
+        CASE WHEN rolsuper THEN 'rolsuper' END,
+        CASE WHEN rolcreaterole THEN 'rolcreaterole' END,
+        CASE WHEN rolbypassrls THEN 'rolbypassrls' END,
+        CASE
+          WHEN rolname = 'gym_easy_purge' AND rolcanlogin THEN 'rolcanlogin'
+        END
+      ) AS attrs
+    FROM pg_catalog.pg_roles
+    WHERE rolname IN ('gym_easy_app', 'gym_easy_migrator', 'gym_easy_purge')
+  ) AS checked
+  WHERE attrs <> '';
+
+  IF "unsafe" IS NOT NULL THEN
+    RAISE EXCEPTION '0010_consent_hardening: bootstrap role(s) exceed least privilege: %. Expected NOSUPERUSER NOCREATEROLE NOBYPASSRLS, and gym_easy_purge NOLOGIN', "unsafe";
+  END IF;
 END
 $$;
---> statement-breakpoint
-DO $$
-BEGIN
-  CREATE ROLE "gym_easy_purge" NOLOGIN;
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END
-$$;
---> statement-breakpoint
-GRANT "gym_easy_purge" TO "gym_easy_app";
 --> statement-breakpoint
 CREATE OR REPLACE FUNCTION "consent_log_reject_mutation"()
 RETURNS trigger

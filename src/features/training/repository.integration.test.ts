@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CONSENT_TEXTS, consentTextSha256 } from "@/consent/texts";
 import type { AppDatabase } from "@/db";
-import { isLocalDatabaseUrl } from "@/db/driver";
+import { databaseUrlForRole, isLocalDatabaseUrl } from "@/db/driver";
 import { repairPostgresJsSerializers } from "@/db/postgres";
 import * as schema from "@/db/schema";
 import {
@@ -49,7 +49,17 @@ describe.skipIf(!runIntegration)("training data access", () => {
   const consents = createConsentRepository(db as unknown as AppDatabase);
 
   beforeAll(async () => {
-    await migrate(db, { migrationsFolder: "src/db/migrations" });
+    const migrator = postgres(
+      databaseUrlForRole(databaseUrl, "gym_easy_migrator", "migrator"),
+      { max: 1 },
+    );
+    try {
+      await migrate(drizzle({ client: migrator, schema }), {
+        migrationsFolder: "src/db/migrations",
+      });
+    } finally {
+      await migrator.end({ timeout: 5 });
+    }
   });
 
   afterAll(async () => {
@@ -64,6 +74,26 @@ describe.skipIf(!runIntegration)("training data access", () => {
       current = "cause" in current ? current.cause : undefined;
     }
     return parts.join("\n");
+  }
+
+  function isPermissionDenied(error: unknown): boolean {
+    let current: unknown = error;
+    while (current instanceof Error) {
+      if (
+        "code" in current &&
+        (current as { code?: unknown }).code === "42501"
+      ) {
+        return true;
+      }
+      current = "cause" in current ? current.cause : undefined;
+    }
+    return false;
+  }
+
+  function isConsentWriteRejected(error: unknown): boolean {
+    return (
+      isPermissionDenied(error) || errorText(error).includes("append-only")
+    );
   }
 
   async function insertUser(name: string): Promise<string> {
@@ -715,14 +745,10 @@ describe.skipIf(!runIntegration)("training data access", () => {
         .update(consentLog)
         .set({ action: "granted" })
         .where(eq(consentLog.id, rowId)),
-    ).rejects.toSatisfy((error: unknown) =>
-      errorText(error).includes("append-only"),
-    );
+    ).rejects.toSatisfy(isConsentWriteRejected);
     await expect(
       db.delete(consentLog).where(eq(consentLog.id, rowId)),
-    ).rejects.toSatisfy((error: unknown) =>
-      errorText(error).includes("append-only"),
-    );
+    ).rejects.toSatisfy(isConsentWriteRejected);
 
     await expect(
       db.delete(users).where(eq(users.id, ownerId)),
@@ -753,9 +779,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
     expect(retained.every((row) => row.deletedAccountAt)).toBeTruthy();
     await expect(
       db.delete(consentLog).where(eq(consentLog.subjectPseudonym, pseudonym)),
-    ).rejects.toSatisfy((error: unknown) =>
-      errorText(error).includes("append-only"),
-    );
+    ).rejects.toSatisfy(isConsentWriteRejected);
   });
 
   it("counts only a grant of the current text version and hash", async () => {
@@ -802,7 +826,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
       version: "body_data-2026-10-14",
       textSha256: consentTextSha256("body_data"),
       source: "reconsent",
-      createdAt: new Date("2026-10-15T00:00:00.000Z"),
+      createdAt: new Date("2099-01-01T00:00:00.000Z"),
     });
     expect(
       (await consents.currentConsent(currentUser)).body_data,

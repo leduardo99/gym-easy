@@ -13,3 +13,17 @@ ignoredBuiltDependencies:
 
 onlyBuiltDependencies:
   - esbuild
+
+# Install the native package for this machine and both glibc Linux targets.
+# Coolify builds the image on the arm64 host; CI also builds amd64.
+supportedArchitectures:
+  os:
+    - current
+    - linux
+  cpu:
+    - current
+    - x64
+    - arm64
+  libc:
+    - current
+    - glibc

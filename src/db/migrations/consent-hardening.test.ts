@@ -8,11 +8,19 @@ describe("0010_consent_hardening", () => {
     "utf8",
   );
 
-  it("cria as roles de forma idempotente e entrega o purge à app", () => {
-    expect(sql).toContain('CREATE ROLE "gym_easy_app" NOLOGIN');
-    expect(sql).toContain('CREATE ROLE "gym_easy_purge" NOLOGIN');
-    expect(sql).toContain("WHEN duplicate_object THEN NULL");
-    expect(sql).toContain('GRANT "gym_easy_purge" TO "gym_easy_app"');
+  it("exige as roles do bootstrap e não as cria", () => {
+    expect(sql).not.toContain("CREATE ROLE");
+    expect(sql).not.toContain('GRANT "gym_easy_purge" TO "gym_easy_app"');
+    expect(sql).toContain("pg_catalog.pg_roles");
+    expect(sql).toContain("missing bootstrap role");
+    expect(sql).toContain("exceed least privilege");
+    expect(sql).toContain("rolsuper");
+    expect(sql).toContain("rolcreaterole");
+    expect(sql).toContain("rolbypassrls");
+    expect(sql).toContain("rolcanlogin");
+    expect(sql).toContain("gym_easy_app");
+    expect(sql).toContain("gym_easy_migrator");
+    expect(sql).toContain("gym_easy_purge");
   });
 
   it("tira o bypass por set_config e fixa o corte de 3 anos na função", () => {

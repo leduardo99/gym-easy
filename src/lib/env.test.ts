@@ -11,6 +11,8 @@ import {
 } from "./env";
 
 const validUrl = "postgresql://user:password@localhost:5432/gym_easy";
+const productionUrl =
+  "postgresql://user:password@db.internal:5432/gym_easy?sslmode=verify-full";
 const confirmSecret = "confirm-email-secret-for-unit-tests-00";
 const validConsentKey = "consent-pseudonym-test-key-32b!!";
 
@@ -94,7 +96,7 @@ describe("readServerEnv", () => {
   it("ignores the email capture path on the Coolify runtime", () => {
     expect(
       readServerEnv({
-        DATABASE_URL: validUrl,
+        DATABASE_URL: productionUrl,
         NODE_ENV: "production",
         APP_URL: "https://app.gaffer.pt",
         EMAIL_CAPTURE_PATH: ".data/emails.jsonl",
@@ -140,7 +142,7 @@ describe("readServerEnv", () => {
   it("requires resend in production and rejects smtp and log", () => {
     expect(
       readServerEnv({
-        DATABASE_URL: validUrl,
+        DATABASE_URL: productionUrl,
         NODE_ENV: "production",
         APP_URL: "https://app.gaffer.pt",
         CONFIRM_EMAIL_SECRET: confirmSecret,
@@ -311,7 +313,7 @@ describe("readServerEnv", () => {
     ).toThrow(/EMAIL_TRANSPORT=resend is required in production/);
     expect(
       readServerEnv({
-        DATABASE_URL: validUrl,
+        DATABASE_URL: productionUrl,
         NODE_ENV: "production",
         APP_URL: "https://app.gaffer.pt",
         CI: "true",
@@ -328,7 +330,7 @@ describe("readServerEnv", () => {
     });
     expect(
       readServerEnv({
-        DATABASE_URL: validUrl,
+        DATABASE_URL: productionUrl,
         NODE_ENV: "production",
         APP_URL: "http://127.0.0.1:3000",
         CI: "true",
@@ -528,7 +530,7 @@ describe("readServerEnv", () => {
     ).toThrow(/APP_URL is required in production/);
     expect(
       readServerEnv({
-        DATABASE_URL: validUrl,
+        DATABASE_URL: productionUrl,
         NODE_ENV: "production",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
@@ -585,6 +587,87 @@ describe("readServerEnv", () => {
         DB_POOL_MAX: "4",
       }),
     ).toThrow(/DB_POOL_MAX/);
+  });
+
+  it("requires verify-full in production and allows the neon and local flags", () => {
+    const production = {
+      NODE_ENV: "production" as const,
+      APP_URL: "https://app.gaffer.pt",
+      CONFIRM_EMAIL_SECRET: confirmSecret,
+      CONSENT_PSEUDONYM_KEY: validConsentKey,
+      EMAIL_TRANSPORT: "resend" as const,
+      RESEND_API_KEY: "test-resend-key",
+      CRON_SECRET: "cron-secret-value-32-characters-ok",
+    };
+    expect(() =>
+      readServerEnv({
+        ...production,
+        DATABASE_URL: validUrl,
+      }),
+    ).toThrow(/DATABASE_URL: sslmode=verify-full is required/);
+    expect(() =>
+      readServerEnv({
+        ...production,
+        DATABASE_URL: productionUrl,
+        DATABASE_URL_MIGRATOR: validUrl,
+      }),
+    ).toThrow(/DATABASE_URL_MIGRATOR: sslmode=verify-full is required/);
+    expect(
+      readServerEnv({
+        ...production,
+        DATABASE_URL: productionUrl,
+        DATABASE_URL_MIGRATOR: `${productionUrl}&application_name=migrator`,
+      }).DATABASE_URL,
+    ).toBe(productionUrl);
+    const neonUrl =
+      "postgresql://user:password@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=verify-full";
+    expect(
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "neon",
+        DATABASE_URL: neonUrl,
+        DATABASE_URL_MIGRATOR: neonUrl,
+      }).DATABASE_URL,
+    ).toBe(neonUrl);
+    expect(() =>
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "neon",
+        DATABASE_URL:
+          "postgresql://user:password@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=require",
+      }),
+    ).toThrow(/DB_TLS_MODE=neon requires sslmode=verify-full/);
+    expect(() =>
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "neon",
+        DATABASE_URL: validUrl,
+      }),
+    ).toThrow(/DB_TLS_MODE=neon only allows \*\.neon\.tech/);
+    expect(() =>
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "neon",
+        DATABASE_URL: neonUrl,
+        DATABASE_URL_MIGRATOR: productionUrl,
+      }),
+    ).toThrow(
+      /DATABASE_URL_MIGRATOR: DB_TLS_MODE=neon only allows \*\.neon\.tech/,
+    );
+    expect(
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "insecure",
+        DATABASE_URL: validUrl,
+      }).DATABASE_URL,
+    ).toBe(validUrl);
+    expect(() =>
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "insecure",
+        DATABASE_URL: "postgresql://user:password@db.internal/gym",
+      }),
+    ).toThrow(/only allowed for localhost/);
   });
 
   it("uses a local APP_URL placeholder during next build", () => {

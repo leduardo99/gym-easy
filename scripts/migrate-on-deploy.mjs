@@ -1,6 +1,11 @@
 import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+import {
+  databaseTlsErrors,
+  databaseTlsModeWarning,
+} from "../src/db/database-tls.mjs";
+
 const migrationsFolder = existsSync("/app/migrations/meta/_journal.json")
   ? "/app/migrations"
   : "src/db/migrations";
@@ -136,6 +141,24 @@ async function main() {
     );
     process.exit(1);
   }
+
+  const tlsErrors = databaseTlsErrors({
+    nodeEnv: process.env.NODE_ENV,
+    tlsMode: process.env.DB_TLS_MODE,
+    urls: [
+      { label: "DATABASE_URL_MIGRATOR", url: databaseUrl },
+      { label: "DATABASE_URL", url: process.env.DATABASE_URL },
+    ],
+  });
+  if (tlsErrors.length > 0) {
+    console.error(`migrate-on-deploy: ${tlsErrors.join("; ")}`);
+    process.exit(1);
+  }
+  const tlsWarning = databaseTlsModeWarning({
+    nodeEnv: process.env.NODE_ENV,
+    tlsMode: process.env.DB_TLS_MODE,
+  });
+  if (tlsWarning) console.warn(`migrate-on-deploy: ${tlsWarning}`);
 
   const postgres = (await import("postgres")).default;
   const { drizzle } = await import("drizzle-orm/postgres-js");

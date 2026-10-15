@@ -21,12 +21,10 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   outputFileTracingIncludes: {
     "/*": [
-      "./node_modules/drizzle-orm/package.json",
-      "./node_modules/drizzle-orm/migrator.js",
-      "./node_modules/drizzle-orm/postgres-js/migrator.js",
       "./node_modules/postgres/**/*",
       "./node_modules/@node-rs/argon2/**/*",
-      "./node_modules/@node-rs/argon2-linux-x64-gnu/**/*",
+      "./node_modules/.pnpm/@node-rs+argon2-linux-x64-gnu@*/node_modules/@node-rs/argon2-linux-x64-gnu/**/*",
+      "./node_modules/.pnpm/@node-rs+argon2-linux-arm64-gnu@*/node_modules/@node-rs/argon2-linux-arm64-gnu/**/*",
     ],
   },
   turbopack: {
