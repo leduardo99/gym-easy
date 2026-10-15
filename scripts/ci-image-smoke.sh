@@ -67,3 +67,4 @@ fi
 docker logs gym-easy-boot >/tmp/gym-easy-boot.log 2>&1
 grep -q 'migrate-on-deploy: applied' /tmp/gym-easy-boot.log
 docker exec gym-easy-boot node /app/scripts/purge-consent.mjs
+docker exec gym-easy-boot node /app/scripts/purge-coach-messages.mjs
