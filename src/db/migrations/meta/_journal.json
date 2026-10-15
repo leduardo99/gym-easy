@@ -85,6 +85,13 @@
       "when": 1792021598887,
       "tag": "0011_ai_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792024800000,
+      "tag": "0012_ai_coach_log_privileges",
+      "breakpoints": true
     }
   ]
 }
