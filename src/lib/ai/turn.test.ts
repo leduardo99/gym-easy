@@ -4,7 +4,20 @@ import { createMemoryRateLimiter } from "@/features/auth/rate-limit";
 
 import { PROFILE_INCOMPLETE_CTA, UNDER_AGE_RESPONSE } from "./copy";
 import { createMemoryRedFlagLockStore } from "./cooldown";
-import { handleCoachTurn, type CoachModelRequest } from "./turn";
+import {
+  PAID_ZDR_COACH_CHAT_VERSION_ID,
+  PAID_ZDR_COACH_HEALTH_VERSION_ID,
+} from "./paid-zdr-consent";
+import {
+  assessCoachTurn,
+  handleCoachTurn,
+  type CoachModelRequest,
+} from "./turn";
+
+const defaultCoachConsentVersions = {
+  coachHealth: "coach_health-pt-BR-2026-10-15b",
+  coachChat: "coach_chat-pt-BR-2026-10-15b",
+};
 
 const profile = {
   birthYear: 1991,
@@ -38,6 +51,8 @@ function harness() {
           coachHealth: "current",
           coachChat: "current",
         },
+        coachConsentVersions: defaultCoachConsentVersions,
+        paidZdrConsentVersionSuffix: null,
         profile,
         weightKg: 64,
         limiter: createMemoryRateLimiter(() => now.getTime()),
@@ -47,6 +62,7 @@ function harness() {
         sleep: async () => undefined,
         models: ["alpha/example:free"],
         privacyMode: "zdr_only",
+        pinnedProviders: [],
       });
     },
   };
@@ -103,6 +119,8 @@ describe("coach risk gate", () => {
         coachHealth: "current",
         coachChat: "current",
       },
+      coachConsentVersions: defaultCoachConsentVersions,
+      paidZdrConsentVersionSuffix: null,
       profile: { ...profile, birthYear: null },
       weightKg: 64,
       limiter: createMemoryRateLimiter(),
@@ -112,6 +130,7 @@ describe("coach risk gate", () => {
       sleep: async () => undefined,
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: [],
     });
 
     expect(result.status).toBe("profile_incomplete");
@@ -131,6 +150,8 @@ describe("coach risk gate", () => {
         coachHealth: "current",
         coachChat: "current",
       },
+      coachConsentVersions: defaultCoachConsentVersions,
+      paidZdrConsentVersionSuffix: null,
       profile: { ...profile, birthYear: 2010 },
       weightKg: 64,
       limiter: createMemoryRateLimiter(),
@@ -140,6 +161,7 @@ describe("coach risk gate", () => {
       sleep: async () => undefined,
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: [],
     });
 
     expect(result.status).toBe("safety_block");
@@ -158,6 +180,8 @@ describe("coach risk gate", () => {
         coachHealth: "missing",
         coachChat: "current",
       },
+      coachConsentVersions: defaultCoachConsentVersions,
+      paidZdrConsentVersionSuffix: null,
       profile,
       weightKg: 64,
       limiter: createMemoryRateLimiter(),
@@ -167,6 +191,7 @@ describe("coach risk gate", () => {
       sleep: async () => undefined,
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: [],
     });
 
     expect(result.status).toBe("consent_missing");
@@ -185,6 +210,8 @@ describe("coach risk gate", () => {
         coachHealth: "current",
         coachChat: "missing",
       },
+      coachConsentVersions: defaultCoachConsentVersions,
+      paidZdrConsentVersionSuffix: null,
       profile,
       weightKg: 64,
       limiter: createMemoryRateLimiter(),
@@ -194,6 +221,7 @@ describe("coach risk gate", () => {
       sleep: async () => undefined,
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: [],
     });
 
     expect(result.status).toBe("consent_missing");
@@ -211,6 +239,8 @@ describe("coach risk gate", () => {
         coachHealth: "stale",
         coachChat: "stale",
       },
+      coachConsentVersions: defaultCoachConsentVersions,
+      paidZdrConsentVersionSuffix: null,
       profile,
       weightKg: 64,
       limiter: createMemoryRateLimiter(),
@@ -220,11 +250,76 @@ describe("coach risk gate", () => {
       sleep: async () => undefined,
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: [],
     });
 
     expect(result.status).toBe("reconsent_required");
     expect(result.httpStatus).toBe(403);
     expect(result.text).toMatch(/versão atual/);
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("blocks paid_zdr when coach consents are still on -15b", async () => {
+    const callModel = vi.fn(async () => ({ text: "ok" }));
+    const turn = await assessCoachTurn({
+      userId: "user-1",
+      message: "como treinar?",
+      now: new Date("2026-10-14T12:00:00.000Z"),
+      consents: {
+        bodyData: "current",
+        coachHealth: "current",
+        coachChat: "current",
+      },
+      coachConsentVersions: defaultCoachConsentVersions,
+      paidZdrConsentVersionSuffix: "2026-10-15c",
+      profile,
+      weightKg: 64,
+      limiter: createMemoryRateLimiter(),
+      locks: createMemoryRedFlagLockStore(),
+      models: ["google/gemma-4-31b-it"],
+      privacyMode: "paid_zdr",
+      pinnedProviders: ["deepinfra"],
+      callModel,
+      log: () => undefined,
+      sleep: async () => undefined,
+    });
+
+    expect(turn.action).toBe("respond");
+    if (turn.action === "respond") {
+      expect(turn.result.status).toBe("reconsent_required");
+    }
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("allows paid_zdr generation when coach consents are on -15c", async () => {
+    const callModel = vi.fn(async () => ({ text: "ok" }));
+    const turn = await assessCoachTurn({
+      userId: "user-1",
+      message: "como treinar?",
+      now: new Date("2026-10-14T12:00:00.000Z"),
+      consents: {
+        bodyData: "current",
+        coachHealth: "current",
+        coachChat: "current",
+      },
+      coachConsentVersions: {
+        coachHealth: PAID_ZDR_COACH_HEALTH_VERSION_ID,
+        coachChat: PAID_ZDR_COACH_CHAT_VERSION_ID,
+      },
+      paidZdrConsentVersionSuffix: "2026-10-15c",
+      profile,
+      weightKg: 64,
+      limiter: createMemoryRateLimiter(),
+      locks: createMemoryRedFlagLockStore(),
+      models: ["google/gemma-4-31b-it"],
+      privacyMode: "paid_zdr",
+      pinnedProviders: ["deepinfra"],
+      callModel,
+      log: () => undefined,
+      sleep: async () => undefined,
+    });
+
+    expect(turn.action).toBe("generate");
     expect(callModel).not.toHaveBeenCalled();
   });
 });

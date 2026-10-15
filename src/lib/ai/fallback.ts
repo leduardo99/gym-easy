@@ -26,6 +26,8 @@ export type ProviderFailure = {
 export type ModelAttempt = {
   model: string;
   zdr: boolean;
+  privacyMode: OpenRouterPrivacyMode;
+  pinnedProviders: string[];
   attempt: number;
   signal: AbortSignal;
   markFirstToken: () => void;
@@ -62,11 +64,32 @@ type ErrorLike = {
   responseBody?: string;
 };
 
-export function openRouterProviderRouting(input: { zdr: boolean }): {
-  zdr: boolean;
-  data_collection: "deny";
-  allow_fallbacks: boolean;
-} {
+export type OpenRouterProviderRouting =
+  | {
+      zdr: boolean;
+      data_collection: "deny";
+      allow_fallbacks: boolean;
+    }
+  | {
+      zdr: true;
+      data_collection: "deny";
+      only: string[];
+      allow_fallbacks: false;
+    };
+
+export function openRouterProviderRouting(
+  input:
+    | { mode: "standard"; zdr: boolean }
+    | { mode: "paid_zdr"; providers: string[] },
+): OpenRouterProviderRouting {
+  if (input.mode === "paid_zdr") {
+    return {
+      zdr: true,
+      data_collection: "deny",
+      only: input.providers,
+      allow_fallbacks: false,
+    };
+  }
   return {
     zdr: input.zdr,
     data_collection: "deny",
@@ -263,6 +286,8 @@ export function finalFallbackOutcome(
 async function tryModelRoute<T>(input: {
   model: string;
   zdr: boolean;
+  privacyMode: OpenRouterPrivacyMode;
+  pinnedProviders: string[];
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
   maxRateLimitRetries: number;
@@ -309,6 +334,8 @@ async function tryModelRoute<T>(input: {
       const value = await input.call({
         model: input.model,
         zdr: input.zdr,
+        privacyMode: input.privacyMode,
+        pinnedProviders: input.pinnedProviders,
         attempt,
         signal: controller.signal,
         markFirstToken: controller.markFirstToken,
@@ -402,6 +429,7 @@ export function linkAbortSignals(
 export async function runModelFallback<T>(options: {
   models: string[];
   privacyMode: OpenRouterPrivacyMode;
+  pinnedProviders: string[];
   product: AiProduct;
   call: (attempt: ModelAttempt) => Promise<T>;
   sleep: (ms: number) => Promise<void>;
@@ -423,6 +451,8 @@ export async function runModelFallback<T>(options: {
     const zdrTry = await tryModelRoute({
       model,
       zdr: true,
+      privacyMode: options.privacyMode,
+      pinnedProviders: options.pinnedProviders,
       call: options.call,
       sleep: options.sleep,
       maxRateLimitRetries,
@@ -456,6 +486,8 @@ export async function runModelFallback<T>(options: {
       const relaxed = await tryModelRoute({
         model,
         zdr: false,
+        privacyMode: options.privacyMode,
+        pinnedProviders: options.pinnedProviders,
         call: options.call,
         sleep: options.sleep,
         maxRateLimitRetries,

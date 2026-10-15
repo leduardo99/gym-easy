@@ -32,6 +32,7 @@ import {
 } from "./messages";
 import { sanitizeCoachOutput, FILTERED_OUTPUT } from "./output";
 import { COACH_PROMPT_VERSION, renderCoachPrompt } from "./prompts";
+import { coachModelsForPrivacyMode } from "./models";
 import { createGymOpenRouter, openRouterChatModel } from "./provider";
 import {
   clientErrorCodeForOutcome,
@@ -125,6 +126,18 @@ function consentFreshness(
   return isCurrentConsent(event) ? "current" : "stale";
 }
 
+function grantedConsentVersion(
+  event:
+    | {
+        action: "granted" | "revoked";
+        version: string;
+      }
+    | undefined,
+): string | null {
+  if (!event || event.action !== "granted") return null;
+  return event.version;
+}
+
 export async function createCoachHttpResponse(input: {
   userId: string;
   body: unknown;
@@ -174,12 +187,18 @@ export async function createCoachHttpResponse(input: {
       coachHealth: consentFreshness(latestConsent("coach_health")),
       coachChat: consentFreshness(latestConsent("coach_chat")),
     },
+    coachConsentVersions: {
+      coachHealth: grantedConsentVersion(latestConsent("coach_health")),
+      coachChat: grantedConsentVersion(latestConsent("coach_chat")),
+    },
+    paidZdrConsentVersionSuffix: env.COACH_CONSENT_VERSION_PAID_ZDR,
     profile,
     weightKg: weightKg !== null && Number.isFinite(weightKg) ? weightKg : null,
     limiter: createDrizzleRateLimiter(db),
     locks: createDrizzleRedFlagLockStore(db),
-    models: env.COACH_MODELS,
+    models: coachModelsForPrivacyMode(env),
     privacyMode: env.OPENROUTER_PRIVACY_MODE,
+    pinnedProviders: env.OPENROUTER_PROVIDERS,
     callModel: async () => {
       throw new Error("unused");
     },
@@ -272,7 +291,8 @@ export async function createCoachHttpResponse(input: {
     return new Response(events.join(""), { status: 200, headers: SSE_HEADERS });
   }
 
-  if (!env.OPENROUTER_API_KEY || env.COACH_MODELS.length === 0) {
+  const coachModels = coachModelsForPrivacyMode(env);
+  if (!env.OPENROUTER_API_KEY || coachModels.length === 0) {
     const log = record({
       userId: input.userId,
       requestId,
@@ -320,14 +340,15 @@ export async function createCoachHttpResponse(input: {
       let tokensIn: number | null = null;
       let tokensOut: number | null = null;
       const generated = await runModelFallback({
-        models: env.COACH_MODELS,
+        models: coachModels,
         privacyMode: env.OPENROUTER_PRIVACY_MODE,
+        pinnedProviders: env.OPENROUTER_PROVIDERS,
         product: "coach",
         sleep: turnInput.sleep,
         stopSignal: input.signal,
         call: async (attempt) => {
           const opened = await beginCoachStream({
-            model: openRouterChatModel(provider, attempt.model, attempt.zdr),
+            model: openRouterChatModel(provider, attempt.model, attempt),
             system: rendered.system,
             prompt: rendered.prompt,
             signal: linkAbortSignals(attempt.signal, input.signal),

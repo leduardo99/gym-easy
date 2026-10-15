@@ -16,6 +16,9 @@ const steadyJitter = () => 0.5;
 const minJitter = () => 0;
 
 const models = ["alpha/example:free", "beta/example:free"];
+const noPin: string[] = [];
+const paidModels = ["google/gemma-4-31b-it", "openai/gpt-oss-120b"];
+const deepinfra = ["deepinfra"];
 
 function policy404() {
   return Object.assign(
@@ -33,6 +36,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async () => undefined,
@@ -56,6 +60,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_then_fallback",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async () => undefined,
@@ -82,6 +87,7 @@ describe("provider fallback", () => {
     await runModelFallback({
       models: ["only/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async () => undefined,
@@ -100,6 +106,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_then_fallback",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async () => undefined,
@@ -128,6 +135,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_then_fallback",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async () => undefined,
@@ -155,6 +163,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: steadyJitter,
@@ -189,6 +198,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: minJitter,
@@ -221,6 +231,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: minJitter,
@@ -253,6 +264,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async (ms) => {
@@ -278,6 +290,7 @@ describe("provider fallback", () => {
     const promise = runModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: steadyJitter,
@@ -312,6 +325,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       jitter: steadyJitter,
@@ -333,12 +347,13 @@ describe("provider fallback", () => {
   });
 
   it("keeps identical routing fields on each 429 retry", () => {
-    expect(openRouterProviderRouting({ zdr: true })).toEqual(
-      openRouterProviderRouting({ zdr: true }),
+    expect(openRouterProviderRouting({ mode: "standard", zdr: true })).toEqual(
+      openRouterProviderRouting({ mode: "standard", zdr: true }),
     );
-    expect(openRouterProviderRouting({ zdr: true }).data_collection).toBe(
-      "deny",
-    );
+    expect(
+      openRouterProviderRouting({ mode: "standard", zdr: true })
+        .data_collection,
+    ).toBe("deny");
   });
 
   it("does not backoff on data-policy 404", async () => {
@@ -350,6 +365,7 @@ describe("provider fallback", () => {
     await runModelFallback({
       models: ["alpha/example:free", "beta/example:free"],
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async (ms) => {
@@ -398,6 +414,7 @@ describe("provider fallback", () => {
       const promise = runModelFallback({
         models: ["alpha/example:free"],
         privacyMode: "zdr_only",
+        pinnedProviders: noPin,
         product: "coach",
         call,
         jitter: steadyJitter,
@@ -418,6 +435,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call: async () => {
         throw new Error("upstream");
@@ -436,6 +454,7 @@ describe("provider fallback", () => {
     const result = await runModelFallback({
       models,
       privacyMode: "zdr_only",
+      pinnedProviders: noPin,
       product: "coach",
       call,
       sleep: async () => undefined,
@@ -474,16 +493,84 @@ describe("provider fallback", () => {
   });
 
   it("always sends data_collection deny in OpenRouter provider routing", () => {
-    expect(openRouterProviderRouting({ zdr: true })).toEqual({
+    expect(openRouterProviderRouting({ mode: "standard", zdr: true })).toEqual({
       zdr: true,
       data_collection: "deny",
       allow_fallbacks: true,
     });
-    expect(openRouterProviderRouting({ zdr: false })).toEqual({
-      zdr: false,
+    expect(openRouterProviderRouting({ mode: "standard", zdr: false })).toEqual(
+      {
+        zdr: false,
+        data_collection: "deny",
+        allow_fallbacks: true,
+      },
+    );
+  });
+
+  it("pins providers with ZDR in paid_zdr routing", () => {
+    expect(
+      openRouterProviderRouting({
+        mode: "paid_zdr",
+        providers: ["deepinfra", "together"],
+      }),
+    ).toEqual({
+      zdr: true,
       data_collection: "deny",
-      allow_fallbacks: true,
+      only: ["deepinfra", "together"],
+      allow_fallbacks: false,
     });
+  });
+
+  it("never sends zdr:false in paid_zdr mode", async () => {
+    const call = vi.fn(async ({ zdr }) => {
+      if (zdr) throw policy404();
+      return { text: "unexpected" };
+    });
+
+    await runModelFallback({
+      models: paidModels,
+      privacyMode: "paid_zdr",
+      pinnedProviders: deepinfra,
+      product: "coach",
+      call,
+      sleep: async () => undefined,
+    });
+
+    expect(call.mock.calls.every((entry) => entry[0]?.zdr === true)).toBe(true);
+    expect(
+      call.mock.calls.every((entry) => entry[0]?.privacyMode === "paid_zdr"),
+    ).toBe(true);
+  });
+
+  it("keeps paid_zdr routing on 429 retries", async () => {
+    let calls = 0;
+    const call = vi.fn(async ({ zdr, pinnedProviders }) => {
+      calls += 1;
+      if (calls < 3) {
+        throw Object.assign(new Error("rl"), { statusCode: 429 });
+      }
+      return { zdr, pinnedProviders };
+    });
+
+    const result = await runModelFallback({
+      models: ["google/gemma-4-31b-it"],
+      privacyMode: "paid_zdr",
+      pinnedProviders: deepinfra,
+      product: "coach",
+      call,
+      jitter: steadyJitter,
+      sleep: async () => undefined,
+    });
+
+    expect(result).toMatchObject({ ok: true, servedWithZdr: true });
+    expect(call).toHaveBeenCalledTimes(3);
+    for (const entry of call.mock.calls) {
+      expect(entry[0]).toMatchObject({
+        zdr: true,
+        privacyMode: "paid_zdr",
+        pinnedProviders: deepinfra,
+      });
+    }
   });
 
   it("aborts when the first token does not arrive within 20 seconds", () => {

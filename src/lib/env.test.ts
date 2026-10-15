@@ -51,6 +51,10 @@ describe("readServerEnv", () => {
       OPENROUTER_API_KEY: null,
       COACH_MODELS: [],
       PLAN_MODELS: [],
+      COACH_MODELS_PAID: [],
+      PLAN_MODELS_PAID: [],
+      OPENROUTER_PROVIDERS: ["deepinfra"],
+      COACH_CONSENT_VERSION_PAID_ZDR: null,
       OPENROUTER_PRIVACY_MODE: "zdr_only",
     });
   });
@@ -574,6 +578,70 @@ describe("readServerEnv", () => {
         OPENROUTER_PRIVACY_MODE: "open_training",
       }),
     ).toThrow();
+  });
+
+  it("accepts paid_zdr and rejects paid env outside that mode", () => {
+    expect(
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_PRIVACY_MODE: "paid_zdr",
+        OPENROUTER_API_KEY: "or-test-key",
+        COACH_MODELS_PAID: "google/gemma-4-31b-it",
+        PLAN_MODELS_PAID: "openai/gpt-oss-120b",
+        COACH_CONSENT_VERSION_PAID_ZDR: "2026-10-15c",
+      }),
+    ).toMatchObject({
+      OPENROUTER_PRIVACY_MODE: "paid_zdr",
+      COACH_MODELS: [],
+      COACH_MODELS_PAID: ["google/gemma-4-31b-it"],
+      PLAN_MODELS_PAID: ["openai/gpt-oss-120b"],
+      OPENROUTER_PROVIDERS: ["deepinfra"],
+      COACH_CONSENT_VERSION_PAID_ZDR: "2026-10-15c",
+    });
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_PRIVACY_MODE: "paid_zdr",
+        OPENROUTER_API_KEY: "or-test-key",
+      }),
+    ).toThrow(/COACH_MODELS_PAID|COACH_CONSENT_VERSION_PAID_ZDR/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        COACH_MODELS_PAID: "google/gemma-4-31b-it",
+      }),
+    ).toThrow(/paid_zdr/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_PRIVACY_MODE: "paid_zdr",
+        COACH_MODELS: "alpha:free",
+        OPENROUTER_API_KEY: "or-test-key",
+      }),
+    ).toThrow(/must be empty/);
+    expect(() =>
+      readServerEnv({
+        DATABASE_URL: validUrl,
+        NODE_ENV: "test",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        OPENROUTER_PRIVACY_MODE: "paid_zdr",
+        OPENROUTER_PROVIDERS: "bad provider",
+        OPENROUTER_API_KEY: "or-test-key",
+      }),
+    ).toThrow(/OPENROUTER_PROVIDERS/);
   });
 
   it("uses a non-secret consent key placeholder during next build", () => {

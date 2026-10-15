@@ -5,8 +5,11 @@ Camada do coach. Só este diretório importa `ai` e `@openrouter/ai-sdk-provider
 ## Ambiente
 
 - `OPENROUTER_API_KEY` — opcional. Sem chave, o chat não chama modelo.
-- `COACH_MODELS` e `PLAN_MODELS` — ids separados por vírgula, cada um a terminar em `:free`. Lista vazia é válida.
-- `OPENROUTER_PRIVACY_MODE` — `zdr_only` (padrão) ou `zdr_then_fallback`. Em `zdr_then_fallback`, cada modelo `:free` tenta primeiro com `zdr:true` e `data_collection:deny`; só após 404 de política de dados repete o mesmo modelo com `zdr:false` e `data_collection:deny`.
+- `COACH_MODELS` e `PLAN_MODELS` — ids separados por vírgula, cada um a terminar em `:free`. Lista vazia é válida. Em `paid_zdr` estas listas devem ficar vazias.
+- `OPENROUTER_PRIVACY_MODE` — `zdr_only` (padrão), `zdr_then_fallback` ou `paid_zdr` (opt-in). Em `zdr_then_fallback`, cada modelo `:free` tenta primeiro com `zdr:true` e `data_collection:deny`; só após 404 de política de dados repete o mesmo modelo com `zdr:false` e `data_collection:deny`. Em `paid_zdr`, usa listas pagas explícitas e envia sempre `provider: { zdr: true, data_collection: deny, only: [<OPENROUTER_PROVIDERS>], allow_fallbacks: false }` — sem `zdr:false` nem fallback fora de ZDR.
+- `COACH_MODELS_PAID`, `PLAN_MODELS_PAID` — obrigatórias e não vazias com `OPENROUTER_PRIVACY_MODE=paid_zdr` (sem defaults).
+- `COACH_CONSENT_VERSION_PAID_ZDR` — obrigatório em `paid_zdr` (valor esperado `2026-10-15c` até os textos -15c existirem). O coach só serve em `paid_zdr` com `coach_health` e `coach_chat` concedidos nessa versão; grants `-15b` não contam.
+- `OPENROUTER_PROVIDERS` — lista de providers OpenRouter (padrão `deepinfra`) usada em `paid_zdr`.
 - `NEXT_PUBLIC_OPENROUTER_API_KEY` é rejeitado.
 
 O identificador da app no OpenRouter é `https://app.gaffer.pt`.
