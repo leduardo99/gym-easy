@@ -52,6 +52,7 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   await expect(
     page.getByRole("heading", { name: "Seus dados do corpo" }),
   ).toBeVisible();
+  await page.getByText("Ler o texto completo").click();
   await expect(page.getByText(/contacto@gaffer.pt/)).toBeVisible();
   await page
     .getByRole("checkbox", {
@@ -127,21 +128,9 @@ test("o chat do coach exige os dois checkboxes da versão atual", async ({
   await expect(chat).toBeVisible();
   await expect(transfer).not.toBeChecked();
   await chat.check();
-  await page.getByRole("button", { name: "Autorizar" }).click();
-  await expect(page).toHaveURL(/erro=caixa/);
-  await expect(
-    page.getByText("Marque a autorização para continuar."),
-  ).toBeVisible();
-  await page
-    .getByRole("checkbox", {
-      name: /Autorizo o Gym Easy a enviar as mensagens/,
-    })
-    .check();
-  await page
-    .getByRole("checkbox", {
-      name: /transferidas para o OpenRouter/,
-    })
-    .check();
+  await expect(page.getByRole("button", { name: "Autorizar" })).toBeDisabled();
+  await transfer.check();
+  await expect(page.getByRole("button", { name: "Autorizar" })).toBeEnabled();
   await page.getByRole("button", { name: "Autorizar" }).click();
   await page.waitForURL("**/perfil");
 });
