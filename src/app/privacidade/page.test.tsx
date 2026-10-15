@@ -70,9 +70,17 @@ describe("PrivacyPage", () => {
     const profileBody = screen.getByRole("region", {
       name: "Dados do perfil e do corpo",
     });
+    expect(profileBody).toHaveTextContent("Perfil de treino");
+    expect(profileBody).toHaveTextContent("execução do contrato");
     expect(profileBody).toHaveTextContent("birthYear");
+    expect(profileBody).toHaveTextContent("trainingPlace");
+    expect(profileBody).toHaveTextContent("Dados do corpo");
+    expect(profileBody).toHaveTextContent("consentimento body_data");
     expect(profileBody).toHaveTextContent("heightCm");
     expect(profileBody).toHaveTextContent("coach_health");
+    expect(profileBody).toHaveTextContent(/metadados técnicos/i);
+    expect(profileBody).toHaveTextContent(/indicação ZDR/);
+    expect(profileBody).not.toHaveTextContent(/só pseudónimo/i);
     expect(profileBody).toHaveTextContent(/idade mínima.*16 anos/i);
     expect(profileBody).toHaveTextContent(
       /art\. 6\.º, n\.º 1, alíneas b\) e c\)/,

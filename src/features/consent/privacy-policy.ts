@@ -7,23 +7,33 @@ export const PRIVACY_POLICY = {
     id: "dados-do-perfil-e-corpo",
     heading: "Dados do perfil e do corpo",
     minimumAgeYears: 16,
-    collectedFields: [
-      "ano de nascimento (birthYear)",
-      "sexo (sex)",
-      "altura em centímetros (heightCm)",
-      "objetivo de treino (goal)",
-      "nível de treino (level)",
-      "dias de treino por semana (daysPerWeek)",
-      "duração da sessão em minutos (sessionMinutes)",
-      "local de treino (trainingPlace)",
-      "registo de peso (histórico de peso)",
-      "medidas corporais (body measurements)",
-    ],
+    trainingProfile: {
+      heading: "Perfil de treino",
+      basis: "execução do contrato",
+      fields: [
+        "ano de nascimento (birthYear)",
+        "objetivo de treino (goal)",
+        "nível de treino (level)",
+        "dias de treino por semana (daysPerWeek)",
+        "duração da sessão em minutos (sessionMinutes)",
+        "local de treino (trainingPlace)",
+      ],
+    },
+    bodyData: {
+      heading: "Dados do corpo",
+      basis: "consentimento body_data",
+      fields: [
+        "sexo (sex)",
+        "altura em centímetros (heightCm)",
+        "medidas corporais (body measurements)",
+        "registo de peso (histórico de peso)",
+      ],
+    },
     paragraphs: [
-      "Com a autorização «Dados do corpo», guardamos os campos acima para personalizar treinos, registar peso e medidas e verificar elegibilidade. A idade mínima para usar o Gym Easy é 16 anos.",
+      "Guardamos o perfil de treino para executar o contrato consigo e personalizar planos. Os dados do corpo só são guardados com a autorização «Dados do corpo». A idade mínima para usar o Gym Easy é 16 anos.",
       "Se você retirar a autorização «Dados do corpo», apagamos altura, sexo, histórico de peso e medidas corporais. O ano de nascimento permanece na conta para executar o contrato consigo, demonstrar que você tem pelo menos 16 anos e respeitar o art. 8.º do RGPD (idade mínima no serviço da sociedade da informação). Essa conservação apoia-se no art. 6.º, n.º 1, alíneas b) e c), do RGPD (execução do contrato e obrigação legal). O ano de nascimento só é apagado quando você apaga a conta.",
       "O Coach só usa dados de saúde ou do corpo no chat quando você tem a autorização «Saúde no Coach» (coach_health) ativa. Sem essa autorização, o Coach não trata esses dados, mesmo que outros campos do perfil existam.",
-      "Mensagens do Coach podem citar peso ou altura que você escreveu; ficam até 90 dias ou até você usar «Apagar histórico» em Privacidade. Registos técnicos da IA (ai_generation_logs) não guardam texto nem medidas — só pseudónimo, modelo e resultado.",
+      "Mensagens do Coach podem citar peso ou altura que você escreveu; ficam até 90 dias ou até você usar «Apagar histórico» em Privacidade. Os registos técnicos da IA (ai_generation_logs) não guardam texto de conversa nem medidas corporais; guardam metadados técnicos (pseudónimo, modelo, resultado, tokens, latência, política de dados, indicação ZDR).",
     ],
   },
   paragraphs: [
@@ -87,14 +97,25 @@ export function processorText(processor: {
   return `${processor.name}: ${role} Região ${processor.region}.`;
 }
 
+function profileFieldGroupText(group: {
+  heading: string;
+  basis: string;
+  fields: readonly string[];
+}): string[] {
+  return [
+    `${group.heading} (${group.basis}):`,
+    ...group.fields.map((field) => `• ${field}`),
+  ];
+}
+
 export function privacyPolicyText(): string {
+  const { profileBodyData } = PRIVACY_POLICY;
   return [
     ...PRIVACY_POLICY.paragraphs,
-    PRIVACY_POLICY.profileBodyData.heading,
-    ...PRIVACY_POLICY.profileBodyData.paragraphs,
-    ...PRIVACY_POLICY.profileBodyData.collectedFields.map(
-      (field) => `• ${field}`,
-    ),
+    profileBodyData.heading,
+    ...profileFieldGroupText(profileBodyData.trainingProfile),
+    ...profileFieldGroupText(profileBodyData.bodyData),
+    ...profileBodyData.paragraphs,
     PRIVACY_POLICY.rights.heading,
     ...PRIVACY_POLICY.rights.paragraphs,
     PRIVACY_POLICY.dataLocation.heading,

@@ -121,7 +121,7 @@ export function BodyDataPrivacySection({
           id={BODY_DATA_PRIVACY_STATUS_ID}
           ref={statusRef}
           tabIndex={-1}
-          role="status"
+          role={banner.variant === "destructive" ? "alert" : "status"}
         >
           <AlertDescription>{banner.message}</AlertDescription>
         </Alert>

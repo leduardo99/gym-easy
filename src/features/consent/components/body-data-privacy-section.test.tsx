@@ -86,4 +86,23 @@ describe("BodyDataPrivacySection", () => {
     });
     focusSpy.mockRestore();
   });
+
+  it("usa role=alert na mensagem de erro", async () => {
+    revokeBodyDataConsentAction.mockResolvedValue({
+      ok: false,
+      formError: { code: "server", message: "Erro de teste" },
+    });
+    render(
+      <BodyDataPrivacySection bodyDataGranted grantHref="/consentimento" />,
+    );
+    fireEvent.click(
+      screen.getByRole("switch", { name: BODY_DATA_PRIVACY_COPY.sectionTitle }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retirar autorização" }),
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Erro de teste");
+    });
+  });
 });

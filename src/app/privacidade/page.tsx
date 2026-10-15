@@ -27,14 +27,32 @@ export default function PrivacyPage() {
         >
           {PRIVACY_POLICY.profileBodyData.heading}
         </h2>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Com a autorização «Dados do corpo», recolhemos:
-        </p>
-        <ul className="list-disc pl-5 text-sm leading-6 text-muted-foreground">
-          {PRIVACY_POLICY.profileBodyData.collectedFields.map((field) => (
-            <li key={field}>{field}</li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">
+              {PRIVACY_POLICY.profileBodyData.trainingProfile.heading} (
+              {PRIVACY_POLICY.profileBodyData.trainingProfile.basis})
+            </h3>
+            <ul className="mt-1 list-disc pl-5 text-sm leading-6 text-muted-foreground">
+              {PRIVACY_POLICY.profileBodyData.trainingProfile.fields.map(
+                (field) => (
+                  <li key={field}>{field}</li>
+                ),
+              )}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">
+              {PRIVACY_POLICY.profileBodyData.bodyData.heading} (
+              {PRIVACY_POLICY.profileBodyData.bodyData.basis})
+            </h3>
+            <ul className="mt-1 list-disc pl-5 text-sm leading-6 text-muted-foreground">
+              {PRIVACY_POLICY.profileBodyData.bodyData.fields.map((field) => (
+                <li key={field}>{field}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
         {PRIVACY_POLICY.profileBodyData.paragraphs.map((paragraph) => (
           <p
             key={paragraph}
