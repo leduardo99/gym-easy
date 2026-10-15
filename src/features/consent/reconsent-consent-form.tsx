@@ -36,6 +36,7 @@ function summaryParagraphs(
 }
 
 function refuseConfirmDescription(scope: ReconsentScope): string {
+  if (scope === "body_data") return RECONSENT_COPY.refuseConfirmBodyData;
   if (scope === "coach_health") return RECONSENT_COPY.refuseConfirmCoachHealth;
   if (scope === "coach_chat") return RECONSENT_COPY.refuseConfirmCoachChat;
   return RECONSENT_COPY.refused;

@@ -11,6 +11,7 @@ import {
 
 import type { ConsentEvent } from "./repository";
 import { createConsentRepository } from "./repository";
+import { revokeBodyDataConsent } from "./revoke-body-data";
 
 /** Finalidades que a página pode gravar, incluindo o chat. */
 export const RECONSENT_SCOPES = [
@@ -39,7 +40,11 @@ export const RECONSENT_COPY = {
     "A autorização de saúde foi retirada e as sugestões de plano do Coach foram apagadas. O histórico do chat foi mantido. O Coach não responde até você autorizar saúde de novo.",
   refusedCoachChat:
     "A autorização do chat foi retirada e o histórico de conversas foi apagado. O Coach não envia mais mensagens ao OpenRouter até você autorizar o chat de novo.",
+  refusedBodyData:
+    "A autorização dos dados do corpo foi retirada. Apagamos altura, sexo e o histórico de peso. O ano de nascimento no perfil foi mantido. Para guardar altura ou peso de novo, autorize quando pedirmos.",
   refuseConfirmTitle: "Recusar autorização?",
+  refuseConfirmBodyData:
+    "Apagamos altura, sexo e todo o histórico de peso da sua conta. O ano de nascimento no perfil não é alterado.",
   refuseConfirmCoachHealth:
     "O coach fica desligado e as sugestões de plano do coach são apagadas.",
   refuseConfirmCoachChat:
@@ -53,6 +58,7 @@ export const RECONSENT_COPY = {
 
 export type ReconsentNotice =
   | "refused"
+  | "refused_body_data"
   | "refused_coach_health"
   | "refused_coach_chat"
   | "checkbox"
@@ -61,12 +67,15 @@ export type ReconsentNotice =
 export function reconsentRefuseRequiresConfirmation(
   scope: ReconsentScope,
 ): boolean {
-  return scope === "coach_health" || scope === "coach_chat";
+  return (
+    scope === "body_data" || scope === "coach_health" || scope === "coach_chat"
+  );
 }
 
 export function reconsentRefuseNoticeForScope(
   scope: ReconsentScope,
 ): ReconsentNotice {
+  if (scope === "body_data") return "refused_body_data";
   if (scope === "coach_health") return "refused_coach_health";
   if (scope === "coach_chat") return "refused_coach_chat";
   return "refused";
@@ -74,6 +83,8 @@ export function reconsentRefuseNoticeForScope(
 
 export function reconsentNoticeMessage(notice: ReconsentNotice): string {
   switch (notice) {
+    case "refused_body_data":
+      return RECONSENT_COPY.refusedBodyData;
     case "refused_coach_health":
       return RECONSENT_COPY.refusedCoachHealth;
     case "refused_coach_chat":
@@ -91,6 +102,7 @@ export function parseReconsentNotice(
   recusado: string | undefined,
   erro: string | undefined,
 ): ReconsentNotice | null {
+  if (recusado === "corpo") return "refused_body_data";
   if (recusado === "saude") return "refused_coach_health";
   if (recusado === "chat") return "refused_coach_chat";
   if (recusado === "1") return "refused";
@@ -127,6 +139,7 @@ export function reconsentPath(
   params.set("scope", scope);
   params.set("next", safeReconsentNext(nextPath));
   if (notice === "refused") params.set("recusado", "1");
+  if (notice === "refused_body_data") params.set("recusado", "corpo");
   if (notice === "refused_coach_health") params.set("recusado", "saude");
   if (notice === "refused_coach_chat") params.set("recusado", "chat");
   if (notice === "checkbox") params.set("erro", "caixa");
@@ -156,6 +169,12 @@ export async function submitReconsent(
   const scope = parseReconsentScope(input.scope);
   if (!scope) return { status: "invalid_scope" };
   if (input.intent === "refuse") {
+    if (scope === "body_data") {
+      const revoked = await revokeBodyDataConsent(db, userId, {
+        source: "reconsent",
+      });
+      if (!revoked.ok) return { status: "invalid" };
+    }
     if (scope === "coach_health") {
       const revoked = await revokeCoachHealthConsent(db, userId, "reconsent");
       if (!revoked.ok) return { status: "invalid" };

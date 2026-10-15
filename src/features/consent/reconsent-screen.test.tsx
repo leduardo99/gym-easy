@@ -57,11 +57,11 @@ describe("ReconsentScreen", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps the block visible when the person refuses", () => {
+  it("keeps the block visible when analytics is refused without data loss", () => {
     render(
       <ReconsentScreen
-        copy={CONSENT_TEXTS.body_data}
-        scope="body_data"
+        copy={CONSENT_TEXTS.analytics}
+        scope="analytics"
         nextPath="/perfil"
         notice="refused"
       />,
@@ -71,6 +71,7 @@ describe("ReconsentScreen", () => {
   });
 
   it.each([
+    ["body_data", "refused_body_data", RECONSENT_COPY.refusedBodyData],
     ["coach_health", "refused_coach_health", RECONSENT_COPY.refusedCoachHealth],
     ["coach_chat", "refused_coach_chat", RECONSENT_COPY.refusedCoachChat],
   ] as const)(
@@ -122,6 +123,24 @@ describe("ReconsentScreen", () => {
       ).toBeVisible();
     },
   );
+
+  it("shows body_data purge warning before confirming refuse", () => {
+    const { container } = render(
+      <ReconsentScreen
+        copy={CONSENT_TEXTS.body_data}
+        scope="body_data"
+        nextPath="/perfil"
+        notice={null}
+      />,
+    );
+
+    fireEvent.click(
+      within(container).getByRole("button", { name: RECONSENT_COPY.refuse }),
+    );
+    const dialog = screen.getByTestId("reconsent-refuse-dialog");
+    expect(dialog).toHaveTextContent(RECONSENT_COPY.refuseConfirmBodyData);
+    expect(dialog).not.toHaveTextContent(RECONSENT_COPY.refused);
+  });
 
   it("does not show transfer risks on body_data", () => {
     const { container } = render(
