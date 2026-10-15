@@ -149,13 +149,15 @@ export async function signupAction(input: unknown): Promise<AuthActionResult> {
   if (!context) return { ok: false, formError: serverError() };
 
   try {
+    const env = getServerEnv();
     const result = await registerAccount(
       {
         name: readString(input, "name"),
         email: readString(input, "email"),
         password: readString(input, "password"),
-        ip: context.ip,
-        origin: getServerEnv().APP_URL,
+        // E2E usa captura de email (desativada em produção); sem IP não há bucket de cadastro.
+        ip: env.EMAIL_CAPTURE_PATH ? null : context.ip,
+        origin: env.APP_URL,
         now: new Date(),
       },
       {

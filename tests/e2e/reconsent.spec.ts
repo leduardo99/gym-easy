@@ -1,49 +1,14 @@
-import { readFile } from "node:fs/promises";
+import { expect, test } from "@playwright/test";
 
-import { expect, test, type Page } from "@playwright/test";
-
-const capturePath = ".data/e2e-emails.jsonl";
-
-async function latestEmail(email: string) {
-  const text = await readFile(capturePath, "utf8").catch(() => "");
-  const entries = text
-    .split("\n")
-    .filter(Boolean)
-    .map(
-      (line) =>
-        JSON.parse(line) as { kind: string; to: string; confirmUrl?: string },
-    );
-  return [...entries]
-    .reverse()
-    .find(
-      (entry) => entry.to === email && entry.kind === "account_confirmation",
-    );
-}
-
-async function signedIn(page: Page) {
-  const email = `reconsent-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
-  await page.goto("/cadastro");
-  await page.getByLabel("Nome").fill("Ana Souza");
-  await page.getByLabel("Email").fill(email);
-  await page
-    .getByLabel("Senha", { exact: true })
-    .fill("gym-easy-e2e-senha-9f3f");
-  await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page).toHaveURL(/\/cadastro\/confirme/);
-  await expect
-    .poll(() => latestEmail(email))
-    .toMatchObject({ kind: "account_confirmation" });
-  const confirmation = await latestEmail(email);
-  await page.goto(confirmation?.confirmUrl ?? "/");
-  await page.waitForURL("**/onboarding");
-}
+import { signedIn } from "./helpers/auth";
+import { birthYearField, heightField } from "./helpers/profile";
 
 test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   page,
 }) => {
   await signedIn(page);
   await page.goto("/perfil");
-  await page.getByLabel("Altura (cm)").fill("170");
+  await heightField(page).fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await page.waitForURL(/\/consentimento\?/);
   const url = new URL(page.url());
@@ -62,11 +27,13 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   await page.getByRole("button", { name: "Autorizar" }).click();
   await page.waitForURL("**/perfil");
 
-  await page.getByLabel("Altura (cm)").fill("170");
+  await birthYearField(page).fill("1990");
+  await heightField(page).fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Altura guardada.")).toBeVisible();
+  await expect(page.getByText("Perfil guardado.")).toBeVisible();
   await page.goto("/perfil");
-  await expect(page.getByLabel("Altura (cm)")).toHaveValue("170");
+  await expect(birthYearField(page)).toHaveValue("1990");
+  await expect(heightField(page)).toHaveValue("170");
 });
 
 test("recusar o reconsentimento não libera a ação", async ({ page }) => {
@@ -81,7 +48,7 @@ test("recusar o reconsentimento não libera a ação", async ({ page }) => {
   await expect(page).toHaveURL(/\/consentimento\?/);
 
   await page.goto("/perfil");
-  await page.getByLabel("Altura (cm)").fill("170");
+  await heightField(page).fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await page.waitForURL(/\/consentimento\?/);
   expect(new URL(page.url()).searchParams.get("scope")).toBe("body_data");

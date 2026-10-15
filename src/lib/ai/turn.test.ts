@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createMemoryRateLimiter } from "@/features/auth/rate-limit";
 
+import { PROFILE_INCOMPLETE_CTA, UNDER_AGE_RESPONSE } from "./copy";
 import { createMemoryRedFlagLockStore } from "./cooldown";
 import { handleCoachTurn, type CoachModelRequest } from "./turn";
 
@@ -88,6 +89,59 @@ describe("coach risk gate", () => {
     expect(result.status).toBe("ok");
     expect(gate.callModel).toHaveBeenCalledTimes(1);
     expect(result.policy).toBe("zdr");
+  });
+
+  it("returns profile_incomplete without birth year and links to the perfil field", async () => {
+    const callModel = vi.fn(async () => ({ text: "não" }));
+    const result = await handleCoachTurn({
+      userId: "user-1",
+      message: "qual treino eu faço?",
+      now: new Date("2026-10-14T12:00:00.000Z"),
+      consents: {
+        bodyData: "current",
+        coachHealth: "current",
+        coachChat: "current",
+      },
+      profile: { ...profile, birthYear: null },
+      weightKg: 64,
+      limiter: createMemoryRateLimiter(),
+      locks: createMemoryRedFlagLockStore(),
+      callModel,
+      log: () => undefined,
+      sleep: async () => undefined,
+      models: ["alpha/example:free"],
+    });
+
+    expect(result.status).toBe("profile_incomplete");
+    expect(result.httpStatus).toBe(400);
+    expect(result.cta).toEqual(PROFILE_INCOMPLETE_CTA);
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("blocks the coach for users under the minimum age", async () => {
+    const callModel = vi.fn(async () => ({ text: "não" }));
+    const result = await handleCoachTurn({
+      userId: "user-1",
+      message: "qual treino eu faço?",
+      now: new Date("2026-10-14T12:00:00.000Z"),
+      consents: {
+        bodyData: "current",
+        coachHealth: "current",
+        coachChat: "current",
+      },
+      profile: { ...profile, birthYear: 2010 },
+      weightKg: 64,
+      limiter: createMemoryRateLimiter(),
+      locks: createMemoryRedFlagLockStore(),
+      callModel,
+      log: () => undefined,
+      sleep: async () => undefined,
+      models: ["alpha/example:free"],
+    });
+
+    expect(result.status).toBe("safety_block");
+    expect(result.text).toBe(UNDER_AGE_RESPONSE);
+    expect(callModel).not.toHaveBeenCalled();
   });
 
   it("refuses to call the model without body and coach health consent", async () => {

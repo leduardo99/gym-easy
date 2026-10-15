@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull } from "drizzle-orm";
 
-import type { AppDatabase } from "@/db";
+import type { DbClient } from "@/db";
 import { emailVerificationTokens, sessions, users } from "@/db/schema";
 
 import type {
@@ -30,7 +30,7 @@ function mapUser(row: typeof users.$inferSelect): StoredUser {
   };
 }
 
-export function createDrizzleUserStore(db: AppDatabase): UserStore {
+export function createDrizzleUserStore(db: DbClient): UserStore {
   return {
     async insertUser(user) {
       const rows = await db

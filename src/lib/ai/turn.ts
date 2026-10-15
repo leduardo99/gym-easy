@@ -4,6 +4,7 @@ import { classifyChatRisk, type ChatRisk } from "./classify-chat-risk";
 import {
   CONSENT_RESPONSE,
   INJECTION_RESPONSE,
+  PROFILE_INCOMPLETE_CTA,
   PROFILE_RESPONSE,
   RATE_LIMIT_RESPONSE,
   RECONSENT_RESPONSE,
@@ -52,6 +53,11 @@ export type TurnStatus =
   | "unavailable"
   | "profile_incomplete";
 
+export type CoachResponseCta = {
+  href: string;
+  label: string;
+};
+
 export type TurnResult = {
   status: TurnStatus;
   httpStatus: number;
@@ -61,6 +67,7 @@ export type TurnResult = {
   model: string | null;
   risk: ChatRisk | null;
   retryAfterSeconds: number;
+  cta?: CoachResponseCta;
   log: AiLogRecord;
 };
 
@@ -118,6 +125,7 @@ function shell(
       model: null,
       risk: extra?.risk ?? null,
       retryAfterSeconds: extra?.retryAfterSeconds ?? 0,
+      cta: extra?.cta,
       outcome,
     },
   };
@@ -217,7 +225,7 @@ export async function assessCoachTurn(
       400,
       PROFILE_RESPONSE,
       "validation_rejected",
-      { risk: risk.risk },
+      { risk: risk.risk, cta: PROFILE_INCOMPLETE_CTA },
     );
   }
 
@@ -248,6 +256,7 @@ function finish(
     risk: ChatRisk | null;
     retryAfterSeconds?: number;
     modelCalls: number;
+    cta?: CoachResponseCta;
   },
 ): TurnResult {
   const log = toAiLogRecord({
@@ -270,6 +279,7 @@ function finish(
     model: fields.model,
     risk: fields.risk,
     retryAfterSeconds: fields.retryAfterSeconds ?? 0,
+    cta: fields.cta,
     log,
   };
 }
@@ -293,6 +303,7 @@ export async function handleCoachTurn(
       risk: assessed.result.risk,
       retryAfterSeconds: assessed.result.retryAfterSeconds,
       modelCalls: 0,
+      cta: assessed.result.cta,
     });
   }
 
