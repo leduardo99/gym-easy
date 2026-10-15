@@ -98,20 +98,22 @@ export async function saveOnboardingProfileAction(formData: FormData) {
     redirectToOnboarding(profileFormErrorFlag(parsed));
   }
 
-  const result = await createTrainingRepository(getDb()).saveProfile(
-    session.user.id,
-    { birthYear: parsed.data.birthYear ?? null },
-  );
-  if (!result.ok && result.error === "consent_required") {
-    redirect(reconsentPath("body_data", "/onboarding"));
-  }
-  if (!result.ok) redirectToOnboarding("perfil");
-
   const completedAt = new Date();
-  await createDrizzleUserStore(getDb()).markOnboardingComplete(
-    session.user.id,
-    completedAt,
-  );
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    const result = await createTrainingRepository(tx).saveProfile(
+      session.user.id,
+      { birthYear: parsed.data.birthYear ?? null },
+    );
+    if (!result.ok && result.error === "consent_required") {
+      redirect(reconsentPath("body_data", "/onboarding"));
+    }
+    if (!result.ok) redirectToOnboarding("perfil");
+    await createDrizzleUserStore(tx).markOnboardingComplete(
+      session.user.id,
+      completedAt,
+    );
+  });
   redirect(
     postAuthDestination({ onboardingCompletedAt: completedAt }, "/inicio"),
   );

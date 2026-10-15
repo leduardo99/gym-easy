@@ -10,7 +10,7 @@ import {
   sql,
 } from "drizzle-orm";
 
-import type { AppDatabase } from "@/db";
+import type { DbClient } from "@/db";
 import type { Equipment, MuscleGroup } from "@/db/catalog";
 import { MUSCLE_GROUPS } from "@/db/catalog";
 import type {
@@ -217,7 +217,7 @@ function mapExercise(row: typeof exercises.$inferSelect): ExerciseRecord {
   };
 }
 
-export function createTrainingRepository(db: AppDatabase) {
+export function createTrainingRepository(db: DbExecutor) {
   async function ownedExerciseIds(
     userId: string,
     exerciseIds: readonly string[],
