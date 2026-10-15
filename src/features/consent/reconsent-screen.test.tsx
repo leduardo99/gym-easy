@@ -13,7 +13,7 @@ vi.mock("next/navigation", () => ({
 
 import { CONSENT_TEXTS } from "@/consent/texts";
 
-import { RECONSENT_COPY } from "./reconsent";
+import { COACH_TRANSFER_RISK_LINE, RECONSENT_COPY } from "./reconsent";
 import { ReconsentScreen } from "./reconsent-screen";
 
 describe("ReconsentScreen", () => {
@@ -64,6 +64,44 @@ describe("ReconsentScreen", () => {
     );
 
     expect(screen.getByText(RECONSENT_COPY.refused)).toBeInTheDocument();
+  });
+
+  it.each(["coach_health", "coach_chat"] as const)(
+    "shows transfer risks before checkbox 2 without opening details (%s)",
+    (scope) => {
+      const { container } = render(
+        <ReconsentScreen
+          copy={CONSENT_TEXTS[scope]}
+          scope={scope}
+          nextPath="/perfil"
+          notice={null}
+        />,
+      );
+
+      const risks = within(container).getByTestId("coach-transfer-risks");
+      expect(risks).toBeVisible();
+      expect(risks).toHaveTextContent(COACH_TRANSFER_RISK_LINE);
+      expect(
+        within(container).getByRole("heading", {
+          name: CONSENT_TEXTS[scope].title,
+        }),
+      ).toBeVisible();
+    },
+  );
+
+  it("does not show transfer risks on body_data", () => {
+    const { container } = render(
+      <ReconsentScreen
+        copy={CONSENT_TEXTS.body_data}
+        scope="body_data"
+        nextPath="/perfil"
+        notice={null}
+      />,
+    );
+
+    expect(
+      within(container).queryByTestId("coach-transfer-risks"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the transfer checkbox for the coach chat text", () => {

@@ -19,6 +19,11 @@ export type ReconsentScope = (typeof RECONSENT_SCOPES)[number];
 
 export const RECONSENT_FALLBACK = "/perfil";
 
+/** Resumo de riscos (UI apenas; não entra no hash do consentimento -15b). */
+export const COACH_TRANSFER_RISK_HEADING = "Riscos";
+export const COACH_TRANSFER_RISK_LINE =
+  "Sem decisão de adequação nem cláusulas-padrão. Seus dados podem ficar sujeitos a leis de outros países, inclusive acesso por autoridades, com proteção menor que a da UE. Pode ser difícil exercer seus direitos, e não conseguimos apagar o que os fornecedores já guardaram.";
+
 export const RECONSENT_COPY = {
   intro:
     "O texto desta autorização mudou, ou ainda não há uma autorização atual. Leia a versão vigente para continuar.",

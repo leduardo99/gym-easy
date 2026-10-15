@@ -18,17 +18,19 @@ export const PRIVACY_POLICY = {
       "Você pode apresentar reclamação à autoridade de controlo, a CNPD (www.cnpd.pt), conforme o art. 77.º.",
     ],
   },
+  dataLocation: {
+    id: "onde-ficam-os-dados",
+    heading: "Onde ficam os dados",
+    paragraphs: [
+      "Os dados da aplicação ficam num banco de dados PostgreSQL gerido pela equipe do Gym Easy no servidor Oracle Cloud Infrastructure, região eu-madrid-1 (Madrid, Espanha, UE), no mesmo servidor onde o app é hospedado, com conexões criptografadas. Incluem dados do corpo, saúde do Coach, chat, estatísticas de uso e prova de consentimento, conforme as autorizações vigentes.",
+    ],
+  },
   processorsHeading: "Subprocessadores",
   processorsId: "subprocessadores",
   processors: [
     {
-      name: "PostgreSQL (infra-postgres)",
-      role: "Banco de dados gerido pela equipe do Gym Easy no servidor Oracle Cloud Infrastructure, no mesmo servidor onde o app é hospedado, com conexões criptografadas; dados do corpo, saúde do Coach, chat, estatísticas de uso e prova de consentimento conforme as autorizações vigentes",
-      region: "eu-madrid-1",
-    },
-    {
       name: "Oracle Cloud Infrastructure",
-      role: "Hospedagem da aplicação e cópias de segurança (backups), na mesma região",
+      role: "Hospedagem da aplicação e cópias de segurança (backups) diárias e criptografadas, na mesma região (Madrid, UE); dados apagados saem dos backups em até 8 dias",
       region: "eu-madrid-1",
     },
     {
@@ -66,6 +68,8 @@ export function privacyPolicyText(): string {
     ...PRIVACY_POLICY.paragraphs,
     PRIVACY_POLICY.rights.heading,
     ...PRIVACY_POLICY.rights.paragraphs,
+    PRIVACY_POLICY.dataLocation.heading,
+    ...PRIVACY_POLICY.dataLocation.paragraphs,
     PRIVACY_POLICY.processorsHeading,
     ...PRIVACY_POLICY.processors.map((processor) => processorText(processor)),
   ].join("\n");

@@ -7,7 +7,12 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import type { ConsentCopy } from "@/consent/texts";
 
 import { acceptReconsentAction, refuseReconsentAction } from "./actions";
-import { RECONSENT_COPY, type ReconsentScope } from "./reconsent";
+import {
+  COACH_TRANSFER_RISK_HEADING,
+  COACH_TRANSFER_RISK_LINE,
+  RECONSENT_COPY,
+  type ReconsentScope,
+} from "./reconsent";
 
 function summaryParagraphs(
   body: string,
@@ -81,23 +86,34 @@ export function ReconsentConsentForm({
           </FieldLabel>
         </Field>
         {copy.transferCheckbox ? (
-          <Field orientation="horizontal" className="items-start">
-            <input
-              id="reconsent-transfer"
-              name="transferAccepted"
-              type="checkbox"
-              value="sim"
-              checked={transferAccepted}
-              onChange={(event) => setTransferAccepted(event.target.checked)}
-              className="mt-0.5 size-5 shrink-0 accent-primary"
-            />
-            <FieldLabel
-              htmlFor="reconsent-transfer"
-              className="text-sm leading-5 font-normal"
+          <>
+            <p
+              className="text-sm leading-6 text-muted-foreground"
+              data-testid="coach-transfer-risks"
             >
-              {copy.transferCheckbox}
-            </FieldLabel>
-          </Field>
+              <span className="font-medium text-foreground">
+                {COACH_TRANSFER_RISK_HEADING}:{" "}
+              </span>
+              {COACH_TRANSFER_RISK_LINE}
+            </p>
+            <Field orientation="horizontal" className="items-start">
+              <input
+                id="reconsent-transfer"
+                name="transferAccepted"
+                type="checkbox"
+                value="sim"
+                checked={transferAccepted}
+                onChange={(event) => setTransferAccepted(event.target.checked)}
+                className="mt-0.5 size-5 shrink-0 accent-primary"
+              />
+              <FieldLabel
+                htmlFor="reconsent-transfer"
+                className="text-sm leading-5 font-normal"
+              >
+                {copy.transferCheckbox}
+              </FieldLabel>
+            </Field>
+          </>
         ) : null}
         <Button
           type="submit"

@@ -36,6 +36,25 @@ export default function PrivacyPage() {
         ))}
       </section>
       <section
+        aria-labelledby={PRIVACY_POLICY.dataLocation.id}
+        className="flex flex-col gap-3"
+      >
+        <h2
+          id={PRIVACY_POLICY.dataLocation.id}
+          className="text-title-2 font-semibold"
+        >
+          {PRIVACY_POLICY.dataLocation.heading}
+        </h2>
+        {PRIVACY_POLICY.dataLocation.paragraphs.map((paragraph) => (
+          <p
+            key={paragraph}
+            className="text-sm leading-6 text-muted-foreground"
+          >
+            {paragraph}
+          </p>
+        ))}
+      </section>
+      <section
         aria-labelledby={PRIVACY_POLICY.processorsId}
         className="flex flex-col gap-3"
       >

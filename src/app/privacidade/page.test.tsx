@@ -20,19 +20,28 @@ describe("PrivacyPage", () => {
       0,
     );
     expect(
+      screen.getByRole("heading", { name: "Onde ficam os dados" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /banco de dados PostgreSQL gerido pela equipe do Gym Easy/,
+      ),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("heading", { name: "Subprocessadores" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/PostgreSQL \(infra-postgres\): Banco de dados gerido/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/dados do corpo, saúde do Coach, chat/),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/infra-postgres/i)).not.toBeInTheDocument();
     expect(
       screen.getByText(/Oracle Cloud Infrastructure: Hospedagem/),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/backups\) diárias e criptografadas/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/dados apagados saem dos backups em até 8 dias/),
+    ).toBeInTheDocument();
     expect(screen.getAllByText(/eu-madrid-1/).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(/cópias de segurança/)).toBeInTheDocument();
+    expect(screen.getByText(/Madrid, UE/)).toBeInTheDocument();
     expect(
       screen.getByText(/Tailscale: Rede privada da infraestrutura/),
     ).toBeInTheDocument();
@@ -55,8 +64,13 @@ describe("PrivacyPage", () => {
     expect(privacyPolicyText()).not.toMatch(/vercel/i);
     expect(privacyPolicyText()).toContain("contacto@gaffer.pt");
     expect(privacyPolicyText()).toContain("eu-madrid-1");
+    expect(privacyPolicyText()).toContain("criptografadas");
+    expect(privacyPolicyText()).toContain(
+      "dados apagados saem dos backups em até 8 dias",
+    );
     expect(privacyPolicyText()).not.toContain("eu-central-1");
     expect(privacyPolicyText()).not.toContain("Neon");
+    expect(privacyPolicyText()).not.toContain("infra-postgres");
   });
 
   it("inclui a retirada do consentimento e a reclamação à CNPD", () => {
