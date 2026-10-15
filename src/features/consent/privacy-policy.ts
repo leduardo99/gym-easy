@@ -17,17 +17,17 @@ export function privacyPolicyMinimumAgeSentence(
 }
 
 export function privacyPolicyBirthYearAgeBandSentence(): string {
-  return "O texto de consentimento «Dados do corpo» publicado (body_data, versão 2026-10-15b) nomeia o ano de nascimento (birthYear) junto com peso, altura e sexo: a autorização body_data cobre o uso desses quatro elementos em conjunto para calcular a faixa etária na análise dos dados do corpo. Isso não contradiz o armazenamento do birthYear no perfil com base contratual e no art. 8.º para a verificação de idade mínima.";
+  return "O texto de consentimento «Dados do corpo» em vigor (body_data, versão 2026-10-15b) também nomeia o ano de nascimento (birthYear) ao pedir autorização para peso, altura e sexo: com body_data ativo, usamos o birthYear já guardado no perfil, juntamente com sexo, altura e registos de peso, para calcular a faixa etária na análise dos dados do corpo. O birthYear continua a ser recolhido e conservado com base contratual e no art. 8.º, como acima — o consentimento não substitui essa base de armazenamento.";
 }
 
 export function privacyPolicyBodyDataTechnicalGateSentence(): string {
-  return "Nota técnica temporária: nesta versão da app, o interruptor «Dados do corpo» precisa estar ligado para guardar qualquer alteração ao perfil ou registo de peso. É uma limitação de implementação que estamos a remover; não altera as bases legais descritas acima.";
+  return "Nota técnica temporária: nesta versão da app, o interruptor «Dados do corpo» precisa estar ligado para guardar qualquer alteração ao perfil ou registo de peso. É uma limitação de implementação prevista para remoção (LED-146); não altera as bases legais descritas acima.";
 }
 
 function buildProfileBodyDataParagraphs(minimumAgeYears: number) {
   return {
     intro:
-      "O perfil de treino e o ano de nascimento (birthYear) guardam-se desde o início com fundamento contratual (art. 6.º, n.º 1, alínea b), do RGPD); o birthYear tem ainda base legal para a verificação de idade mínima (art. 8.º). Sexo, altura e registos de peso, e o uso do birthYear com esses dados para a faixa etária, dependem da autorização «Dados do corpo» (consentimento body_data), como no texto -15b — sem alterar a base de armazenamento do birthYear descrita nas listas.",
+      "O perfil de treino — ano de nascimento (birthYear), objetivo, nível, dias por semana, duração da sessão e local — recolhe-se desde o início com fundamento contratual (art. 6.º, n.º 1, alínea b), do RGPD), sem mudança de base. O birthYear tem ainda fundamento legal para a verificação de idade mínima (art. 8.º). Sexo, altura e registos de peso recolhem-se apenas com a autorização «Dados do corpo» (consentimento body_data).",
     birthYearAgeBand: privacyPolicyBirthYearAgeBandSentence(),
     technicalGate: privacyPolicyBodyDataTechnicalGateSentence(),
     minimumAge: privacyPolicyMinimumAgeSentence(minimumAgeYears),
@@ -69,7 +69,6 @@ export const PRIVACY_POLICY = {
         "sexo (sex)",
         "altura em centímetros (heightCm)",
         "registos de peso (weight_kg)",
-        "uso do ano de nascimento (birthYear) com sexo, altura e peso para calcular a faixa etária (consentimento body_data 2026-10-15b)",
       ],
     },
     retainedAfterRevoke: {

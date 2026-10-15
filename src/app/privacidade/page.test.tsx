@@ -110,16 +110,17 @@ describe("PrivacyPage", () => {
     expect(contractualList).not.toHaveTextContent("heightCm");
     expect(bodyDataList).toHaveTextContent("heightCm");
     expect(bodyDataList).toHaveTextContent("weight_kg");
-    expect(bodyDataList).toHaveTextContent("birthYear");
-    expect(bodyDataList).toHaveTextContent(/2026-10-15b/);
+    expect(bodyDataList).not.toHaveTextContent("ano de nascimento (birthYear)");
     expect(bodyDataList).not.toHaveTextContent("goal");
 
     expect(contractualList.textContent).toMatch(
       /ano de nascimento \(birthYear\)/,
     );
-    expect(bodyDataList.textContent).toMatch(
-      /uso do ano de nascimento \(birthYear\)/,
-    );
+    expect(
+      document.getElementById(PRIVACY_POLICY_BIRTH_YEAR_AGE_BAND_ID),
+    ).toHaveTextContent(privacyPolicyBirthYearAgeBandSentence());
+    expect(profileBody).toHaveTextContent(/sem mudança de base/);
+    expect(profileBody).toHaveTextContent(/LED-146/);
 
     expect(
       document.getElementById(PRIVACY_POLICY_MINIMUM_AGE_ID),
