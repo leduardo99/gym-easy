@@ -11,6 +11,7 @@ import {
 
 import type { ConsentEvent } from "./repository";
 import { createConsentRepository } from "./repository";
+import { revokeBodyDataConsent } from "./revoke-body-data";
 
 /** Finalidades que a página pode gravar, incluindo o chat. */
 export const RECONSENT_SCOPES = [
@@ -156,6 +157,12 @@ export async function submitReconsent(
   const scope = parseReconsentScope(input.scope);
   if (!scope) return { status: "invalid_scope" };
   if (input.intent === "refuse") {
+    if (scope === "body_data") {
+      const revoked = await revokeBodyDataConsent(db, userId, {
+        source: "reconsent",
+      });
+      if (!revoked.ok) return { status: "invalid" };
+    }
     if (scope === "coach_health") {
       const revoked = await revokeCoachHealthConsent(db, userId, "reconsent");
       if (!revoked.ok) return { status: "invalid" };

@@ -14,6 +14,7 @@ import {
   isCurrentConsent,
 } from "@/features/consent/repository";
 
+import { submitReconsent } from "./reconsent";
 import { revokeBodyDataConsent } from "./revoke-body-data";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
@@ -112,6 +113,62 @@ describe.skipIf(!runIntegration)("body_data privacy integration", () => {
       .from(userProfiles)
       .where(eq(userProfiles.userId, userId));
     expect(profile?.birthYear).toBe(1990);
+    expect(profile?.heightCm).toBeNull();
+    expect(profile?.sex).toBeNull();
+
+    const measurements = await db
+      .select()
+      .from(bodyMeasurements)
+      .where(eq(bodyMeasurements.userId, userId));
+    expect(measurements).toHaveLength(0);
+  });
+
+  it("recusa reconsentimento de body_data e apaga os dados do corpo", async () => {
+    const userId = await insertUser("body-data-reconsent-refuse");
+    const consents = createConsentRepository(db as unknown as AppDatabase);
+    await consents.recordConsent(userId, {
+      purpose: "body_data",
+      action: "granted",
+      source: "reconsent",
+    });
+
+    await db.insert(userProfiles).values({
+      userId,
+      birthYear: 1988,
+      sex: "male",
+      heightCm: 180,
+    });
+    await db.insert(bodyMeasurements).values({
+      userId,
+      recordedOn: "2026-03-01",
+      weightKg: "82.0",
+    });
+
+    const result = await submitReconsent(db as unknown as AppDatabase, userId, {
+      scope: "body_data",
+      intent: "refuse",
+      accepted: false,
+    });
+    expect(result).toEqual({ status: "refused" });
+
+    const events = await db
+      .select()
+      .from(consentLog)
+      .where(eq(consentLog.userId, userId));
+    expect(
+      events.some(
+        (event) =>
+          event.purpose === "body_data" &&
+          event.action === "revoked" &&
+          event.source === "reconsent",
+      ),
+    ).toBe(true);
+
+    const [profile] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId));
+    expect(profile?.birthYear).toBe(1988);
     expect(profile?.heightCm).toBeNull();
     expect(profile?.sex).toBeNull();
 

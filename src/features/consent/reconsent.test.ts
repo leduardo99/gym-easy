@@ -70,7 +70,7 @@ describe("submitReconsent", () => {
     const db = dbThatMustNotBeUsed();
     await expect(
       submitReconsent(db, "user", {
-        scope: "body_data",
+        scope: "analytics",
         intent: "refuse",
         accepted: true,
       }),

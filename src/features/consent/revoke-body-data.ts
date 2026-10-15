@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import type { AppDatabase } from "@/db";
+import type { ConsentSource } from "@/db/domain";
 import { bodyMeasurements, userProfiles } from "@/db/schema";
 
 import { createConsentRepository } from "./repository";
@@ -11,14 +12,16 @@ export type RevokeBodyDataConsentResult =
 export async function revokeBodyDataConsent(
   db: AppDatabase,
   userId: string,
+  options?: { source?: ConsentSource },
 ): Promise<RevokeBodyDataConsentResult> {
+  const source = options?.source ?? "profile";
   try {
     await db.transaction(async (tx) => {
       const consents = createConsentRepository(tx);
       const saved = await consents.recordConsent(userId, {
         purpose: "body_data",
         action: "revoked",
-        source: "profile",
+        source,
       });
       if (!saved.ok) {
         throw new Error("consent_invalid");
