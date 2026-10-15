@@ -43,6 +43,7 @@ test("retirar dados do corpo no switch e voltar ao reconsentimento ao guardar al
       .getByTestId("body-data-privacy-section")
       .getByText("Autorização retirada e dados do corpo apagados."),
   ).toBeVisible();
+  await expect(page.getByRole("status")).toBeFocused();
 
   await page.goto("/perfil");
   await expect(birthYearField(page)).toHaveValue(SAVED_BIRTH_YEAR);
@@ -104,4 +105,28 @@ test("o switch de dados do corpo abre a confirmação com Enter", async ({
       name: "Retirar autorização dos dados do corpo?",
     }),
   ).not.toBeVisible();
+  await expect(switchControl).toBeFocused();
+});
+
+test("Voltar no reconsentimento de body_data mantém a altura no perfil", async ({
+  page,
+}) => {
+  await signedIn(page, "body-data-reconsent-voltar");
+  await grantConsent(page, "body_data", "/perfil");
+  await birthYearField(page).fill(SAVED_BIRTH_YEAR);
+  await heightField(page).fill("168");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Perfil guardado.")).toBeVisible();
+
+  await page.goto("/consentimento?scope=body_data&next=/perfil");
+  await page.getByRole("button", { name: "Agora não" }).click();
+  const dialog = page.getByTestId("reconsent-refuse-dialog");
+  await expect(dialog).toBeVisible();
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page).not.toHaveURL(/recusado=/);
+
+  await page.goto("/perfil");
+  await expect(birthYearField(page)).toHaveValue(SAVED_BIRTH_YEAR);
+  await expect(heightField(page)).toHaveValue("168");
 });

@@ -1,3 +1,7 @@
+export const BODY_DATA_PRIVACY_DESCRIPTION_ID = "body-data-privacy-description";
+export const BODY_DATA_PRIVACY_STATUS_ID = "body-data-privacy-status";
+export const BODY_DATA_CONSENT_SWITCH_ID = "body-data-consent-switch";
+
 export const BODY_DATA_PRIVACY_COPY = {
   sectionTitle: "Dados do corpo",
   sectionDescription:
