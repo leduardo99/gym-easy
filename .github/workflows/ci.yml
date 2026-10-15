@@ -19,7 +19,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: gym_easy
+          POSTGRES_DB: postgres
         ports:
           - 5432:5432
         options: >-
@@ -34,6 +34,7 @@ jobs:
           - 8025:8025
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gym_easy
+      DB_TLS_MODE: insecure
       CONFIRM_EMAIL_SECRET: confirm-email-secret-for-e2e-only-00
       CONSENT_PSEUDONYM_KEY: ci-consent-pseudonym-key-not-secret
       CRON_SECRET: ci-cron-secret-value-32-characters-ok
@@ -78,22 +79,8 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Create gym_easy_migrator
-        run: |
-          node --input-type=module <<'EOF'
-          import postgres from "postgres";
-          const sql = postgres("postgresql://postgres:postgres@localhost:5432/gym_easy", { max: 1 });
-          await sql.unsafe(`
-            DO $$
-            BEGIN
-              CREATE ROLE gym_easy_migrator LOGIN PASSWORD 'migrator' SUPERUSER;
-            EXCEPTION
-              WHEN duplicate_object THEN NULL;
-            END
-            $$;
-          `);
-          await sql.end({ timeout: 5 });
-          EOF
+      - name: Bootstrap Infra roles
+        run: bash scripts/ci-bootstrap-roles.sh
 
       - name: Migrate local database
         env:
@@ -152,8 +139,17 @@ jobs:
         run: pnpm audit --prod
 
   docker:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: docker (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     services:
       postgres:
         image: postgres:16
@@ -189,54 +185,7 @@ jobs:
           [[ "${skipped}" == *'migrate-on-deploy: skipped'* ]]
 
       - name: Bootstrap Infra roles
-        run: |
-          set -euo pipefail
-          docker run --rm -i --network host \
-            -v "${PWD}/scripts/bootstrap-ci-roles.sql:/bootstrap.sql:ro" \
-            postgres:16 \
-            psql "postgresql://postgres:postgres@127.0.0.1:5432/postgres" \
-            -v ON_ERROR_STOP=1 \
-            -f /bootstrap.sql
+        run: bash scripts/ci-bootstrap-roles.sh
 
-      - name: Migrations, startup, and health
-        run: |
-          set -euo pipefail
-          docker rm -f gym-easy-boot >/dev/null 2>&1 || true
-          docker run -d --name gym-easy-boot --network host \
-            -e NODE_ENV=production \
-            -e EMAIL_TRANSPORT=resend \
-            -e RESEND_API_KEY=ci-resend-key-not-secret \
-            -e EMAIL_FROM='Gym Easy <noreply@gaffer.pt>' \
-            -e APP_URL=http://127.0.0.1:3000 \
-            -e DATABASE_URL=postgresql://gym_easy_app:app@127.0.0.1:5432/gym_easy \
-            -e DATABASE_URL_MIGRATOR=postgresql://gym_easy_migrator:migrator@127.0.0.1:5432/gym_easy \
-            -e CONFIRM_EMAIL_SECRET=confirm-email-secret-for-e2e-only-00 \
-            -e CONSENT_PSEUDONYM_KEY=ci-consent-pseudonym-key-not-secret \
-            -e CRON_SECRET=ci-cron-secret-value-32-characters-ok \
-            -e RUN_MIGRATIONS=true \
-            -e PORT=3000 \
-            -e HOSTNAME=0.0.0.0 \
-            gym-easy:ci
-          ready=0
-          for _ in $(seq 1 45); do
-            if ! docker inspect --format '{{.State.Running}}' gym-easy-boot | grep -q true; then
-              echo "container exited before health" >&2
-              docker logs gym-easy-boot >&2 || true
-              exit 1
-            fi
-            code="$(curl -sS -o /tmp/gym-easy-health.json -w '%{http_code}' --max-time 2 http://127.0.0.1:3000/api/health || true)"
-            if [ "${code}" = "200" ]; then
-              ready=1
-              break
-            fi
-            sleep 2
-          done
-          if [ "${ready}" != "1" ]; then
-            echo "health did not return 200" >&2
-            docker logs gym-easy-boot >&2 || true
-            exit 1
-          fi
-          docker logs gym-easy-boot > /tmp/gym-easy-boot.log 2>&1
-          grep -q 'migrate-on-deploy: applied' /tmp/gym-easy-boot.log
-          docker exec gym-easy-boot node /app/scripts/purge-consent.mjs
-          docker rm -f gym-easy-boot >/dev/null
+      - name: Migrations, health, purge, and argon2
+        run: bash scripts/ci-image-smoke.sh gym-easy:ci

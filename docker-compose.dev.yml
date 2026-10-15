@@ -1,6 +1,9 @@
 # Local override. Publishes the app on the host loopback only.
+# Migrations stay off unless RUN_MIGRATIONS=true is set in the environment.
 # docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up --build
 services:
   app:
+    environment:
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
     ports:
       - "127.0.0.1:3000:3000"

@@ -1,19 +1,16 @@
 -- CI stand-in for the Infra bootstrap. These passwords are not production secrets.
--- gym_easy_migrator owns the database and is not a superuser.
--- CREATEROLE is required so 0010's CREATE ROLE sees duplicate_object
--- (without it Postgres raises permission denied before the duplicate check).
--- ADMIN OPTION lets that role re-apply the GRANT statements inside 0010.
+-- The superuser creates the roles and grants gym_easy_purge to gym_easy_app.
+-- gym_easy_migrator owns the database. It is not a superuser, has no
+-- CREATEROLE, and has no ADMIN OPTION on any role.
 
 CREATE ROLE gym_easy_migrator LOGIN PASSWORD 'migrator'
-  NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS;
+  NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 CREATE ROLE gym_easy_app LOGIN PASSWORD 'app' CONNECTION LIMIT 30
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 CREATE ROLE gym_easy_purge NOLOGIN
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 
 GRANT gym_easy_purge TO gym_easy_app;
-GRANT gym_easy_app TO gym_easy_migrator WITH ADMIN OPTION;
-GRANT gym_easy_purge TO gym_easy_migrator WITH ADMIN OPTION;
 
 CREATE DATABASE gym_easy OWNER gym_easy_migrator;
 

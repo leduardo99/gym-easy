@@ -23,7 +23,8 @@ const nextConfig: NextConfig = {
     "/*": [
       "./node_modules/postgres/**/*",
       "./node_modules/@node-rs/argon2/**/*",
-      "./node_modules/@node-rs/argon2-linux-x64-gnu/**/*",
+      "./node_modules/.pnpm/@node-rs+argon2-linux-x64-gnu@*/node_modules/@node-rs/argon2-linux-x64-gnu/**/*",
+      "./node_modules/.pnpm/@node-rs+argon2-linux-arm64-gnu@*/node_modules/@node-rs/argon2-linux-arm64-gnu/**/*",
     ],
   },
   turbopack: {

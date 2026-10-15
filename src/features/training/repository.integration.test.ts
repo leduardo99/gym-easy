@@ -802,7 +802,7 @@ describe.skipIf(!runIntegration)("training data access", () => {
       version: "body_data-2026-10-14",
       textSha256: consentTextSha256("body_data"),
       source: "reconsent",
-      createdAt: new Date("2026-10-15T00:00:00.000Z"),
+      createdAt: new Date("2099-01-01T00:00:00.000Z"),
     });
     expect(
       (await consents.currentConsent(currentUser)).body_data,

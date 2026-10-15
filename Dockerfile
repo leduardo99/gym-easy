@@ -17,6 +17,13 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN node scripts/bundle-deploy.mjs
 RUN pnpm build
+# pnpm keeps these optional packages off the top-level node_modules. Copy the
+# real files so the runner can load either glibc target.
+RUN mkdir -p /out/argon2 \
+  && cp -aL node_modules/.pnpm/node_modules/@node-rs/argon2-linux-x64-gnu /out/argon2/argon2-linux-x64-gnu \
+  && cp -aL node_modules/.pnpm/node_modules/@node-rs/argon2-linux-arm64-gnu /out/argon2/argon2-linux-arm64-gnu \
+  && test -f /out/argon2/argon2-linux-x64-gnu/argon2.linux-x64-gnu.node \
+  && test -f /out/argon2/argon2-linux-arm64-gnu/argon2.linux-arm64-gnu.node
 
 FROM base AS runner
 WORKDIR /app
@@ -28,6 +35,8 @@ RUN groupadd --system --gid 1001 nodejs \
   && useradd --system --uid 1001 --gid nodejs --no-create-home nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /out/argon2/argon2-linux-x64-gnu ./node_modules/@node-rs/argon2-linux-x64-gnu
+COPY --from=builder --chown=nextjs:nodejs /out/argon2/argon2-linux-arm64-gnu ./node_modules/@node-rs/argon2-linux-arm64-gnu
 COPY --from=builder --chown=nextjs:nodejs /app/deploy-bundles/migrate-on-deploy.mjs ./migrate-on-deploy.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/deploy-bundles/purge-consent.mjs ./scripts/purge-consent.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/migrations ./migrations

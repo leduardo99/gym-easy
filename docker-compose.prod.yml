@@ -1,0 +1,12 @@
+# Coolify override. Mounts the proxy CA. Local compose does not use this file,
+# so a missing certificate does not stop docker compose up.
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+services:
+  app:
+    environment:
+      NODE_EXTRA_CA_CERTS: ${NODE_EXTRA_CA_CERTS:-/etc/coolify-ca/coolify-ca.crt}
+    volumes:
+      - type: bind
+        source: ${COOLIFY_CA_HOST_PATH:-/etc/coolify-ca/coolify-ca.crt}
+        target: ${NODE_EXTRA_CA_CERTS:-/etc/coolify-ca/coolify-ca.crt}
+        read_only: true

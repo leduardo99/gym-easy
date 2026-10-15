@@ -1,20 +1,27 @@
+-- Roles come from the Infra bootstrap. gym_easy_migrator has no CREATEROLE
+-- and no ADMIN OPTION, so this migration must not create roles or grant a
+-- role to another role. GRANT EXECUTE below is allowed because the migrator
+-- owns the functions.
 DO $$
+DECLARE
+  "missing" text;
 BEGIN
-  CREATE ROLE "gym_easy_app" NOLOGIN;
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
+  SELECT string_agg("role_name", ', ' ORDER BY "role_name")
+  INTO "missing"
+  FROM (
+    VALUES ('gym_easy_app'), ('gym_easy_purge')
+  ) AS "required"("role_name")
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_roles
+    WHERE pg_catalog.pg_roles.rolname = "required"."role_name"
+  );
+
+  IF "missing" IS NOT NULL THEN
+    RAISE EXCEPTION '0010_consent_hardening: missing bootstrap role(s): %. Create gym_easy_app and gym_easy_purge before migrating', "missing";
+  END IF;
 END
 $$;
---> statement-breakpoint
-DO $$
-BEGIN
-  CREATE ROLE "gym_easy_purge" NOLOGIN;
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END
-$$;
---> statement-breakpoint
-GRANT "gym_easy_purge" TO "gym_easy_app";
 --> statement-breakpoint
 CREATE OR REPLACE FUNCTION "consent_log_reject_mutation"()
 RETURNS trigger
