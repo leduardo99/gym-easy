@@ -56,6 +56,29 @@ describe("buildCoachContext", () => {
     expect(built).toEqual({ ok: false, reason: "profile_incomplete" });
   });
 
+  it("bloqueia menores de 16 anos", () => {
+    const built = buildCoachContext({
+      profile: {
+        birthYear: 2010,
+        sex: null,
+        heightCm: null,
+        goal: null,
+        level: null,
+        daysPerWeek: null,
+        sessionMinutes: null,
+        trainingPlace: null,
+      },
+      weightKg: null,
+      consents: {
+        bodyData: "current",
+        coachHealth: "current",
+        coachChat: "current",
+      },
+      now: new Date("2026-10-14T00:00:00.000Z"),
+    });
+    expect(built).toEqual({ ok: false, reason: "under_age" });
+  });
+
   it("does not build context without both current consents", () => {
     const built = buildCoachContext({
       profile: {

@@ -1,11 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ProfileRecord } from "@/features/training/repository";
 
-import { ProfileBirthYearField } from "./profile-birth-year-field";
 import {
   goalOptions,
   levelOptions,
+  PROFILE_COACH_OPTIONAL_HINT,
   PROFILE_FIELD_LABELS,
   sessionMinuteOptions,
   sexOptions,
@@ -13,31 +12,19 @@ import {
 } from "./profile-copy";
 import { ProfileHeightField } from "./profile-height-field";
 import { ProfileSelect } from "./profile-select";
-
-export type ProfileFormValues = Pick<
-  ProfileRecord,
-  | "birthYear"
-  | "sex"
-  | "heightCm"
-  | "goal"
-  | "level"
-  | "daysPerWeek"
-  | "sessionMinutes"
-  | "trainingPlace"
->;
+import type { ProfileFormValues } from "./profile-form-types";
 
 function formatDaysPerWeek(days: number | null | undefined): string {
   if (days == null) return "";
   return String(days);
 }
 
-export function ProfileTrainingFields({
+export function ProfileOptionalCoachFields({
   profile,
 }: {
-  profile: ProfileFormValues | null | undefined;
+  profile: Omit<ProfileFormValues, "birthYear"> | null | undefined;
 }) {
   const values = profile ?? {
-    birthYear: null,
     sex: null,
     heightCm: null,
     goal: null,
@@ -48,8 +35,11 @@ export function ProfileTrainingFields({
   };
 
   return (
-    <>
-      <ProfileBirthYearField birthYear={values.birthYear} />
+    <fieldset className="flex flex-col gap-4 border-0 p-0">
+      <legend className="text-sm font-medium">Treino e corpo</legend>
+      <p className="text-sm text-muted-foreground">
+        {PROFILE_COACH_OPTIONAL_HINT}
+      </p>
       <ProfileSelect
         id="profile-sex"
         name="sex"
@@ -99,6 +89,6 @@ export function ProfileTrainingFields({
         defaultValue={values.trainingPlace ?? ""}
         options={trainingPlaceOptions()}
       />
-    </>
+    </fieldset>
   );
 }

@@ -8,7 +8,8 @@ import { getDb } from "@/db";
 import { logoutAction } from "@/features/auth/actions";
 import { requireUser } from "@/features/auth/require-user";
 import { RECONSENT_COPY } from "@/features/consent/reconsent";
-import { ProfileTrainingFields } from "@/features/profile/profile-training-fields";
+import { ProfileBirthYearFocus } from "@/features/profile/profile-birth-year-focus";
+import { ProfilePerfilFields } from "@/features/profile/profile-perfil-fields";
 import { saveProfileAction } from "@/features/training/actions";
 import { createTrainingRepository } from "@/features/training/repository";
 
@@ -56,8 +57,9 @@ export default async function ProfilePage({
           Privacidade
         </Link>
       </nav>
+      <ProfileBirthYearFocus />
       <form action={saveProfileAction} className="mt-8 flex flex-col gap-4">
-        <ProfileTrainingFields profile={profile} />
+        <ProfilePerfilFields profile={profile} />
         <Button type="submit" size="lg" className="w-full">
           Guardar
         </Button>

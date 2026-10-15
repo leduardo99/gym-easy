@@ -19,6 +19,14 @@ function parseOptionalEnum<T extends string>(text: string): T | null {
   return text as T;
 }
 
+/** Apenas o ano de nascimento (onboarding). */
+export function parseOnboardingBirthYearForm(
+  formData: FormData,
+): Pick<ProfileInput, "birthYear"> {
+  const birthYear = parseOptionalInt(readString(formData, "birthYear"));
+  return { birthYear } as Pick<ProfileInput, "birthYear">;
+}
+
 /** Converte `FormData` do perfil em entrada para `createProfileInputSchema`. */
 export function parseProfileFormData(formData: FormData): ProfileInput {
   const birthYearText = readString(formData, "birthYear");

@@ -11,6 +11,7 @@ import {
 import { createDrizzleUserStore } from "@/features/auth/drizzle-user-store";
 import { lookupSession } from "@/features/auth/lookup-session";
 import {
+  parseOnboardingBirthYearForm,
   parseProfileFormData,
   profileFormErrorFlag,
   type ProfileFormValidationError,
@@ -90,11 +91,21 @@ export async function saveOnboardingProfileAction(formData: FormData) {
     redirect(loginRedirectPath(session.status, "/onboarding"));
   }
 
-  const saved = await saveProfileFromForm(formData, session.user.id);
-  if (!saved.ok && saved.error === "consent_required") {
+  const parsed = createProfileInputSchema(new Date()).safeParse(
+    parseOnboardingBirthYearForm(formData),
+  );
+  if (!parsed.success) {
+    redirectToOnboarding(profileFormErrorFlag(parsed));
+  }
+
+  const result = await createTrainingRepository(getDb()).saveProfile(
+    session.user.id,
+    { birthYear: parsed.data.birthYear ?? null },
+  );
+  if (!result.ok && result.error === "consent_required") {
     redirect(reconsentPath("body_data", "/onboarding"));
   }
-  if (!saved.ok) redirectToOnboarding(saved.flag ?? "perfil");
+  if (!result.ok) redirectToOnboarding("perfil");
 
   const completedAt = new Date();
   await createDrizzleUserStore(getDb()).markOnboardingComplete(

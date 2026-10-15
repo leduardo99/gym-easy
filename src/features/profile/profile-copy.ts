@@ -81,3 +81,5 @@ export function sessionMinuteOptions() {
 }
 
 export const PROFILE_FORM_EMPTY_OPTION = "Não informado";
+
+export const PROFILE_COACH_OPTIONAL_HINT = "ajuda o coach a personalizar";

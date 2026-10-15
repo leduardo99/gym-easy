@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createProfileInputSchema } from "@/features/training/schemas";
 
 import {
+  parseOnboardingBirthYearForm,
   parseProfileFormData,
   profileFormErrorFlag,
 } from "./parse-profile-form";
@@ -16,6 +17,16 @@ function form(entries: Record<string, string>) {
   }
   return formData;
 }
+
+describe("parseOnboardingBirthYearForm", () => {
+  it("lê só o ano de nascimento", () => {
+    const parsed = schema.safeParse(
+      parseOnboardingBirthYearForm(form({ birthYear: "1993" })),
+    );
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.birthYear).toBe(1993);
+  });
+});
 
 describe("parseProfileFormData", () => {
   it("mapeia campos preenchidos para o schema do perfil", () => {

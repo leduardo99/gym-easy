@@ -230,10 +230,19 @@ export async function createCoachHttpResponse(input: {
       if (assessed.result.retryAfterSeconds > 0) {
         headers.set("retry-after", String(assessed.result.retryAfterSeconds));
       }
-      return Response.json(
-        { error: assessed.result.text, code: assessed.result.status },
-        { status: assessed.result.httpStatus, headers },
-      );
+      const body: {
+        error: string;
+        code: string;
+        cta?: { href: string; label: string };
+      } = {
+        error: assessed.result.text,
+        code: assessed.result.status,
+      };
+      if (assessed.result.cta) body.cta = assessed.result.cta;
+      return Response.json(body, {
+        status: assessed.result.httpStatus,
+        headers,
+      });
     }
     const events = [
       encodeSse("safety", {

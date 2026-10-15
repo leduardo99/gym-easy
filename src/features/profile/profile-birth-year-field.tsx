@@ -17,11 +17,9 @@ export function ProfileBirthYearField({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="profile-birth-year">
-        {PROFILE_FIELD_LABELS.birthYear}
-      </Label>
+      <Label htmlFor="birthYear">{PROFILE_FIELD_LABELS.birthYear}</Label>
       <Input
-        id="profile-birth-year"
+        id="birthYear"
         name="birthYear"
         inputMode="numeric"
         autoComplete="bday-year"

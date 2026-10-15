@@ -26,6 +26,11 @@ export const UNDER_AGE_RESPONSE =
 export const PROFILE_RESPONSE =
   "Falta o ano de nascimento no perfil para calcular a faixa etária. Complete o perfil antes de usar o coach.";
 
+export const PROFILE_INCOMPLETE_CTA = {
+  href: "/perfil#birthYear",
+  label: "Completar ano de nascimento",
+} as const;
+
 const INJECTION =
   /ignore as instruc|ignore the instructions|ignore previous|system prompt|modo desenvolvedor|developer mode|jailbreak/;
 
