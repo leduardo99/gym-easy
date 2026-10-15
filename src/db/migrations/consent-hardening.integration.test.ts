@@ -6,9 +6,9 @@ import { describe, expect, it } from "vitest";
 
 import { isLocalDatabaseUrl } from "@/db/driver";
 
-const databaseUrl = process.env.DATABASE_URL ?? "";
+const superuserUrl = process.env.DATABASE_URL_SUPERUSER ?? "";
 const runIntegration =
-  databaseUrl.length > 0 && isLocalDatabaseUrl(databaseUrl);
+  superuserUrl.length > 0 && isLocalDatabaseUrl(superuserUrl);
 
 const dropPurgeRole = `
 DO $$
@@ -47,14 +47,14 @@ END
 $$;
 `;
 
-describe.skipIf(!runIntegration)("0010 without gym_easy_purge", () => {
+describe.skipIf(!runIntegration)("0010 bootstrap role guard", () => {
   it("fails the migration with the missing-role exception", async () => {
     const migration = readFileSync(
       "src/db/migrations/0010_consent_hardening.sql",
       "utf8",
     );
     const guard = migration.split("--> statement-breakpoint")[0] ?? "";
-    const sql = postgres(databaseUrl, { max: 1 });
+    const sql = postgres(superuserUrl, { max: 1 });
 
     try {
       await expect(
@@ -64,6 +64,28 @@ describe.skipIf(!runIntegration)("0010 without gym_easy_purge", () => {
         }),
       ).rejects.toThrow(
         /0010_consent_hardening: missing bootstrap role\(s\): gym_easy_purge/,
+      );
+    } finally {
+      await sql.end({ timeout: 5 });
+    }
+  });
+
+  it("fails the migration when a bootstrap role has CREATEROLE", async () => {
+    const migration = readFileSync(
+      "src/db/migrations/0010_consent_hardening.sql",
+      "utf8",
+    );
+    const guard = migration.split("--> statement-breakpoint")[0] ?? "";
+    const sql = postgres(superuserUrl, { max: 1 });
+
+    try {
+      await expect(
+        sql.begin(async (tx) => {
+          await tx.unsafe("ALTER ROLE gym_easy_app CREATEROLE");
+          await tx.unsafe(guard);
+        }),
+      ).rejects.toThrow(
+        /0010_consent_hardening: bootstrap role\(s\) exceed least privilege: gym_easy_app \(rolcreaterole\)/,
       );
     } finally {
       await sql.end({ timeout: 5 });

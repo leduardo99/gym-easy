@@ -1,21 +1,22 @@
 -- Fails the CI bootstrap unless the migrator matches production least privilege.
 DO $$
 DECLARE
-  "super" boolean;
-  "create_role" boolean;
   "admins" integer;
   "membership" integer;
 BEGIN
-  SELECT rolsuper, rolcreaterole
-  INTO "super", "create_role"
-  FROM pg_catalog.pg_roles
-  WHERE rolname = 'gym_easy_migrator';
-
-  IF "super" IS DISTINCT FROM false OR "create_role" IS DISTINCT FROM false THEN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_roles
+    WHERE rolname IN ('gym_easy_migrator', 'gym_easy_app', 'gym_easy_purge')
+      AND (
+        rolsuper
+        OR rolcreaterole
+        OR rolbypassrls
+        OR (rolname = 'gym_easy_purge' AND rolcanlogin)
+      )
+  ) THEN
     RAISE EXCEPTION
-      'gym_easy_migrator must be NOSUPERUSER NOCREATEROLE (rolsuper=%, rolcreaterole=%)',
-      "super",
-      "create_role";
+      'bootstrap roles must be NOSUPERUSER NOCREATEROLE NOBYPASSRLS, and gym_easy_purge NOLOGIN';
   END IF;
 
   SELECT count(*)

@@ -2,7 +2,10 @@ import "server-only";
 
 import { z } from "zod";
 
-import { databaseTlsErrors } from "@/db/database-tls.mjs";
+import {
+  databaseTlsErrors,
+  databaseTlsModeWarning,
+} from "@/db/database-tls.mjs";
 import { readDbPoolConfig } from "@/db/driver";
 
 import { accessControlAllowOrigin } from "./app-url";
@@ -398,6 +401,12 @@ export function readServerEnv(
   if (tlsErrors.length > 0) {
     throw new Error(`Invalid environment variables:\n${tlsErrors.join("\n")}`);
   }
+  const tlsWarning = databaseTlsModeWarning({
+    nodeEnv: parsed.data.NODE_ENV,
+    tlsMode: source.DB_TLS_MODE,
+    productionBuild: isProductionBuild(source),
+  });
+  if (tlsWarning) console.warn(tlsWarning);
 
   return {
     DATABASE_URL: parsed.data.DATABASE_URL,

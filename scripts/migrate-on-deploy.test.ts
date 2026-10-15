@@ -3,6 +3,10 @@ import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
 
+import {
+  databaseTlsErrors,
+  databaseTlsModeWarning,
+} from "../src/db/database-tls.mjs";
 import { consentPrivilegeFailures } from "./migrate-on-deploy.mjs";
 
 function runMigrate(env: Record<string, string | undefined>) {
@@ -113,30 +117,49 @@ describe("migrate-on-deploy", () => {
     expect(`${result.stdout}${result.stderr}`).not.toContain(secret);
   });
 
-  it("accepts sslmode=require on neon.tech only with DB_TLS_MODE=neon", () => {
-    const allowed = runMigrate({
-      NODE_ENV: "production",
-      RUN_MIGRATIONS: "true",
-      DB_TLS_MODE: "neon",
-      DATABASE_URL_MIGRATOR:
-        "postgresql://gym_easy_migrator:migrator@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=require",
-    });
-    expect(`${allowed.stdout}${allowed.stderr}`).not.toContain(
-      "sslmode=verify-full is required",
-    );
-    expect(`${allowed.stdout}${allowed.stderr}`).not.toContain("only allows");
-
-    const refused = runMigrate({
-      NODE_ENV: "production",
-      RUN_MIGRATIONS: "true",
-      DB_TLS_MODE: "neon",
-      DATABASE_URL_MIGRATOR:
-        "postgresql://gym_easy_migrator:migrator@db.internal/gym?sslmode=require",
-    });
-    expect(refused.status).not.toBe(0);
-    expect(refused.stderr).toContain(
-      "only allows sslmode=require on *.neon.tech",
-    );
+  it("checks neon verify-full without opening a connection", () => {
+    const neon = "postgresql://gym_easy_migrator:migrator@ep.neon.tech/gym";
+    expect(
+      databaseTlsErrors({
+        nodeEnv: "production",
+        tlsMode: "neon",
+        urls: [
+          {
+            label: "DATABASE_URL_MIGRATOR",
+            url: `${neon}?sslmode=verify-full`,
+          },
+          { label: "DATABASE_URL", url: `${neon}?sslmode=verify-full` },
+        ],
+      }),
+    ).toEqual([]);
+    expect(
+      databaseTlsErrors({
+        nodeEnv: "production",
+        tlsMode: "neon",
+        urls: [
+          { label: "DATABASE_URL_MIGRATOR", url: `${neon}?sslmode=require` },
+        ],
+      }),
+    ).toEqual([
+      "DATABASE_URL_MIGRATOR: DB_TLS_MODE=neon requires sslmode=verify-full",
+    ]);
+    expect(
+      databaseTlsErrors({
+        nodeEnv: "production",
+        tlsMode: "neon",
+        urls: [
+          {
+            label: "DATABASE_URL_MIGRATOR",
+            url: "postgresql://gym_easy_migrator:migrator@db.internal/gym?sslmode=verify-full",
+          },
+        ],
+      }),
+    ).toEqual([
+      "DATABASE_URL_MIGRATOR: DB_TLS_MODE=neon only allows *.neon.tech",
+    ]);
+    expect(
+      databaseTlsModeWarning({ nodeEnv: "production", tlsMode: "neon" }),
+    ).toMatch(/DB_TLS_MODE=neon is active/);
   });
 
   it("allows DB_TLS_MODE=insecure only for localhost", () => {

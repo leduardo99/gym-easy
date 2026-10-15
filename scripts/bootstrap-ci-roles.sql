@@ -1,7 +1,8 @@
 -- CI stand-in for the Infra bootstrap. These passwords are not production secrets.
 -- The superuser creates the roles and grants gym_easy_purge to gym_easy_app.
 -- gym_easy_migrator owns the database. It is not a superuser, has no
--- CREATEROLE, and has no ADMIN OPTION on any role.
+-- CREATEROLE, has no BYPASSRLS, and has no ADMIN OPTION on any role.
+-- gym_easy_purge is NOLOGIN. Migration 0010 rejects the opposite flags.
 
 CREATE ROLE gym_easy_migrator LOGIN PASSWORD 'migrator'
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;

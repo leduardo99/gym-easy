@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { databaseTlsError } from "./database-tls.mjs";
+import {
+  databaseTlsError,
+  databaseTlsErrors,
+  databaseTlsModeWarning,
+} from "./database-tls.mjs";
 
 const verifyFull =
   "postgresql://gym_easy_app:secret@db.internal/gym?sslmode=verify-full";
 const required =
   "postgresql://gym_easy_app:secret@db.internal/gym?sslmode=require";
 const missing = "postgresql://gym_easy_app:secret@db.internal/gym";
+const neonVerifyFull =
+  "postgresql://gym_easy_app:secret@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=verify-full";
 const neonRequire =
   "postgresql://gym_easy_app:secret@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=require";
 const localMissing = "postgresql://gym_easy_app:secret@127.0.0.1:5432/gym";
@@ -33,32 +39,52 @@ describe("database TLS", () => {
     expect(check(missing)).toMatch(/sslmode=verify-full is required/);
   });
 
-  it("accepts sslmode=require on neon.tech when DB_TLS_MODE=neon", () => {
-    expect(check(neonRequire, "neon")).toBeNull();
-  });
-
   it("accepts verify-full on neon.tech when DB_TLS_MODE=neon", () => {
-    expect(
-      check(
-        "postgresql://gym_easy_app:secret@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=verify-full",
-        "neon",
-      ),
-    ).toBeNull();
+    expect(check(neonVerifyFull, "neon")).toBeNull();
   });
 
-  it("refuses sslmode=require on a non-neon host when DB_TLS_MODE=neon", () => {
-    expect(check(required, "neon")).toMatch(
-      /only allows sslmode=require on \*\.neon\.tech/,
+  it("refuses sslmode=require on neon.tech when DB_TLS_MODE=neon", () => {
+    expect(check(neonRequire, "neon")).toMatch(
+      /DB_TLS_MODE=neon requires sslmode=verify-full/,
     );
   });
 
-  it("refuses DB_TLS_MODE=neon without require or verify-full", () => {
+  it("refuses a non-neon host when DB_TLS_MODE=neon", () => {
+    expect(check(verifyFull, "neon")).toMatch(
+      /DB_TLS_MODE=neon only allows \*\.neon\.tech/,
+    );
+  });
+
+  it("requires both URLs to be neon verify-full", () => {
+    const errors = databaseTlsErrors({
+      nodeEnv: "production",
+      tlsMode: "neon",
+      urls: [
+        { label: "DATABASE_URL", url: neonVerifyFull },
+        { label: "DATABASE_URL_MIGRATOR", url: verifyFull },
+      ],
+    });
+    expect(errors).toEqual([
+      "DATABASE_URL_MIGRATOR: DB_TLS_MODE=neon only allows *.neon.tech",
+    ]);
+  });
+
+  it("warns when neon or insecure mode is active and omits the URL", () => {
+    const neonWarning = databaseTlsModeWarning({
+      nodeEnv: "production",
+      tlsMode: "neon",
+    });
+    const insecureWarning = databaseTlsModeWarning({
+      nodeEnv: "production",
+      tlsMode: "insecure",
+    });
+    expect(neonWarning).toMatch(/DB_TLS_MODE=neon is active/);
+    expect(neonWarning).toMatch(/both use sslmode=verify-full/);
+    expect(insecureWarning).toMatch(/DB_TLS_MODE=insecure is active/);
+    expect(`${neonWarning}${insecureWarning}`).not.toMatch(/postgres|secret/u);
     expect(
-      check(
-        "postgresql://gym_easy_app:secret@ep-example.aws.neon.tech/gym",
-        "neon",
-      ),
-    ).toMatch(/accepts sslmode=require or sslmode=verify-full/);
+      databaseTlsModeWarning({ nodeEnv: "test", tlsMode: "neon" }),
+    ).toBeNull();
   });
 
   it("accepts DB_TLS_MODE=insecure only for a local host", () => {

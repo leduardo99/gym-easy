@@ -33,7 +33,7 @@ jobs:
           - 1025:1025
           - 8025:8025
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gym_easy
+      DATABASE_URL: postgresql://gym_easy_app:app@localhost:5432/gym_easy
       DB_TLS_MODE: insecure
       CONFIRM_EMAIL_SECRET: confirm-email-secret-for-e2e-only-00
       CONSENT_PSEUDONYM_KEY: ci-consent-pseudonym-key-not-secret
@@ -110,6 +110,7 @@ jobs:
           MAILPIT_SMTP_HOST: 127.0.0.1
           MAILPIT_SMTP_PORT: "1025"
           MAILPIT_API_URL: http://127.0.0.1:8025
+          DATABASE_URL_SUPERUSER: postgresql://postgres:postgres@localhost:5432/gym_easy
         run: pnpm test
 
       - name: Resolve Playwright version

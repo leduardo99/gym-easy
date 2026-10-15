@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { isLocalDatabaseUrl } from "@/db/driver";
+import { databaseUrlForRole, isLocalDatabaseUrl } from "@/db/driver";
 import { repairPostgresJsSerializers } from "@/db/postgres";
 import * as schema from "@/db/schema";
 import { users } from "@/db/schema";
@@ -29,7 +29,17 @@ describe.skipIf(!runIntegration)("auth database", () => {
   const limiter = createDrizzleRateLimiter(db as unknown as AppDatabase);
 
   beforeAll(async () => {
-    await migrate(db, { migrationsFolder: "src/db/migrations" });
+    const migrator = postgres(
+      databaseUrlForRole(databaseUrl, "gym_easy_migrator", "migrator"),
+      { max: 1 },
+    );
+    try {
+      await migrate(drizzle({ client: migrator, schema }), {
+        migrationsFolder: "src/db/migrations",
+      });
+    } finally {
+      await migrator.end({ timeout: 5 });
+    }
   });
 
   afterAll(async () => {

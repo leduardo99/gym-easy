@@ -46,7 +46,7 @@ function isNeonHost(hostname) {
 
 /**
  * Production requires sslmode=verify-full.
- * DB_TLS_MODE=neon allows sslmode=require only on *.neon.tech.
+ * DB_TLS_MODE=neon still requires sslmode=verify-full, and only on *.neon.tech.
  * DB_TLS_MODE=insecure is the explicit local test flag.
  *
  * @param {{
@@ -78,10 +78,12 @@ export function databaseTlsError(input) {
 
   if (mode === "neon") {
     if (!isNeonHost(host)) {
-      return `${label}: DB_TLS_MODE=neon only allows sslmode=require on *.neon.tech`;
+      return `${label}: DB_TLS_MODE=neon only allows *.neon.tech`;
     }
-    if (sslmode === "require" || sslmode === VERIFY_FULL) return null;
-    return `${label}: DB_TLS_MODE=neon accepts sslmode=require or sslmode=verify-full`;
+    if (sslmode !== VERIFY_FULL) {
+      return `${label}: DB_TLS_MODE=neon requires sslmode=verify-full`;
+    }
+    return null;
   }
 
   if (mode !== "" && mode !== VERIFY_FULL) {
@@ -91,6 +93,30 @@ export function databaseTlsError(input) {
   if (sslmode === VERIFY_FULL) return null;
 
   return `${label}: sslmode=verify-full is required in production`;
+}
+
+/**
+ * Logged once when a non-default TLS mode is actually in use.
+ * The text never includes a connection URL.
+ *
+ * @param {{
+ *   nodeEnv?: string;
+ *   tlsMode?: string;
+ *   productionBuild?: boolean;
+ * }} input
+ * @returns {string | null}
+ */
+export function databaseTlsModeWarning(input) {
+  if (input.productionBuild) return null;
+  if (input.nodeEnv !== "production") return null;
+  const mode = (input.tlsMode ?? "").trim().toLowerCase();
+  if (mode === "neon") {
+    return "DB_TLS_MODE=neon is active: DATABASE_URL and DATABASE_URL_MIGRATOR must both use sslmode=verify-full on *.neon.tech";
+  }
+  if (mode === "insecure") {
+    return "DB_TLS_MODE=insecure is active: TLS verification is disabled for localhost";
+  }
+  return null;
 }
 
 /**

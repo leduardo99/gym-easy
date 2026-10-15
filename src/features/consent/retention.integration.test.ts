@@ -6,7 +6,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { isLocalDatabaseUrl } from "@/db/driver";
+import { databaseUrlForRole, isLocalDatabaseUrl } from "@/db/driver";
 import { repairPostgresJsSerializers } from "@/db/postgres";
 import * as schema from "@/db/schema";
 import { consentLog, users } from "@/db/schema";
@@ -23,7 +23,17 @@ describe.skipIf(!runIntegration)("consent retention privileges", () => {
   repairPostgresJsSerializers(sql);
 
   beforeAll(async () => {
-    await migrate(db, { migrationsFolder: "src/db/migrations" });
+    const migrator = postgres(
+      databaseUrlForRole(databaseUrl, "gym_easy_migrator", "migrator"),
+      { max: 1 },
+    );
+    try {
+      await migrate(drizzle({ client: migrator, schema }), {
+        migrationsFolder: "src/db/migrations",
+      });
+    } finally {
+      await migrator.end({ timeout: 5 });
+    }
   });
 
   afterAll(async () => {
@@ -107,9 +117,14 @@ describe.skipIf(!runIntegration)("consent retention privileges", () => {
   });
 
   it("faz o migrate-on-deploy sair com 1 se a app recuperar UPDATE", async () => {
-    const migratorUrl = migratorDatabaseUrl(databaseUrl);
-    await sql`grant update on "consent_log" to gym_easy_app`;
+    const migratorUrl = databaseUrlForRole(
+      databaseUrl,
+      "gym_easy_migrator",
+      "migrator",
+    );
+    const migrator = postgres(migratorUrl, { max: 1 });
     try {
+      await migrator`grant update on "consent_log" to gym_easy_app`;
       const result = spawnSync(
         process.execPath,
         ["scripts/migrate-on-deploy.mjs"],
@@ -129,8 +144,8 @@ describe.skipIf(!runIntegration)("consent retention privileges", () => {
       );
       expect(result.stderr).not.toContain(migratorUrl);
     } finally {
-      await sql`reset role`;
-      await sql`revoke update on "consent_log" from gym_easy_app`;
+      await migrator`revoke update on "consent_log" from gym_easy_app`;
+      await migrator.end({ timeout: 5 });
     }
   });
 });
@@ -142,11 +157,4 @@ function isInsufficientPrivilege(error: unknown): boolean {
     "code" in error &&
     (error as { code?: unknown }).code === "42501"
   );
-}
-
-function migratorDatabaseUrl(superuserUrl: string): string {
-  const url = new URL(superuserUrl);
-  url.username = "gym_easy_migrator";
-  url.password = "migrator";
-  return url.toString();
 }

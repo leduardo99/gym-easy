@@ -619,21 +619,41 @@ describe("readServerEnv", () => {
         DATABASE_URL_MIGRATOR: `${productionUrl}&application_name=migrator`,
       }).DATABASE_URL,
     ).toBe(productionUrl);
+    const neonUrl =
+      "postgresql://user:password@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=verify-full";
     expect(
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "neon",
+        DATABASE_URL: neonUrl,
+        DATABASE_URL_MIGRATOR: neonUrl,
+      }).DATABASE_URL,
+    ).toBe(neonUrl);
+    expect(() =>
       readServerEnv({
         ...production,
         DB_TLS_MODE: "neon",
         DATABASE_URL:
           "postgresql://user:password@ep-example.eu-central-1.aws.neon.tech/gym?sslmode=require",
-      }).DATABASE_URL,
-    ).toContain("sslmode=require");
+      }),
+    ).toThrow(/DB_TLS_MODE=neon requires sslmode=verify-full/);
     expect(() =>
       readServerEnv({
         ...production,
         DB_TLS_MODE: "neon",
         DATABASE_URL: validUrl,
       }),
-    ).toThrow(/only allows sslmode=require on \*\.neon\.tech/);
+    ).toThrow(/DB_TLS_MODE=neon only allows \*\.neon\.tech/);
+    expect(() =>
+      readServerEnv({
+        ...production,
+        DB_TLS_MODE: "neon",
+        DATABASE_URL: neonUrl,
+        DATABASE_URL_MIGRATOR: productionUrl,
+      }),
+    ).toThrow(
+      /DATABASE_URL_MIGRATOR: DB_TLS_MODE=neon only allows \*\.neon\.tech/,
+    );
     expect(
       readServerEnv({
         ...production,

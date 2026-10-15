@@ -25,6 +25,18 @@ export function isLocalDatabaseUrl(databaseUrl: string): boolean {
   return host === "localhost" || host === "127.0.0.1";
 }
 
+/** Rewrites the user of a local URL. Passwords here are the CI bootstrap values. */
+export function databaseUrlForRole(
+  databaseUrl: string,
+  username: string,
+  password: string,
+): string {
+  const url = new URL(databaseUrl);
+  url.username = username;
+  url.password = password;
+  return url.toString();
+}
+
 export function readDbPoolConfig(source: {
   DB_POOL_MAX?: string;
   DB_IDLE_TIMEOUT?: string;
