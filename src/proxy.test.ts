@@ -10,8 +10,7 @@ afterEach(() => {
 describe("proxy design catalog", () => {
   it("returns a real 404 for /design in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    // CI exports APP_URL. This case is the unset origin, so the header stays off.
-    vi.stubEnv("APP_URL", "");
+    vi.stubEnv("APP_URL", "https://app.gaffer.pt");
 
     const response = proxy(new NextRequest("https://gym.example/design"));
 
@@ -24,11 +23,22 @@ describe("proxy design catalog", () => {
     expect(response.headers.get("strict-transport-security")).toContain(
       "max-age=",
     );
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      "https://app.gaffer.pt",
+    );
+  });
+
+  it("omits Access-Control-Allow-Origin when APP_URL is unset", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("APP_URL", "");
+
+    const response = proxy(new NextRequest("https://gym.example/"));
+
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
 
   it("sets Access-Control-Allow-Origin from APP_URL", () => {
-    vi.stubEnv("APP_URL", "https://app.gaffer.pt/cadastro");
+    vi.stubEnv("APP_URL", "https://app.gaffer.pt");
     vi.stubEnv("NODE_ENV", "production");
 
     const response = proxy(new NextRequest("https://gym.example/"));
@@ -52,7 +62,7 @@ describe("proxy design catalog", () => {
   it("keeps /design available outside production", () => {
     vi.stubEnv("NODE_ENV", "development");
 
-    const response = proxy(new NextRequest("http://127.0.0.1:3000/design/"));
+    const response = proxy(new NextRequest("http://localhost:3000/design/"));
 
     expect(response.status).not.toBe(404);
     expect(response.headers.get("strict-transport-security")).toBeNull();

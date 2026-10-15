@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getDb } from "@/db";
+import { isAllowedOriginFromHeaders } from "@/lib/allowed-origin";
 import { getServerEnv } from "@/lib/env";
 
 import { confirmEmail } from "./confirm-email";
@@ -27,8 +28,6 @@ import {
   SESSION_COOKIE_NAME,
   confirmEmailCookieOptions,
   getClientIp,
-  isSameOrigin,
-  requestOrigin,
   sessionCookieOptions,
   shouldUseSecureCookie,
 } from "./session-cookie";
@@ -122,10 +121,7 @@ function readNext(input: unknown): string | null {
 
 async function mutationContext() {
   const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  if (!isSameOrigin(headerStore.get("origin"), host)) return null;
-  const origin = requestOrigin(headerStore);
-  if (!origin) return null;
+  if (!isAllowedOriginFromHeaders(headerStore)) return null;
   const jar = await cookies();
   const existing = jar.get(SESSION_COOKIE_NAME)?.value;
   const env = getServerEnv();

@@ -32,26 +32,6 @@ export function shouldUseSecureCookie(
   return proto === "https";
 }
 
-export function isSameOrigin(
-  origin: string | null,
-  host: string | null,
-): boolean {
-  if (!origin || !host) return false;
-  try {
-    return new URL(origin).host === host;
-  } catch {
-    return false;
-  }
-}
-
-export function requestOrigin(headerStore: Headers): string | null {
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  if (!host || host.includes(",")) return null;
-  const proto = headerStore.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  if (proto === "https" || proto === "http") return `${proto}://${host}`;
-  return `http://${host}`;
-}
-
 function isClientIp(value: string): boolean {
   if (value.length === 0 || value.length > 64) return false;
   if (value.toLowerCase() === "unknown") return false;

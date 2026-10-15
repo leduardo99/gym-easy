@@ -13,7 +13,11 @@ vi.mock("next/navigation", () => ({
 
 import { CONSENT_TEXTS } from "@/consent/texts";
 
-import { COACH_TRANSFER_RISK_LINE, RECONSENT_COPY } from "./reconsent";
+import {
+  COACH_TRANSFER_RISK_HEADING,
+  COACH_TRANSFER_RISK_LINE,
+  RECONSENT_COPY,
+} from "./reconsent";
 import { ReconsentScreen } from "./reconsent-screen";
 
 describe("ReconsentScreen", () => {
@@ -80,7 +84,15 @@ describe("ReconsentScreen", () => {
 
       const risks = within(container).getByTestId("coach-transfer-risks");
       expect(risks).toBeVisible();
+      expect(risks).toHaveTextContent(COACH_TRANSFER_RISK_HEADING);
       expect(risks).toHaveTextContent(COACH_TRANSFER_RISK_LINE);
+      const transferCheckbox = within(container).getByRole("checkbox", {
+        name: CONSENT_TEXTS[scope].transferCheckbox,
+      });
+      expect(
+        risks.compareDocumentPosition(transferCheckbox) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
       expect(
         within(container).getByRole("heading", {
           name: CONSENT_TEXTS[scope].title,

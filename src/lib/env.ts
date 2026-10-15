@@ -9,7 +9,7 @@ import {
 import { readDbPoolConfig } from "@/db/driver";
 
 import { parseFreeModelList } from "@/lib/ai/models";
-import { accessControlAllowOrigin } from "./app-url";
+import { strictAppUrlOrigin } from "./app-url";
 
 const postgresUrl = z
   .string()
@@ -241,6 +241,17 @@ export const serverEnvSchema = z
         });
       }
     }
+
+    if (value.APP_URL?.trim()) {
+      const parsed = strictAppUrlOrigin(value.APP_URL);
+      if (typeof parsed !== "string") {
+        context.addIssue({
+          code: "custom",
+          path: ["APP_URL"],
+          message: parsed.error,
+        });
+      }
+    }
   });
 
 export type ServerEnv = {
@@ -279,7 +290,7 @@ export const BUILD_CONSENT_PSEUDONYM_KEY =
   "build-consent-pseudonym-key-not-secret";
 
 /** Local origin used when APP_URL is unset outside production. */
-export const DEFAULT_DEV_APP_URL = "http://127.0.0.1:3000";
+export const DEFAULT_DEV_APP_URL = "http://localhost:3000";
 
 export const BUILD_APP_URL = DEFAULT_DEV_APP_URL;
 
@@ -373,6 +384,7 @@ export function readServerEnv(
     parsed.data.NODE_ENV,
     parsed.data.APP_URL,
     isProductionBuild(source),
+    source,
   );
   if (typeof appUrl !== "string") {
     throw new Error(`Invalid environment variables:\n${appUrl.error}`);
@@ -479,14 +491,39 @@ function readTrustedProxyHops(value: string | undefined): number | string {
   return parsed;
 }
 
+function allowsCiLocalHttpOrigin(
+  origin: string,
+  source: NodeJS.ProcessEnv,
+): boolean {
+  if (source.CI !== "true") return false;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    return (
+      protocol === "http:" &&
+      (hostname === "localhost" || hostname === "127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
+}
+
 function resolveAppUrl(
   nodeEnv: "development" | "test" | "production",
   configured: string | undefined,
   productionBuild: boolean,
+  source: NodeJS.ProcessEnv,
 ): string | { error: string } {
   if (configured) {
-    const origin = accessControlAllowOrigin(configured.trim());
-    if (!origin) return { error: "APP_URL: APP_URL must be an http(s) URL" };
+    const origin = strictAppUrlOrigin(configured);
+    if (typeof origin !== "string") return origin;
+    if (
+      nodeEnv === "production" &&
+      !productionBuild &&
+      origin.startsWith("http:") &&
+      !allowsCiLocalHttpOrigin(origin, source)
+    ) {
+      return { error: "APP_URL: APP_URL must use https in production" };
+    }
     return origin;
   }
   if (productionBuild) return BUILD_APP_URL;
@@ -501,4 +538,9 @@ let cached: ServerEnv | undefined;
 export function getServerEnv(): ServerEnv {
   cached ??= readServerEnv();
   return cached;
+}
+
+/** @internal Vitest only — clears cached env between cases. */
+export function resetServerEnvCache(): void {
+  cached = undefined;
 }

@@ -25,6 +25,7 @@ console.log('argon2: ok');
 docker rm -f gym-easy-boot >/dev/null 2>&1 || true
 docker run -d --name gym-easy-boot --network host \
   -e NODE_ENV=production \
+  -e CI=true \
   -e EMAIL_TRANSPORT=resend \
   -e RESEND_API_KEY=ci-resend-key-not-secret \
   -e EMAIL_FROM='Gym Easy <noreply@gaffer.pt>' \

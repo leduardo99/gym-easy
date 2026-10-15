@@ -27,6 +27,13 @@ describe("PrivacyPage", () => {
         /banco de dados PostgreSQL gerido pela equipe do Gym Easy/,
       ),
     ).toBeInTheDocument();
+    const dataLocation = screen.getByRole("region", {
+      name: "Onde ficam os dados",
+    });
+    expect(dataLocation).toHaveTextContent(
+      /guardados no servidor e nas cópias de segurança \(backups\)/,
+    );
+    expect(dataLocation).toHaveTextContent(/não saem da UE/);
     expect(
       screen.getByRole("heading", { name: "Subprocessadores" }),
     ).toBeInTheDocument();
@@ -64,6 +71,9 @@ describe("PrivacyPage", () => {
     expect(privacyPolicyText()).not.toMatch(/vercel/i);
     expect(privacyPolicyText()).toContain("contacto@gaffer.pt");
     expect(privacyPolicyText()).toContain("eu-madrid-1");
+    expect(privacyPolicyText()).toMatch(
+      /guardados no servidor e nas cópias de segurança \(backups\).*não saem da UE/,
+    );
     expect(privacyPolicyText()).toContain("criptografadas");
     expect(privacyPolicyText()).toContain(
       "dados apagados saem dos backups em até 8 dias",

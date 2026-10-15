@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { loginRedirectPath } from "@/features/auth/destination";
 import { lookupSession } from "@/features/auth/lookup-session";
-import { isSameOrigin } from "@/features/auth/session-cookie";
+import { isAllowedOriginFromHeaders } from "@/lib/allowed-origin";
 
 import {
   RECONSENT_FALLBACK,
@@ -25,8 +25,7 @@ async function requireSameOriginSession(
   returnPath: string,
 ): Promise<{ ok: true; userId: string } | { ok: false }> {
   const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  if (!isSameOrigin(headerStore.get("origin"), host)) return { ok: false };
+  if (!isAllowedOriginFromHeaders(headerStore)) return { ok: false };
   const session = await lookupSession();
   if (session.status !== "ok") {
     redirect(loginRedirectPath(session.status, returnPath));

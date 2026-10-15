@@ -335,7 +335,7 @@ describe("readServerEnv", () => {
       readServerEnv({
         DATABASE_URL: productionUrl,
         NODE_ENV: "production",
-        APP_URL: "http://127.0.0.1:3000",
+        APP_URL: "https://127.0.0.1:3000",
         CI: "true",
         CONFIRM_EMAIL_SECRET: confirmSecret,
         CONSENT_PSEUDONYM_KEY: validConsentKey,
@@ -567,7 +567,7 @@ describe("readServerEnv", () => {
         CRON_SECRET: "cron-secret-value-32-characters-ok",
       }),
     ).toThrow(/APP_URL is required in production/);
-    expect(
+    expect(() =>
       readServerEnv({
         DATABASE_URL: productionUrl,
         NODE_ENV: "production",
@@ -577,6 +577,18 @@ describe("readServerEnv", () => {
         RESEND_API_KEY: "test-resend-key",
         CRON_SECRET: "cron-secret-value-32-characters-ok",
         APP_URL: "https://app.gaffer.pt/cadastro",
+      }),
+    ).toThrow(/APP_URL must not include a path/);
+    expect(
+      readServerEnv({
+        DATABASE_URL: productionUrl,
+        NODE_ENV: "production",
+        CONFIRM_EMAIL_SECRET: confirmSecret,
+        CONSENT_PSEUDONYM_KEY: validConsentKey,
+        EMAIL_TRANSPORT: "resend",
+        RESEND_API_KEY: "test-resend-key",
+        CRON_SECRET: "cron-secret-value-32-characters-ok",
+        APP_URL: "https://app.gaffer.pt",
       }).APP_URL,
     ).toBe("https://app.gaffer.pt");
     expect(() =>
@@ -707,6 +719,57 @@ describe("readServerEnv", () => {
         DATABASE_URL: "postgresql://user:password@db.internal/gym",
       }),
     ).toThrow(/only allowed for localhost/);
+  });
+
+  it("rejects APP_URL with path, query or hash", () => {
+    for (const appUrl of [
+      "https://app.gaffer.pt/path",
+      "https://app.gaffer.pt?x=1",
+      "https://app.gaffer.pt#frag",
+    ]) {
+      expect(() =>
+        readServerEnv({
+          DATABASE_URL: validUrl,
+          NODE_ENV: "test",
+          CONFIRM_EMAIL_SECRET: confirmSecret,
+          CONSENT_PSEUDONYM_KEY: validConsentKey,
+          APP_URL: appUrl,
+        }),
+      ).toThrow(/APP_URL must not/);
+    }
+  });
+
+  it("allows http APP_URL on localhost only when CI=true in production", () => {
+    const productionLocal = {
+      DATABASE_URL: validUrl,
+      DB_TLS_MODE: "insecure" as const,
+      NODE_ENV: "production" as const,
+      CONFIRM_EMAIL_SECRET: confirmSecret,
+      CONSENT_PSEUDONYM_KEY: validConsentKey,
+      EMAIL_TRANSPORT: "resend" as const,
+      RESEND_API_KEY: "test-resend-key",
+      CRON_SECRET: "cron-secret-value-32-characters-ok",
+    };
+    expect(
+      readServerEnv({
+        ...productionLocal,
+        APP_URL: "http://127.0.0.1:3000",
+        CI: "true",
+      }).APP_URL,
+    ).toBe("http://127.0.0.1:3000");
+    expect(() =>
+      readServerEnv({
+        ...productionLocal,
+        APP_URL: "http://127.0.0.1:3000",
+      }),
+    ).toThrow(/APP_URL must use https in production/);
+    expect(() =>
+      readServerEnv({
+        ...productionLocal,
+        APP_URL: "http://evil.example",
+        CI: "true",
+      }),
+    ).toThrow(/APP_URL must use https in production/);
   });
 
   it("uses a local APP_URL placeholder during next build", () => {

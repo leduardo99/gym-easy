@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 
 export const CRON_SECRET_MIN = 32;
 
-export function cronSecretsMatch(token: string, secret: string): boolean {
+export function verifyCronSecret(token: string, secret: string): boolean {
   const actual = createHash("sha256").update(token).digest();
   const expected = createHash("sha256").update(secret).digest();
   return timingSafeEqual(actual, expected);
@@ -31,7 +31,7 @@ export function unauthorizedCron(request: Request): Response | null {
   const token = authorization?.startsWith("Bearer ")
     ? authorization.slice("Bearer ".length)
     : "";
-  if (!token || !cronSecretsMatch(token, secret)) {
+  if (!token || !verifyCronSecret(token, secret)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   return null;

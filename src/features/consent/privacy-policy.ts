@@ -23,6 +23,7 @@ export const PRIVACY_POLICY = {
     heading: "Onde ficam os dados",
     paragraphs: [
       "Os dados da aplicação ficam num banco de dados PostgreSQL gerido pela equipe do Gym Easy no servidor Oracle Cloud Infrastructure, região eu-madrid-1 (Madrid, Espanha, UE), no mesmo servidor onde o app é hospedado, com conexões criptografadas. Incluem dados do corpo, saúde do Coach, chat, estatísticas de uso e prova de consentimento, conforme as autorizações vigentes.",
+      "Os dados guardados no servidor e nas cópias de segurança (backups) permanecem na União Europeia e não saem da UE.",
     ],
   },
   processorsHeading: "Subprocessadores",
