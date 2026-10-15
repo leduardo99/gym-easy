@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { birthYearField, heightField } from "./helpers/profile";
+
 const capturePath = ".data/e2e-emails.jsonl";
 
 async function latestEmail(email: string) {
@@ -39,7 +41,9 @@ async function signedIn(page: Page) {
 }
 
 async function grantConsent(page: Page, scope: string, next = "/perfil") {
-  await page.goto(`/consentimento?scope=${scope}&next=${next}`);
+  await page.goto(
+    `/consentimento?scope=${scope}&next=${encodeURIComponent(next)}`,
+  );
   const checkboxes = page.getByRole("checkbox");
   const count = await checkboxes.count();
   for (let index = 0; index < count; index += 1) {
@@ -55,12 +59,12 @@ test("perfil com ano de nascimento evita profile_incomplete no coach", async ({
   await signedIn(page);
   await grantConsent(page, "body_data");
 
-  await page.getByLabel("Ano de nascimento").fill("1991");
-  await page.getByLabel("Altura (cm)").fill("175");
+  await birthYearField(page).fill("1991");
+  await heightField(page).fill("175");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Perfil guardado.")).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Ano de nascimento")).toHaveValue("1991");
+  await expect(birthYearField(page)).toHaveValue("1991");
 
   await grantConsent(page, "coach_health");
   await grantConsent(page, "coach_chat");

@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { birthYearField, heightField } from "./helpers/profile";
+
 const capturePath = ".data/e2e-emails.jsonl";
 
 async function latestEmail(email: string) {
@@ -43,7 +45,7 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
 }) => {
   await signedIn(page);
   await page.goto("/perfil");
-  await page.getByLabel("Altura (cm)").fill("170");
+  await heightField(page).fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await page.waitForURL(/\/consentimento\?/);
   const url = new URL(page.url());
@@ -62,13 +64,13 @@ test("guardar a altura sem consentimento atual abre o reconsentimento", async ({
   await page.getByRole("button", { name: "Autorizar" }).click();
   await page.waitForURL("**/perfil");
 
-  await page.getByLabel("Ano de nascimento").fill("1990");
-  await page.getByLabel("Altura (cm)").fill("170");
+  await birthYearField(page).fill("1990");
+  await heightField(page).fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Perfil guardado.")).toBeVisible();
   await page.goto("/perfil");
-  await expect(page.getByLabel("Ano de nascimento")).toHaveValue("1990");
-  await expect(page.getByLabel("Altura (cm)")).toHaveValue("170");
+  await expect(birthYearField(page)).toHaveValue("1990");
+  await expect(heightField(page)).toHaveValue("170");
 });
 
 test("recusar o reconsentimento não libera a ação", async ({ page }) => {
@@ -83,7 +85,7 @@ test("recusar o reconsentimento não libera a ação", async ({ page }) => {
   await expect(page).toHaveURL(/\/consentimento\?/);
 
   await page.goto("/perfil");
-  await page.getByLabel("Altura (cm)").fill("170");
+  await heightField(page).fill("170");
   await page.getByRole("button", { name: "Guardar" }).click();
   await page.waitForURL(/\/consentimento\?/);
   expect(new URL(page.url()).searchParams.get("scope")).toBe("body_data");
