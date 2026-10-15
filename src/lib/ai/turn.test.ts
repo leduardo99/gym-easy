@@ -166,6 +166,7 @@ describe("coach risk gate", () => {
       log: () => undefined,
       sleep: async () => undefined,
       models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
     });
 
     expect(result.status).toBe("consent_missing");

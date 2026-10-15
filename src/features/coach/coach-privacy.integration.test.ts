@@ -265,6 +265,7 @@ describe.skipIf(!runIntegration)("coach privacy integration", () => {
       limiter: createMemoryRateLimiter(),
       locks: createMemoryRedFlagLockStore(),
       models: ["alpha/example:free"],
+      privacyMode: "zdr_only",
       callModel,
       log: () => undefined,
       sleep: async () => undefined,
