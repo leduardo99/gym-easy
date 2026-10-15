@@ -7,11 +7,13 @@ import {
   classifyProviderFailure,
   createAttemptController,
   openRouterProviderRouting,
+  isBackoffRetryable,
   rateLimitRetryDelayMs,
   runModelFallback,
 } from "./fallback";
 
 const steadyJitter = () => 0.5;
+const minJitter = () => 0;
 
 const models = ["alpha/example:free", "beta/example:free"];
 
@@ -171,6 +173,7 @@ describe("provider fallback", () => {
   });
 
   it("succeeds on the same model after a transient 503", async () => {
+    const sleeps: number[] = [];
     let calls = 0;
     const call = vi.fn(async ({ model, zdr }) => {
       calls += 1;
@@ -181,14 +184,17 @@ describe("provider fallback", () => {
       }
       return { model, zdr };
     });
+    const expectedDelay = rateLimitRetryDelayMs(0, null, minJitter);
 
     const result = await runModelFallback({
       models: ["alpha/example:free"],
       privacyMode: "zdr_only",
       product: "coach",
       call,
-      jitter: steadyJitter,
-      sleep: async () => undefined,
+      jitter: minJitter,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
     });
 
     expect(result).toMatchObject({
@@ -197,10 +203,12 @@ describe("provider fallback", () => {
       servedWithZdr: true,
     });
     expect(call).toHaveBeenCalledTimes(2);
+    expect(sleeps).toEqual([expectedDelay]);
     expect(call.mock.calls.every((entry) => entry[0]?.zdr === true)).toBe(true);
   });
 
   it("retries 500 up to two times on the same model then moves on", async () => {
+    const sleeps: number[] = [];
     let alpha = 0;
     const call = vi.fn(async ({ model }) => {
       if (model.startsWith("alpha")) {
@@ -215,11 +223,17 @@ describe("provider fallback", () => {
       privacyMode: "zdr_only",
       product: "coach",
       call,
-      jitter: steadyJitter,
-      sleep: async () => undefined,
+      jitter: minJitter,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
     });
 
     expect(alpha).toBe(3);
+    expect(sleeps).toEqual([
+      rateLimitRetryDelayMs(0, null, minJitter),
+      rateLimitRetryDelayMs(1, null, minJitter),
+    ]);
     expect(result).toMatchObject({
       ok: true,
       model: "beta/example:free",
@@ -351,6 +365,28 @@ describe("provider fallback", () => {
     expect(
       rateLimitRetryDelayMs(0, RETRY_AFTER_CAP_MS + 5_000, steadyJitter),
     ).toBe(3000);
+  });
+
+  it("computes backoff delay from an injected jitter source", () => {
+    expect(rateLimitRetryDelayMs(0, null, minJitter)).toBe(680);
+    expect(rateLimitRetryDelayMs(0, null, () => 1)).toBe(920);
+    expect(rateLimitRetryDelayMs(1, null, minJitter)).toBe(1700);
+    expect(rateLimitRetryDelayMs(1, null, steadyJitter)).toBe(2000);
+  });
+
+  it("marks 5xx responses as backoff-retryable but not 4xx", () => {
+    expect(
+      isBackoffRetryable({ kind: "provider_error", retryAfterMs: null }, 503),
+    ).toBe(true);
+    expect(
+      isBackoffRetryable({ kind: "provider_error", retryAfterMs: null }, 500),
+    ).toBe(true);
+    expect(
+      isBackoffRetryable({ kind: "provider_error", retryAfterMs: null }, 400),
+    ).toBe(false);
+    expect(
+      isBackoffRetryable({ kind: "rate_limited", retryAfterMs: 1000 }, 429),
+    ).toBe(true);
   });
 
   it("stops rate-limit retries when the overall timeout budget is exhausted", async () => {

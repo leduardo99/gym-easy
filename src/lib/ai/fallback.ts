@@ -180,7 +180,7 @@ export function classifyProviderFailure(error: unknown): ProviderFailure {
   return { kind: "provider_error", retryAfterMs: null };
 }
 
-function isBackoffRetryable(
+export function isBackoffRetryable(
   failure: ProviderFailure,
   statusCode: number | undefined,
 ): boolean {
