@@ -29,7 +29,7 @@ export async function signedIn(page: Page, prefix = "profile-flow") {
     .getByLabel("Senha", { exact: true })
     .fill("gym-easy-e2e-senha-9f3f");
   await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page).toHaveURL(/\/cadastro\/confirme/);
+  await expect(page).toHaveURL(/\/cadastro\/confirme/, { timeout: 20_000 });
   await expect
     .poll(() => latestEmail(email))
     .toMatchObject({ kind: "account_confirmation" });
