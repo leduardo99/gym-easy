@@ -10,7 +10,6 @@ import {
   sexOptions,
   trainingPlaceOptions,
 } from "./profile-copy";
-import { ProfileHeightField } from "./profile-height-field";
 import { ProfileSelect } from "./profile-select";
 import type { ProfileFormValues } from "./profile-form-types";
 
@@ -47,7 +46,6 @@ export function ProfileOptionalCoachFields({
         defaultValue={values.sex ?? ""}
         options={sexOptions()}
       />
-      <ProfileHeightField heightCm={values.heightCm} />
       <ProfileSelect
         id="profile-goal"
         name="goal"

@@ -27,6 +27,6 @@ describe("ProfilePerfilFields", () => {
 
     expect(screen.getByLabelText("Ano de nascimento")).toHaveValue("1990");
     expect(screen.getByText(PROFILE_COACH_OPTIONAL_HINT)).toBeInTheDocument();
-    expect(screen.getByLabelText("Altura (cm)")).toHaveValue("180");
+    expect(screen.queryByLabelText("Altura (cm)")).not.toBeInTheDocument();
   });
 });

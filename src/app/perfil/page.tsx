@@ -13,6 +13,7 @@ import {
   PROFILE_SAVE_RATE_LIMIT_MESSAGE,
 } from "@/features/profile/profile-copy";
 import { ProfileBirthYearFocus } from "@/features/profile/profile-birth-year-focus";
+import { ProfileHeightField } from "@/features/profile/profile-height-field";
 import { ProfilePerfilFields } from "@/features/profile/profile-perfil-fields";
 import { saveProfileAction } from "@/features/training/actions";
 import { createTrainingRepository } from "@/features/training/repository";
@@ -69,6 +70,7 @@ export default async function ProfilePage({
       </nav>
       <ProfileBirthYearFocus />
       <form action={saveProfileAction} className="mt-8 flex flex-col gap-4">
+        <ProfileHeightField heightCm={profile?.heightCm} />
         <ProfilePerfilFields
           profile={profile}
           birthYearInvalid={params.erro === "nascimento"}
